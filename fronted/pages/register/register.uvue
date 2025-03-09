@@ -1,0 +1,311 @@
+<template>
+  <view class="register-page">
+    <!-- 顶部 Logo -->
+    <view class="header-illustration">
+      <image class="illustration-img" src="/static/login/login_illustration.png" mode="widthFix" />
+    </view>
+
+    <view class="glass-container">
+      <!-- 中间表单区域 -->
+      <view class="form-container">
+        <!-- 用户名输入框 -->
+        <view class="input-wrapper" :class="{ focused: focusedInput === 'username' }">
+          <image class="input-icon" src="/static/icons/user-solid.svg" mode="aspectFit" />
+          <input 
+            class="uni-input" 
+            v-model="username" 
+            type="text" 
+            placeholder="Enter username" 
+            @focus="focusedInput = 'username'" 
+            @blur="focusedInput = ''; checkUsername()"
+          />
+        </view>
+        <text class="error-text" v-if="usernameError">{{ usernameErrorMessage }}</text>
+
+        <!-- 邮箱输入框 -->
+        <view class="input-wrapper" :class="{ focused: focusedInput === 'email' }">
+          <image class="input-icon" src="/static/icons/envelope-solid.svg" mode="aspectFit" />
+          <input 
+            class="uni-input" 
+            v-model="email" 
+            type="email" 
+            placeholder="Enter email" 
+            @focus="focusedInput = 'email'" 
+            @blur="focusedInput = ''; checkEmail()"
+          />
+        </view>
+        <text class="error-text" v-if="emailError">{{ emailErrorMessage }}</text>
+
+        <!-- 手机号码输入框 -->
+        <view class="input-wrapper" :class="{ focused: focusedInput === 'phone' }">
+          <image class="input-icon" src="/static/icons/phone-solid.svg" mode="aspectFit" />
+          <input 
+            class="uni-input" 
+            v-model="phone_number" 
+            type="number" 
+            placeholder="Enter phone number" 
+            @focus="focusedInput = 'phone'" 
+            @blur="focusedInput = ''; checkPhoneNumber()"
+          />
+        </view>
+        <text class="error-text" v-if="phoneError">{{ phoneErrorMessage }}</text>
+
+        <!-- 密码输入框 -->
+        <view class="input-wrapper" :class="{ focused: focusedInput === 'password' }">
+          <image class="input-icon" src="/static/icons/unlock-solid.svg" mode="aspectFit" />
+          <input 
+            class="uni-input" 
+            v-model="password" 
+            :type="showPassword ? 'text' : 'password'" 
+            placeholder="Enter password"
+            @focus="focusedInput = 'password'"
+            @blur="focusedInput = ''; checkPassword()"
+          />
+          <image 
+            class="eye-icon" 
+            :src="showPassword ? '/static/icons/eye-solid.svg' : '/static/icons/eye-slash-solid.svg'" 
+            mode="aspectFit" 
+            @click="togglePasswordVisibility" 
+          />
+        </view>
+        <text class="error-text" v-if="passwordError">{{ passwordErrorMessage }}</text>
+
+        <!-- 确认密码输入框 -->
+        <view class="input-wrapper" :class="{ focused: focusedInput === 'confirmPassword' }">
+          <image class="input-icon" src="/static/icons/lock-solid.svg" mode="aspectFit" />
+          <input 
+            class="uni-input" 
+            v-model="confirmPassword" 
+            :type="showConfirmPassword ? 'text' : 'password'" 
+            placeholder="Confirm password" 
+            @focus="focusedInput = 'confirmPassword'" 
+            @blur="focusedInput = ''"
+          />
+          <image 
+            class="eye-icon" 
+            :src="showConfirmPassword ? '/static/icons/eye-solid.svg' : '/static/icons/eye-slash-solid.svg'" 
+            mode="aspectFit" 
+            @click="toggleConfirmPasswordVisibility" 
+          />
+        </view>
+        <text class="error-text" v-if="confirmPasswordError">{{ confirmPasswordErrorMessage }}</text>
+
+        <!-- 注册按钮 -->
+        <button class="register-btn" @click="handleRegister">
+          Sign up
+        </button>
+      </view>
+    </view>
+
+    <!-- 返回登录 -->
+    <view class="tips-wrapper">
+      <text class="tip-link" @click="goToLogin">Already have an account? Log in</text>
+    </view>
+  </view>
+</template>
+
+
+
+
+
+<script>
+export default {
+  data() {
+    return {
+      username: '',
+      email: '',
+      phone_number: '',
+      password: '',
+      confirmPassword: '',
+      showPassword: false, // 是否显示密码
+      showConfirmPassword: false, // 是否显示确认密码
+      focusedInput: '', // 选中的输入框
+      usernameError: false,
+      emailError: false,
+      phoneError: false,
+      passwordError: false,
+      confirmPasswordError: false,
+      usernameErrorMessage: '',
+      emailErrorMessage: '',
+      phoneErrorMessage: '',
+      passwordErrorMessage: '',
+      confirmPasswordErrorMessage: ''
+    };
+  },
+  methods: {
+    togglePasswordVisibility() {
+      this.showPassword = !this.showPassword;
+    },
+    toggleConfirmPasswordVisibility() {
+      this.showConfirmPassword = !this.showConfirmPassword;
+    },
+
+    checkUsername() {
+      this.usernameError = this.username.length > 15;
+      this.usernameErrorMessage = this.usernameError ? 'Username cannot exceed 15 characters.' : '';
+    },
+
+    checkEmail() {
+      let emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      this.emailError = !emailRegex.test(this.email);
+      this.emailErrorMessage = this.emailError ? 'Invalid email format.' : '';
+    },
+
+    checkPhoneNumber() {
+      let phoneRegex = /^[1-9]\d{9,14}$/;
+      this.phoneError = !phoneRegex.test(this.phone_number);
+      this.phoneErrorMessage = this.phoneError ? 'Invalid phone number.' : '';
+    },
+
+    checkPassword() {
+      this.passwordError = this.password.length > 15;
+      this.passwordErrorMessage = this.passwordError ? 'Password cannot exceed 15 characters.' : '';
+    },
+
+    handleRegister() {
+      if (this.usernameError || this.emailError || this.phoneError || this.passwordError) {
+        uni.showToast({ title: 'Please correct the errors', icon: 'none' });
+        return;
+      }
+
+      // **密码匹配检查（在提交时执行）**
+      if (this.password !== this.confirmPassword) {
+        this.confirmPasswordError = true;
+        this.confirmPasswordErrorMessage = 'Passwords do not match.';
+        return;
+      }
+      this.confirmPasswordError = false;
+      this.confirmPasswordErrorMessage = '';
+
+      uni.showToast({ title: 'Registration successful', icon: 'success' });
+      this.goToLogin();
+    },
+
+    goToLogin() {
+      uni.navigateTo({ url: '/pages/login/login' });
+    }
+  }
+};
+
+</script>
+
+<style scoped>
+/* 页面背景 */
+.register-page {
+  background: linear-gradient(to bottom right, #a1c4fd, #f2f6fc);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 顶部插画 */
+.header-illustration {
+  margin-top: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.illustration-img {
+  width: 50%;
+}
+
+/* 磨砂玻璃框 */
+.glass-container {
+  margin: auto;
+  margin-top: 20rpx;
+  padding: 0 70rpx;
+  width: 90%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 60rpx;
+  padding: 40rpx;
+  padding-left: 50rpx;
+  padding-right: 50rpx;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  text-align: center;
+}
+
+/* 输入框 */
+.input-wrapper {
+  position: relative;
+  margin-bottom: 25rpx;
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 70rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 50rpx;
+  transition: all 0.3s;
+}
+
+/* 输入框选中时高亮 */
+.input-wrapper.focused {
+  border: 2rpx solid #007aff;
+  background-color: #eaf5ff;
+}
+/* 左侧图标 */
+.input-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 25rpx;
+}
+
+/* 输入框 */
+.uni-input {
+  flex: 1;
+  height: 90rpx;
+  font-size: 28rpx;
+  border: none;
+  background-color: transparent;
+}
+
+/* 眼睛图标 */
+.eye-icon {
+  width: 36rpx;
+  height: 36rpx;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+.eye-icon:hover {
+  transform: scale(1.1);
+}
+
+/* 错误提示文本 */
+.error-text {
+  font-size: 26rpx;
+  color: #0073f1;
+  margin-top: 0rpx;
+  margin-bottom: 30rpx;
+  margin-left: 25rpx;
+}
+
+/* 注册按钮 */
+.register-btn {
+  margin-top: 30rpx;
+  height: 90rpx;
+  font-size: 30rpx;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  color: white;
+  border-radius: 70rpx;
+  transition: all 0.3s;
+}
+.register-btn:active {
+  transform: scale(0.96);
+}
+
+.tips-wrapper {
+  margin: auto;
+  margin-top: 50rpx;
+  text-align: center;
+}
+.tip-link {
+  font-size: 26rpx;
+  color: #666;
+  transition: color 0.2s;
+}
+.tip-link:hover {
+  color: #005bb5;
+}
+
+</style>

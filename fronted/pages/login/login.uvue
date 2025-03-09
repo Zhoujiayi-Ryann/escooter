@@ -1,0 +1,324 @@
+<template>
+  <view class="login-page">
+    <!-- logo -->
+    <view class="header-illustration">
+      <image 
+        class="illustration-img" 
+        src="/static/login/login_illustration.png" 
+        mode="widthFix" 
+      />
+    </view>
+<view class="glass-container">
+  <!-- 中间表单区域 -->
+  <view class="form-container">
+    <!-- 用户名输入框 -->
+    <view class="input-wrapper">
+      <!-- 左侧图标 -->
+      <image class="input-icon" src="/static/icons/user-solid.svg" mode="aspectFit" />
+      <input 
+        class="uni-input" 
+        v-model="username" 
+        type="text" 
+        placeholder="Enter username" 
+        @input="validateUsername"
+      />
+    </view>
+    <!-- 错误提示 -->
+    <text class="error-text" v-if="usernameError">Username cannot exceed 15 characters.</text>
+
+    <!-- 密码输入框 -->
+    <view class="input-wrapper">
+      <!-- 左侧图标 -->
+      <image class="input-icon" src="/static/icons/lock-solid.svg" mode="aspectFit" />
+      
+      <!-- 输入框 -->
+      <input 
+        class="uni-input" 
+        v-model="password" 
+        :type="showPassword ? 'text' : 'password'" 
+        placeholder="Enter password"
+        @input="validatePassword"
+      />
+      
+      <!-- 眼睛图标（点击切换密码可见性） -->
+      <image 
+        class="eye-icon" 
+        :src="showPassword ? '/static/icons/eye-solid.svg' : '/static/icons/eye-slash-solid.svg'" 
+        mode="aspectFit" 
+        @click="togglePasswordVisibility"
+      />
+    </view>
+    <!-- 错误提示 -->
+    <text class="error-text" v-if="passwordError">Password cannot exceed 15 characters.</text>
+
+
+	
+	  
+	  <!-- 忘记密码、注册 -->
+	  <view class="tips-wrapper">
+	    <text class="tip-link" @click="goToRegister">Sign up</text>
+	    <text class="tip-link" @click="forgetPassword">Forgot password?</text>
+	  </view>
+	  
+      <!-- 登录按钮 -->
+      <button class="login-btn" @click="handleLogin">
+         Log in
+      </button>
+
+    </view>
+	</view>
+
+    <!-- 第三方登录 -->
+    <view class="third-party-section">
+      <text class="third-party-text">Or log in with</text>
+      <view class="third-party-icons">
+        <image 
+          class="third-party-icon" 
+          src="/static/icons/Wechat.svg" 
+          mode="aspectFit" 
+          @click="loginWithWeChat"
+        />
+        <image 
+          class="third-party-icon" 
+          src="/static/icons/QQ.svg" 
+          mode="aspectFit" 
+          @click="loginWithQQ"
+        />
+        <image 
+          class="third-party-icon" 
+          src="/static/icons/Weibo.svg" 
+          mode="aspectFit" 
+          @click="loginWithWeibo"
+        />
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      username: '',
+      password: '',
+	  showPassword: false ,// 是否显示密码
+	  usernameError: false, // 用户名长度错误
+	  passwordError: false  // 密码长度错误
+    }
+  },
+  methods: {
+    handleLogin() {
+      if (!this.username || !this.password) {
+        uni.showToast({
+          title: 'Please enter your login details',
+          icon: 'none'
+        });
+        return;
+      }
+      // TODO: 在此调用后端接口执行登录操作
+      uni.showToast({
+        title: 'Login successful',
+        icon: 'success'
+      });
+      // 登录成功后的跳转逻辑
+    },
+	// 切换密码可见性
+	togglePasswordVisibility() {
+	      this.showPassword = !this.showPassword;
+	},
+    goToRegister() {
+      // TODO: 跳转到注册页面
+      uni.navigateTo({
+        url: '/pages/register/register'
+      });
+    },
+	// 验证用户名长度
+	validateUsername() {
+	      this.usernameError = this.username.length > 15;
+	},
+	
+	// 验证密码长度
+	validatePassword() {
+	      this.passwordError = this.password.length > 15;
+	},
+    forgetPassword() {
+      // TODO: 忘记密码处理或跳转
+      uni.showModal({
+        title: 'Notice',
+        content: 'Password recovery instructions'
+      });
+    },
+    loginWithWeChat() {
+      uni.showToast({ title: 'Logging in with WeChat', icon: 'none' });
+    },
+    loginWithQQ() {
+      uni.showToast({ title: 'Logging in with QQ', icon: 'none' });
+    },
+    loginWithWeibo() {
+      uni.showToast({ title: 'Logging in with Weibo', icon: 'none' });
+    }
+  }
+}
+</script>
+
+<style scoped>
+/* 整体背景浅色 */
+.login-page {
+  background: linear-gradient(to bottom right, #a1c4fd, #f2f6fc);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 顶部插画区域 */
+.header-illustration {
+
+  margin-top: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.illustration-img {
+  width: 60%;
+}
+
+/* 中间表单容器 */
+.glass-container {
+  margin: auto;
+  margin-top: 60rpx;
+  padding: 0 60rpx;
+  width: 90%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 60rpx;
+  padding: 40rpx;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  text-align: center;
+}
+.form-container {
+  margin-top: 20rpx;
+  padding: 0 20rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 输入框外层容器 */
+.input-wrapper {
+  position: relative;
+  margin-bottom: 25rpx;
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 70rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 50rpx;
+}
+
+/* 左侧图标 */
+.input-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 25rpx;
+}
+
+/* 输入框 */
+.uni-input {
+  flex: 1;
+  height: 90rpx;
+  font-size: 28rpx;
+  border: none;
+  background-color: transparent;
+}
+
+.eye-icon {
+  width: 36rpx;
+  height: 36rpx;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+.eye-icon:hover {
+  transform: scale(1.1);
+}
+
+/* 错误提示文本 */
+.error-text {
+  font-size: 26rpx;
+  color: #0073f1;
+  margin-top: 0rpx;
+  margin-bottom: 30rpx;
+  margin-left: 25rpx;
+}
+
+/* 登录按钮 */
+.login-btn {
+  margin-top: 40rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 30rpx;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3);
+  color: #fff;
+  border-radius: 70rpx;
+  transition: all 0.3s;
+}
+
+.login-btn:active {
+  transform: scale(0.96);
+}
+
+/* 忘记密码、注册等链接区域 */
+.tips-wrapper {
+  margin-left: 50rpx;
+  margin-right: 50rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.tip-link {
+  font-size: 26rpx;
+  color: #666;
+  transition: color 0.2s;
+}
+.tip-link:hover {
+  color: #005bb5;
+}
+
+/* 第三方登录区域 */
+.third-party-section {
+  margin: auto;
+  margin-bottom: 200rpx;
+  text-align: center;
+}
+.third-party-text {
+  font-size: 24rpx;
+  color: #999;
+  margin: auto;
+}
+.third-party-icons {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.third-party-icons {
+  display: flex;
+  justify-content: center;
+  margin-top: 20rpx;
+  gap: 40rpx;
+}
+
+.third-party-icon {
+  width: 60rpx;
+  height: 60rpx;
+  padding: 15rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6); 
+  transition: all 0.3s ease-in-out;
+}
+
+.third-party-icon:hover {
+  transform: scale(1.05);
+}
+
+</style>
