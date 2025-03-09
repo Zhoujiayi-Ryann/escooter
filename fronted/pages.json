@@ -14,25 +14,11 @@
 			}
 		},
 		{
-			"path" : "pages/login/login_2",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
 			"path" : "pages/register/register",
 			"style" : 
 			{
 				"navigationBarTitleText" : "Register",
 				"navigationBarBackgroundColor": "#a9c9fd"
-			}
-		},
-		{
-			"path" : "pages/register/register_2",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
 			}
 		}
 	],
