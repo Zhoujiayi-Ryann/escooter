@@ -96,31 +96,63 @@
 </template>
 
 <script>
+import { api, setToken } from '../../utils/request.uts';
+
 export default {
   data() {
     return {
       username: '',
       password: '',
-	  showPassword: false ,// 是否显示密码
-	  usernameError: false, // 用户名长度错误
-	  passwordError: false  // 密码长度错误
+      showPassword: false, // 是否显示密码
+      usernameError: false, // 用户名长度错误
+      passwordError: false  // 密码长度错误
     }
   },
   methods: {
-    handleLogin() {
+    async handleLogin() {
+      // 表单验证
       if (!this.username || !this.password) {
         uni.showToast({
-          title: 'Please enter your login details',
+          title: '请输入用户名和密码',
           icon: 'none'
         });
         return;
       }
-      // TODO: 在此调用后端接口执行登录操作
-      uni.showToast({
-        title: 'Login successful',
-        icon: 'success'
-      });
-      // 登录成功后的跳转逻辑
+
+      try {
+        const res = await api.login({
+          username: this.username,
+          password: this.password
+        });
+
+        if (res.code === 1) {  // 注意这里使用 1 表示成功
+          // 保存 token
+          setToken(res.data.token);
+          
+          uni.showToast({
+            title: res.msg || '登录成功',
+            icon: 'success'
+          });
+          
+          // 登录成功后跳转到首页
+          setTimeout(() => {
+            uni.reLaunch({
+              url: '/pages/index/index'
+            });
+          }, 1500);
+        } else {
+          uni.showToast({
+            title: res.msg || '登录失败',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        uni.showToast({
+          title: '登录失败，请稍后重试',
+          icon: 'none'
+        });
+        console.error('登录错误:', error);
+      }
     },
 	// 切换密码可见性
 	togglePasswordVisibility() {
