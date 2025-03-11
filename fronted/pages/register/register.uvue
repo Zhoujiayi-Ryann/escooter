@@ -191,7 +191,7 @@ export default {
           username: this.username,
           password: this.password,
           email: this.email,
-          phone: this.phone_number
+          phone_number: this.phone_number
         });
 
         if (res.code === 1) {  // 注意这里使用 1 表示成功
