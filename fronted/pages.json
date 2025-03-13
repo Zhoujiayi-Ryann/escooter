@@ -20,7 +20,7 @@
 				"navigationBarTitleText" : "Register",
 				"navigationBarBackgroundColor": "#a9c9fd"
 			}
-		}
+		},
 		{
 			"path" : "pages/order/confirm",
 			"style" : 
