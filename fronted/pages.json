@@ -1,5 +1,5 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+	"pages": [
 		{
 			"path": "pages/index/index",
 			"style": {
@@ -10,7 +10,7 @@
 			"path": "pages/login/login",
 			"style": {
 				"navigationBarTitleText": "login",
-				"navigationStyle": "custom"  // 使用自定义导航栏
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -19,6 +19,14 @@
 			{
 				"navigationBarTitleText" : "Register",
 				"navigationBarBackgroundColor": "#a9c9fd"
+			}
+		},
+		{
+			"path" : "pages/order/confirm",
+			"style" : 
+			{
+				"navigationBarTitleText" : "订单确认",
+				"navigationBarBackgroundColor": "#cccccc"
 			}
 		}
 	],

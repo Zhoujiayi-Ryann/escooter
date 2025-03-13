@@ -1,8 +1,16 @@
 import App from './App.uvue'
-
 import { createSSRApp } from 'vue'
+import Vant from 'vant'
+
+// 导入 Vant 样式
+import 'vant/lib/index.css'
+
 export function createApp() {
 	const app = createSSRApp(App)
+	
+	// 全局注册 Vant
+	app.use(Vant)
+	
 	return {
 		app
 	}
