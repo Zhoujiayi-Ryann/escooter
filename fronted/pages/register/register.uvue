@@ -104,11 +104,9 @@
   </view>
 </template>
 
-
-
-
-
 <script>
+import { api } from '../../utils/request.uts';
+
 export default {
   data() {
     return {
@@ -162,23 +160,63 @@ export default {
       this.passwordErrorMessage = this.passwordError ? 'Password cannot exceed 15 characters.' : '';
     },
 
-    handleRegister() {
+    async handleRegister() {
+      // 验证所有字段
+      this.checkUsername();
+      this.checkEmail();
+      this.checkPhoneNumber();
+      this.checkPassword();
+
       if (this.usernameError || this.emailError || this.phoneError || this.passwordError) {
-        uni.showToast({ title: 'Please correct the errors', icon: 'none' });
+        uni.showToast({ 
+          title: '请修正输入错误', 
+          icon: 'none' 
+        });
         return;
       }
 
-      // **密码匹配检查（在提交时执行）**
+      // 密码匹配检查
       if (this.password !== this.confirmPassword) {
         this.confirmPasswordError = true;
-        this.confirmPasswordErrorMessage = 'Passwords do not match.';
+        this.confirmPasswordErrorMessage = '两次输入的密码不一致';
+        uni.showToast({ 
+          title: '两次输入的密码不一致', 
+          icon: 'none' 
+        });
         return;
       }
-      this.confirmPasswordError = false;
-      this.confirmPasswordErrorMessage = '';
 
-      uni.showToast({ title: 'Registration successful', icon: 'success' });
-      this.goToLogin();
+      try {
+        const res = await api.register({
+          username: this.username,
+          password: this.password,
+          email: this.email,
+          phone_number: this.phone_number
+        });
+
+        if (res.code === 1) {  // 注意这里使用 1 表示成功
+          uni.showToast({
+            title: res.msg || '注册成功',
+            icon: 'success'
+          });
+          
+          // 注册成功后延迟跳转到登录页
+          setTimeout(() => {
+            this.goToLogin();
+          }, 1500);
+        } else {
+          uni.showToast({
+            title: res.msg || '注册失败',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        uni.showToast({
+          title: '注册失败，请稍后重试',
+          icon: 'none'
+        });
+        console.error('注册错误:', error);
+      }
     },
 
     goToLogin() {
