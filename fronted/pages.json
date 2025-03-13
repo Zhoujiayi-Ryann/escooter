@@ -20,15 +20,22 @@
 				"navigationBarTitleText" : "Register",
 				"navigationBarBackgroundColor": "#a9c9fd"
 			}
-		},
-		{
-			"path" : "pages/order/confirm",
-			"style" : 
-			{
-				"navigationBarTitleText" : "订单确认",
-				"navigationBarBackgroundColor": "#cccccc"
-			}
 		}
+		// {
+		// 	"path" : "pages/order/confirm",
+		// 	"style" : 
+		// 	{
+		// 		"navigationBarTitleText" : "Order confirmation",
+		// 		"navigationBarBackgroundColor": "#cccccc"
+		// 	}
+		// },
+		// {
+		// 	"path": "pages/order/payment",
+		// 	"style": {
+		// 		"navigationBarTitleText": "Confirm payment",
+		// 		"navigationBarBackgroundColor": "#cccccc"
+		// 	}
+		// }
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
