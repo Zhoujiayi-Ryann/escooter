@@ -1,0 +1,53 @@
+<template>
+	<view>
+		<map
+		:longitude="longitude"
+		:latitude="latitude"
+		:style="{ width: windowWidth + 'px', height: windowHeight + 'px' }">
+		</map>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				longitude: 116.397128,
+				latitude: 39.916527,
+				windowWidth: 0,
+				windowHeight: 0
+			};
+		},
+		mounted() {
+			this.getLocation();
+		},
+		onReady() {
+			this.setHeight();
+			this.setWidth();
+		},
+		methods: {
+			getLocation() {
+				uni.getLocation({
+					type: 'gcj02',
+					success: (res) => {
+						this.longitude = res.longitude;
+						this.latitude = res.latitude;
+					},
+					fail: (err) => {
+						console.log('Fail to locate.', err);
+					}
+				});
+			},
+			setHeight() {
+				this.windowHeight = uni.getSystemInfoSync().windowHeight;
+			},
+			setWidth() {
+				this.windowWidth = uni.getSystemInfoSync().windowWidth;
+			}
+		}
+	}
+</script>
+
+<style>
+
+</style> 
