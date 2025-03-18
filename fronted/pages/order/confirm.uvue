@@ -1,22 +1,520 @@
 <template>
-	<view>
-		
-	</view>
+  <view class="order-confirm-page">
+    <view class="header">
+      <text class="header-title">Order Confirmation</text>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="info-card">
+      <view class="info-item">
+        <text class="info-label">Scooter Number：</text>
+        <text class="info-value">{{ scooterCode }}</text>
+      </view>
+
+      <view class="info-item">
+        <text class="info-label">Other Information：</text>
+        <text class="info-value">{{ otherInfo }}</text>
+      </view>
+    </view>
+
+    <view class="time-section">
+      <text class="section-title">Rental time selection</text>
+      
+      <!-- 日期和时间选择 -->
+      <view class="date-time-picker">
+        <!-- 开始 -->
+        <view class="date-item" @click="showStartPicker = true">
+          <text class="date-text">{{ formatDate(startDate) }}</text>
+          <text class="time-text">{{ getDayOfWeek(startDate) }} {{ startTime }}</text>
+        </view>
+        
+        <!-- 天数 -->
+        <view class="days-display">
+          <text class="days-text">{{ rentalDurationText }}</text>
+        </view>
+        
+        <!-- 结束 -->
+        <view class="date-item" @click="showEndPicker = true">
+          <text class="date-text">{{ formatDate(endDate) }}</text>
+          <text class="time-text">{{ getDayOfWeek(endDate) }} {{ endTime }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 地址 -->
+    <view class="address-section">
+      <text class="section-label">Address：</text>
+      <input 
+        class="address-input" 
+        v-model="address" 
+        placeholder="Please enter pickup address" 
+        maxlength="100"
+        @blur="validateAddress"
+      />
+    </view>
+    <view class="address-error" v-if="addressError">
+      <text class="error-text">{{ addressError }}</text>
+    </view>
+
+    <view class="bottom-button">
+      <button class="rent-button" @click="goToRent">Go to rent</button>
+    </view>
+
+    <!-- 日期选择弹出层 - 开始 -->
+    <van-popup 
+      v-model:show="showStartPicker" 
+      position="bottom"
+      round
+    >
+      <van-picker-group 
+        title="Select Start Time" 
+		    :tabs="['select date', 'select time']"
+        @confirm="onConfirmStartTime" 
+        @cancel="showStartPicker = false"
+      >
+		<!-- TODO: :max-date怎么设不知道 -->
+        <van-date-picker 
+          v-model="tempStartDate" 
+          :min-date="new Date()"
+		      :max-date="new Date(2026,5,1)"
+        />
+        <van-time-picker 
+          v-model="tempStartTime" 
+          :min-hour="getMinHour(tempStartDate)"
+        />
+      </van-picker-group>
+    </van-popup>
+
+    <!-- 日期选择弹出层 - 结束 -->
+    <van-popup 
+      v-model:show="showEndPicker" 
+      position="bottom"
+      round
+    >
+      <van-picker-group 
+        title="Select End Time" 
+        :tabs="['select date', 'select time']"
+        @confirm="onConfirmEndTime" 
+        @cancel="showEndPicker = false"
+      >
+        <van-date-picker 
+          v-model="tempEndDate" 
+          :min-date="startDate" 
+        />
+        <van-time-picker 
+          v-model="tempEndTime"
+          :min-hour="getMinHourForEndTime(tempEndDate)"
+        />
+      </van-picker-group>
+    </van-popup>
+  </view>
 </template>
 
 <script>
-	export default {
-		data() {
-			return {
-				
-			}
-		},
-		methods: {
-			
-		}
-	}
+import { ref, computed } from 'vue';
+
+export default {
+  data() {
+    return {
+      // 车辆信息
+      scooterCode: 'SC12345',  // API(B->F)
+      otherInfo: '电动车型号XYZ，续航100km',  // API(B->F)
+      
+      // 日期时间选择
+      startDate: new Date(),  // API(F->A)
+      startTime: '17:00',     // API(F->A)
+      endDate: new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000), // 默认两天后 // API(F->A)
+      endTime: '17:00', // API(F->A)
+      
+      // 临时显示
+      tempStartDate: ['', '', ''],
+      tempStartTime: ['17', '00'],
+      tempEndDate: ['', '', ''], // !!!IMPORTANT: 必须注意确保格式为 ['', '', '']
+      tempEndTime: ['17', '00'],
+      
+      // 弹出层显示
+      showStartPicker: false,
+      showEndPicker: false,
+      
+      address: '', // API(F->A)
+      addressError: ''
+    };
+  },
+  onLoad() {
+    // 初始化临时日期为数组格式(!!!IMPORTANT)
+    const today = new Date(this.startDate);
+    this.tempStartDate = [
+      today.getFullYear().toString(),
+      (today.getMonth() + 1).toString().padStart(2, '0'),
+      today.getDate().toString().padStart(2, '0')
+    ];
+    
+    const endDay = new Date(this.endDate);
+    this.tempEndDate = [
+      endDay.getFullYear().toString(),
+      (endDay.getMonth() + 1).toString().padStart(2, '0'),
+      endDay.getDate().toString().padStart(2, '0')
+    ];
+  },
+  computed: {
+    rentalDays() {
+      const startMs = this.startDate.getTime();
+      const endMs = this.endDate.getTime();
+      const dayMs = 24 * 60 * 60 * 1000;
+      return Math.ceil((endMs - startMs) / dayMs);
+    },
+    
+    // 时长规范化展示
+    rentalDurationText() {
+      // 检查是否是同一天
+      const isSameDay = 
+        this.startDate.getDate() === this.endDate.getDate() &&
+        this.startDate.getMonth() === this.endDate.getMonth() &&
+        this.startDate.getFullYear() === this.endDate.getFullYear();
+      
+      if (isSameDay) {
+        // 如果是同一天，计算小时和分钟差
+        const startHour = parseInt(this.startTime.split(':')[0]);
+        const startMinute = parseInt(this.startTime.split(':')[1]);
+        const endHour = parseInt(this.endTime.split(':')[0]);
+        const endMinute = parseInt(this.endTime.split(':')[1]);
+        
+        let totalMinutesDiff = (endHour - startHour) * 60 + (endMinute - startMinute);
+        
+        // 如果差小于60分钟，显示分钟
+        if (totalMinutesDiff < 60) {
+          return `${totalMinutesDiff} minutes`;
+        } else {
+          // 否则显示小时
+          const hoursDiff = Math.floor(totalMinutesDiff / 60);
+          return hoursDiff === 1 ? `1 hour` : `${hoursDiff} hours`;
+        }
+      } else {
+        // 如果不是同一天，显示天数
+        return this.rentalDays === 1 ? `1 day` : `${this.rentalDays} days`;
+      }
+    }
+  },
+  methods: {
+    // 格式化日期为 MM/DD 格式
+    formatDate(date) {
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${month}/${day}`;
+    },
+    
+    // 获取星期，如果是今天则显示Today
+    getDayOfWeek(date) {
+      const today = new Date();
+      
+      if (date.getDate() === today.getDate() && 
+          date.getMonth() === today.getMonth() && 
+          date.getFullYear() === today.getFullYear()) {
+        return 'Today';
+      }
+      
+      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return weekdays[date.getDay()];
+    },
+    
+    // 如果是今天，限制最小小时
+    getMinHour(date) {
+      const today = new Date();
+      const selectedDate = new Date(Number(date[0]), Number(date[1]) - 1, Number(date[2]));
+      
+      if (selectedDate.getDate() === today.getDate() && 
+          selectedDate.getMonth() === today.getMonth() && 
+          selectedDate.getFullYear() === today.getFullYear()) {
+        return today.getHours();
+      }
+      return 0;
+    },
+    
+    // 为结束时间设置最小小时
+    getMinHourForEndTime(date) {
+      // 检查是否与开始日期是同一天
+      const selectedDate = new Date(Number(date[0]), Number(date[1]) - 1, Number(date[2]));
+      
+      if (selectedDate.getDate() === this.startDate.getDate() && 
+          selectedDate.getMonth() === this.startDate.getMonth() && 
+          selectedDate.getFullYear() === this.startDate.getFullYear()) {
+        // 如果是同一天，最小小时应该是开始时间的小时数
+        return Number(this.tempStartTime[0]);
+      }
+      return 0;
+    },
+    
+    // 确认开始时间
+    onConfirmStartTime() {
+      // 从数组格式转换为Date对象
+      this.startDate = new Date(
+        Number(this.tempStartDate[0]),
+        Number(this.tempStartDate[1]) - 1,
+        Number(this.tempStartDate[2])
+      );
+      this.startTime = `${this.tempStartTime[0]}:${this.tempStartTime[1]}`;
+      
+      // 如果结束时间早于开始时间，调整结束时间
+      const startDateTime = new Date(this.startDate);
+      startDateTime.setHours(Number(this.tempStartTime[0]), Number(this.tempStartTime[1]));
+      
+      const endDateTime = new Date(this.endDate);
+      endDateTime.setHours(Number(this.tempEndTime[0]), Number(this.tempEndTime[1]));
+      
+      if (endDateTime < startDateTime) {
+        // 设置结束时间为开始时间后一天的同一时间
+        this.endDate = new Date(this.startDate.getTime() + 24 * 60 * 60 * 1000);
+        this.endTime = this.startTime;
+        this.tempEndTime = [...this.tempStartTime];
+        
+        // 更新临时结束日期为数组格式
+        this.tempEndDate = [
+          this.endDate.getFullYear().toString(),
+          (this.endDate.getMonth() + 1).toString().padStart(2, '0'),
+          this.endDate.getDate().toString().padStart(2, '0')
+        ];
+      }
+      
+      this.showStartPicker = false;
+    },
+    
+    // 确认结束时间
+    onConfirmEndTime() {
+      // 从数组格式转换为Date对象
+      const newEndDate = new Date(
+        Number(this.tempEndDate[0]),
+        Number(this.tempEndDate[1]) - 1, 
+        Number(this.tempEndDate[2])
+      );
+      
+      // 是否是同一天
+      const isSameDay = (
+        newEndDate.getDate() === this.startDate.getDate() &&
+        newEndDate.getMonth() === this.startDate.getMonth() &&
+        newEndDate.getFullYear() === this.startDate.getFullYear()
+      );
+      // 如果是同一天，检查时间是否合法
+      if (isSameDay && Number(this.tempEndTime[0]) < Number(this.tempStartTime[0]) || 
+          (Number(this.tempEndTime[0]) === Number(this.tempStartTime[0]) && 
+           Number(this.tempEndTime[1]) < Number(this.tempStartTime[1]))) {
+        // 如果结束时间小于开始时间，则设置为与开始时间相同
+        this.tempEndTime = [...this.tempStartTime];
+        uni.showToast({
+          title: '结束时间不能早于开始时间',
+          icon: 'none'
+        });
+      }
+      
+      this.endDate = newEndDate;
+      this.endTime = `${this.tempEndTime[0]}:${this.tempEndTime[1]}`;
+      
+      // 确保tempEndDate保持正确的格式
+      this.tempEndDate = [
+        this.endDate.getFullYear().toString(),
+        (this.endDate.getMonth() + 1).toString().padStart(2, '0'),
+        this.endDate.getDate().toString().padStart(2, '0')
+      ];
+      
+      this.showEndPicker = false;
+    },
+    
+    // TODO: 验证地址格式，是否要获取地址位置？？
+    validateAddress() {
+      // 清除先前的错误信息
+      this.addressError = '';
+      
+      if (!this.address.trim()) {
+        this.addressError = 'Address cannot be empty';
+        return false;
+      }
+      
+      if (this.address.trim().length < 5) {
+        this.addressError = 'Address is too short (minimum 5 characters)';
+        return false;
+      }
+      
+      // 要求包含字母和数字
+      const hasLetters = /[a-zA-Z]/.test(this.address);
+      const hasNumbers = /[0-9]/.test(this.address);
+      
+      if (!hasLetters || !hasNumbers) {
+        this.addressError = 'Address must contain both letters and numbers';
+        return false;
+      }
+      
+      return true;
+    },
+    
+	// 跳转
+    goToRent() {
+      // 验证地址
+      if (!this.validateAddress()) {
+        uni.showToast({
+          title: this.addressError,
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 订单对象// API(F->A) 以下所有要传给后端！！！
+      const orderInfo = {
+        scooterCode: this.scooterCode,
+        startDate: this.formatDate(this.startDate),
+        startTime: this.startTime,
+        endDate: this.formatDate(this.endDate),
+        endTime: this.endTime,
+        days: this.rentalDays,
+        address: this.address
+      };
+      
+      // 跳转到支付页面并传递订单信息
+      uni.navigateTo({
+        url: '/pages/order/payment?orderInfo=' + encodeURIComponent(JSON.stringify(orderInfo))
+      });
+    }
+  }
+};
 </script>
 
 <style>
+.order-confirm-page {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
-</style>
+/* 标题栏 */
+.header {
+  background-color: #cccccc;
+  padding: 30rpx 0;
+  text-align: center;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.info-card {
+  background-color: #e0e0e0;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+}
+
+.info-item {
+  margin-bottom: 20rpx;
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.time-section {
+  background-color: #fff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  color: #333;
+  margin-bottom: 30rpx;
+}
+
+.date-time-picker {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20rpx;
+}
+
+.date-item {
+  background-color: #f0f0f0;
+  padding: 20rpx 30rpx;
+  border-radius: 10rpx;
+  flex: 1;
+  text-align: center;
+}
+
+.date-text {
+  font-size: 28rpx;
+  color: #333;
+  display: block;
+}
+
+.time-text {
+  font-size: 24rpx;
+  color: #666;
+  display: block;
+  margin-top: 10rpx;
+}
+
+.days-display {
+  padding: 0 20rpx;
+}
+
+.days-text {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.address-section {
+  background-color: #fff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.section-label {
+  font-size: 28rpx;
+  color: #333;
+  margin-right: 20rpx;
+}
+
+.address-input {
+  flex: 1;
+  height: 80rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+.address-error {
+  margin: 0 20rpx;
+  padding: 0 30rpx;
+}
+
+.error-text {
+  color: #ff4d4f;
+  font-size: 24rpx;
+}
+
+/* 底部按钮 */
+.bottom-button {
+  margin: 40rpx 20rpx;
+  padding: 0 20rpx;
+}
+
+.rent-button {
+  background-color: #cccccc;
+  color: #333;
+  font-size: 32rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+  border-radius: 45rpx;
+  text-align: center;
+}
+</style> 
