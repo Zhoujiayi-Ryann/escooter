@@ -1,9 +1,22 @@
 <template>
 	<view>
+		<van-floating-panel
+		v-model:height="height"
+		:anchors="anchors">
+			<text class="instruction">Rent E-scooters</text>
+			<van-cell-group>
+				<van-cell></van-cell>
+		    </van-cell-group>
+		</van-floating-panel>
 		<map
+		id="myMap"
 		:longitude="longitude"
 		:latitude="latitude"
-		:style="{ width: windowWidth + 'px', height: windowHeight + 'px' }">
+		:style="{ width: windowWidth + 'px', height: windowHeight + 'px' }"
+		:show-location="true"
+		:markers="markers"
+		:rotate = "direction"
+		:scale="scale">
 		</map>
 	</view>
 </template>
@@ -12,18 +25,25 @@
 	export default {
 		data() {
 			return {
-				longitude: 116.397128,
-				latitude: 39.916527,
+				longitude: 116.39742,
+				latitude: 39.909,
 				windowWidth: 0,
-				windowHeight: 0
+				windowHeight: 0,
+				markers: [],
+				direction: 0,
+				scale: 16,
+				height: 70,
+				anchors: [70, 0]
 			};
 		},
 		mounted() {
 			this.getLocation();
+			this.startCompass();
 		},
 		onReady() {
 			this.setHeight();
 			this.setWidth();
+			this.getAnchors();
 		},
 		methods: {
 			getLocation() {
@@ -34,7 +54,12 @@
 						this.latitude = res.latitude;
 					},
 					fail: (err) => {
-						console.log('Fail to locate.', err);
+						console.log(err);
+						uni.showToast({
+							title: 'Fail to locate.',
+							icon: 'none',
+							duration: 2000
+						});
 					}
 				});
 			},
@@ -43,11 +68,26 @@
 			},
 			setWidth() {
 				this.windowWidth = uni.getSystemInfoSync().windowWidth;
+			},
+			startCompass() {
+				uni.onCompassChange((res) => {
+					this.direction = res.direction;
+				});
+			},
+			getAnchors() {
+				this.anchors = [
+					70,
+					Math.round(0.7 * this.windowHeight)
+				];
 			}
 		}
 	}
 </script>
 
 <style>
-
+	.instruction {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
 </style> 
