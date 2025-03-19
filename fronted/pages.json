@@ -14,6 +14,13 @@
 			}
 		},
 		{
+			"path" : "pages/home/home",
+			"style" : 
+			{
+				"navigationBarTitleText" : "home"
+			}
+		},
+		{
 			"path" : "pages/register/register",
 			"style" : 
 			{
@@ -34,6 +41,13 @@
 			"style": {
 				"navigationBarTitleText": "Confirm payment",
 				"navigationBarBackgroundColor": "#cccccc"
+			}
+		},
+		{
+			"path" : "pages/rent-details/rent-details",
+			"style" : 
+			{
+				"navigationBarTitleText" : "rent-tdetails"
 			}
 		}
 	],

@@ -3,6 +3,7 @@ package com.example.hello.entity;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.example.hello.common.OrderStatus;
 
 /**
  * 订单实体类
@@ -46,9 +47,9 @@ public class Order {
     private BigDecimal cost;
     
     /**
-     * 订单状态：active-活跃，completed-已完成，cancelled-已取消
+     * 订单状态
      */
-    private String status;
+    private OrderStatus status;
     
     /**
      * 延长时间（小时）
@@ -64,4 +65,4 @@ public class Order {
      * 取车地址
      */
     private String address;
-} 
+}

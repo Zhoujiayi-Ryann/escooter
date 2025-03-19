@@ -1,0 +1,144 @@
+<template>
+	<view>
+		<van-floating-panel
+		v-model:height="height"
+		:anchors="anchors">
+			<view class="instruction">
+				<text>Rent E-scooters</text>
+			</view>
+			<van-cell-group class="list-container">
+				<van-cell
+				class="escooter-choice"
+				v-for="i in 26"
+				:key="i"
+				:title="String.fromCharCode(i + 64)"
+				size="large"
+				:class="{'selected': selected === i}"
+				@click="selectEscooter(i)">
+				</van-cell>
+		    </van-cell-group>
+			<view class="next-button-area">
+				<van-button
+				round
+				type="success"
+				:disabled="selected === null"
+				@click="nextStep">
+				{{ selected === null ? 'Choose An E-scooter' : 'Next' }}
+				</van-button>
+			</view>
+		</van-floating-panel>
+		<map
+		id="myMap"
+		:longitude="longitude"
+		:latitude="latitude"
+		:style="{ width: windowWidth + 'px', height: windowHeight + 'px' }"
+		:show-location="true"
+		:markers="markers"
+		:rotate = "direction"
+		:scale="scale">
+		</map>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				longitude: 116.39742,
+				latitude: 39.909,
+				windowWidth: 0,
+				windowHeight: 0,
+				markers: [],
+				direction: 0,
+				scale: 16,
+				height: 60,
+				anchors: [60, 0],
+				selected: null
+			};
+		},
+		mounted() {
+			this.getLocation();
+			this.startCompass();
+		},
+		onReady() {
+			this.setHeight();
+			this.setWidth();
+			this.getAnchors();
+		},
+		methods: {
+			getLocation() {
+				uni.getLocation({
+					type: 'gcj02',
+					success: (res) => {
+						this.longitude = res.longitude;
+						this.latitude = res.latitude;
+					},
+					fail: (err) => {
+						console.log(err);
+						uni.showToast({
+							title: 'Fail to locate.',
+							icon: 'none',
+							duration: 2000
+						});
+					}
+				});
+			},
+			setHeight() {
+				this.windowHeight = uni.getSystemInfoSync().windowHeight;
+			},
+			setWidth() {
+				this.windowWidth = uni.getSystemInfoSync().windowWidth;
+			},
+			startCompass() {
+				uni.onCompassChange((res) => {
+					this.direction = res.direction;
+				});
+			},
+			getAnchors() {
+				this.anchors = [
+					60,
+					Math.round(0.7 * this.windowHeight)
+				];
+			},
+			selectEscooter(i) {
+				if (this.selected === i) {
+					this.selected = null;
+				} else {
+					this.selected = i;
+				}
+			},
+			nextStep() {
+				uni.navigateTo({
+					url: '/pages/order/confirm'
+				});
+			}
+		}
+	}
+</script>
+
+<style>
+	.instruction {
+		display: block;
+		text-align: center;
+		z-index: 1;
+		padding: 5px;
+		position: fixed;
+		top: 25px;
+		width: 100%;
+		background-color: #ffffff;
+	}
+	.list-container {
+		margin-top: 30px;
+		margin-bottom: 55px;
+	}
+	.next-button-area {
+		background-color: #ffffff;
+		position: fixed;
+		width: 100%;
+		padding: 5px;
+		bottom: 0;
+	}
+	.selected {
+		border: 2px solid #007aff;
+	}
+</style> 

@@ -15,4 +15,5 @@ public class User {
     private Float totalUsageHours;
     private BigDecimal totalSpent;
     private String userTypes;
-} 
+    private String avatarPath;
+}
