@@ -1,7 +1,11 @@
 package com.example.hello.mapper;
 
+import com.example.hello.common.OrderStatus;
 import com.example.hello.entity.Order;
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.type.EnumTypeHandler;
+import org.apache.ibatis.type.JdbcType;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,7 +24,7 @@ public interface OrderMapper {
      * @return 影响的行数
      */
     @Insert("INSERT INTO Orders (user_id, scooter_id, start_time, end_time, duration, cost, status, extended_duration, discount, address) " +
-            "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status}, #{extendedDuration}, #{discount}, #{address})")
+            "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status, typeHandler=org.apache.ibatis.type.EnumTypeHandler}, #{extendedDuration}, #{discount}, #{address})")
     @Options(useGeneratedKeys = true, keyProperty = "orderId")
     int insertOrder(Order order);
     
@@ -31,6 +35,19 @@ public interface OrderMapper {
      * @return 订单对象
      */
     @Select("SELECT * FROM Orders WHERE order_id = #{orderId}")
+    @Results({
+        @Result(property = "orderId", column = "order_id"),
+        @Result(property = "userId", column = "user_id"),
+        @Result(property = "scooterId", column = "scooter_id"),
+        @Result(property = "startTime", column = "start_time"),
+        @Result(property = "endTime", column = "end_time"),
+        @Result(property = "duration", column = "duration"),
+        @Result(property = "cost", column = "cost"),
+        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = EnumTypeHandler.class),
+        @Result(property = "extendedDuration", column = "extended_duration"),
+        @Result(property = "discount", column = "discount"),
+        @Result(property = "address", column = "address")
+    })
     Order findById(@Param("orderId") Integer orderId);
     
     /**
@@ -66,8 +83,21 @@ public interface OrderMapper {
      * @param now 当前时间
      * @return 需要激活的订单列表
      */
-    @Select("SELECT * FROM Orders WHERE status = 'paid' AND start_time <= #{now}")
-    List<Order> findOrdersToActivate(@Param("now") LocalDateTime now);
+    @Select("SELECT * FROM Orders WHERE status = #{status} AND start_time <= #{now}")
+    @Results({
+        @Result(property = "orderId", column = "order_id"),
+        @Result(property = "userId", column = "user_id"),
+        @Result(property = "scooterId", column = "scooter_id"),
+        @Result(property = "startTime", column = "start_time"),
+        @Result(property = "endTime", column = "end_time"),
+        @Result(property = "duration", column = "duration"),
+        @Result(property = "cost", column = "cost"),
+        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = EnumTypeHandler.class),
+        @Result(property = "extendedDuration", column = "extended_duration"),
+        @Result(property = "discount", column = "discount"),
+        @Result(property = "address", column = "address")
+    })
+    List<Order> findOrdersToActivate(@Param("now") LocalDateTime now, @Param("status") String status);
     
     /**
      * 查询需要完成的订单（当前时间大于等于结束时间，状态为active）
@@ -75,8 +105,21 @@ public interface OrderMapper {
      * @param now 当前时间
      * @return 需要完成的订单列表
      */
-    @Select("SELECT * FROM Orders WHERE status = 'active' AND end_time <= #{now}")
-    List<Order> findOrdersToComplete(@Param("now") LocalDateTime now);
+    @Select("SELECT * FROM Orders WHERE status = #{status} AND end_time <= #{now}")
+    @Results({
+        @Result(property = "orderId", column = "order_id"),
+        @Result(property = "userId", column = "user_id"),
+        @Result(property = "scooterId", column = "scooter_id"),
+        @Result(property = "startTime", column = "start_time"),
+        @Result(property = "endTime", column = "end_time"),
+        @Result(property = "duration", column = "duration"),
+        @Result(property = "cost", column = "cost"),
+        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = EnumTypeHandler.class),
+        @Result(property = "extendedDuration", column = "extended_duration"),
+        @Result(property = "discount", column = "discount"),
+        @Result(property = "address", column = "address")
+    })
+    List<Order> findOrdersToComplete(@Param("now") LocalDateTime now, @Param("status") String status);
     
     /**
      * 更新订单状态

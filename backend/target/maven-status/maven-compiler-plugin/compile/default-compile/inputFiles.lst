@@ -15,6 +15,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/PayOrderResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/RegisterRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/Order.java
+/home/devbox/project/backend/src/main/java/com/example/hello/entity/OrderStatus.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/Scooter.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/User.java
 /home/devbox/project/backend/src/main/java/com/example/hello/exception/GlobalExceptionHandler.java

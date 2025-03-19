@@ -78,7 +78,7 @@ public class OrderServiceImpl implements OrderService {
         order.setEndTime(request.getEnd_time());
         order.setDuration(durationHours);
         order.setCost(cost);
-        order.setStatus("pending");
+        order.setStatus(OrderStatus.PENDING);
         order.setExtendedDuration(0.0f);
         // 初始折扣设为0
         order.setDiscount(BigDecimal.ZERO);
@@ -99,7 +99,7 @@ public class OrderServiceImpl implements OrderService {
         response.setEnd_time(order.getEndTime());
         response.setCost(order.getCost());
         response.setPickup_address(order.getAddress());
-        response.setStatus(order.getStatus());
+        response.setStatus(order.getStatus().getValue());
 
         return Optional.of(response);
     }
@@ -169,9 +169,9 @@ public class OrderServiceImpl implements OrderService {
         }
         
         // 3. 验证订单状态
-        if (!OrderStatus.PENDING.getValue().equals(order.getStatus())) {
+        if (order.getStatus() != OrderStatus.PENDING) {
             log.warn("支付失败: 订单{}当前状态为{}, 不允许支付", orderId, order.getStatus());
-            throw OrderException.invalidStatus(orderId, order.getStatus(), OrderStatus.PAID.getValue());
+            throw OrderException.invalidStatus(orderId, order.getStatus().getValue(), OrderStatus.PAID.getValue());
         }
         
         try {

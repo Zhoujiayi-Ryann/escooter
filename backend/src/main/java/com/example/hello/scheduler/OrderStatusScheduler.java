@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.hello.common.OrderStatus;
 import com.example.hello.mapper.OrderMapper;
 import com.example.hello.mapper.ScooterMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +38,10 @@ public class OrderStatusScheduler {
         
         try {
             // 查找所有应该开始的订单（当前时间大于等于开始时间，状态为paid）
-            orderMapper.findOrdersToActivate(now)
+            orderMapper.findOrdersToActivate(now, OrderStatus.PAID.getValue())
                 .forEach(order -> {
                     // 更新订单状态为active
-                    orderMapper.updateOrderStatus(order.getOrderId(), "active");
+                    orderMapper.updateOrderStatus(order.getOrderId(), OrderStatus.ACTIVE.getValue());
                     // 更新滑板车状态为in_use
                     scooterMapper.updateScooterStatus(order.getScooterId(), "in_use");
                     
@@ -64,10 +65,10 @@ public class OrderStatusScheduler {
         
         try {
             // 查找所有应该结束的订单（当前时间大于等于结束时间，状态为active）
-            orderMapper.findOrdersToComplete(now)
+            orderMapper.findOrdersToComplete(now, OrderStatus.ACTIVE.getValue())
                 .forEach(order -> {
                     // 更新订单状态为completed
-                    orderMapper.updateOrderStatus(order.getOrderId(), "completed");
+                    orderMapper.updateOrderStatus(order.getOrderId(), OrderStatus.COMPLETED.getValue());
                     // 更新滑板车状态为free
                     scooterMapper.updateScooterStatus(order.getScooterId(), "free");
                     
