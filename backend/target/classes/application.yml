@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/your_database?serverTimezone=UTC
-    username: your_username
-    password: your_password
+    url: jdbc:mysql://rm-cn-g4t3pwy2g000g6ro.rwlb.rds.aliyuncs.com:3306/escooter?serverTimezone=Asia/Shanghai
+    username: escooter_user
+    password: escooter_Mysql123
 
 pagehelper:
   helper-dialect: mysql
@@ -13,4 +13,5 @@ pagehelper:
 
 mybatis:
   configuration:
-    map-underscore-to-camel-case: true 
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:mapper/*.xml 
