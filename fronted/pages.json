@@ -42,6 +42,13 @@
 				"navigationBarTitleText": "Confirm payment",
 				"navigationBarBackgroundColor": "#cccccc"
 			}
+		},
+		{
+			"path" : "pages/rent-details/rent-details",
+			"style" : 
+			{
+				"navigationBarTitleText" : "rent-tdetails"
+			}
 		}
 	],
 	"globalStyle": {
