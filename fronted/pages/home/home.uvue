@@ -109,7 +109,7 @@
 			},
 			nextStep() {
 				uni.navigateTo({
-					url: '/pages/rent-details/rent-details'
+					url: '/pages/order/confirm'
 				});
 			}
 		}
