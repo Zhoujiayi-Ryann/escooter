@@ -25,7 +25,7 @@
       <view class="order-details">
         <!-- 订单标题 -->
         <view class="order-info">
-          <text class="order-price">Order cost: $ {{ order.price }}</text>
+          <text class="order-price">Order cost: ${{ order.price }}</text>
           <van-icon name="chat-o" class="feedback-icon" @click="goToFeedback" />
         </view>
 
@@ -47,10 +47,12 @@
             <text class="label">Usage duration:</text>
             <text class="value">{{ order.actualDuration }}</text>
           </view>
+		  <view class="divider"></view>
           <view class="info-item" v-if="order.extraCost > 0">
             <text class="label">Overtime fee:</text>
             <text class="value">{{ order.extraCost }}$</text>
           </view>
+		  
         </view>
 
         <!-- 反馈按钮 -->
@@ -75,7 +77,7 @@ const order = ref({
   scooterId: "111111",
   rentStart: "2025-02-05 11:15",
   actualDuration: "10 min",
-  extraCost: 0,
+  extraCost: 10,
 });
 
 // 订单地图信息
@@ -86,7 +88,7 @@ const markers = ref([]);
 // 自定义浮动面板锚点
 const anchors = [
   100, // 最小高度
-  Math.round(0.45 * window.innerHeight), 
+  Math.round(0.5 * window.innerHeight), 
   Math.round(0.6 * window.innerHeight), 
 ];
 const panelHeight = ref(anchors[0]);
@@ -268,9 +270,9 @@ const goToFeedback = () => {
 }
 
 .order-price {
-  font-size: 20px;
+  font-size: 25px;
   font-weight: bold;
-  color: #333;
+  color:#0079fe;
 }
 
 /* 反馈按钮 */
@@ -284,7 +286,7 @@ const goToFeedback = () => {
 .info-box {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(15px);
-  padding: 15px;
+  padding: 30px;
   border-radius: 15px;
   margin-top: 15px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
@@ -293,23 +295,33 @@ const goToFeedback = () => {
 /* 每行信息 */
 .info-item {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
   margin-bottom: 8px;
 }
 
 /* 信息标签 */
 .label {
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
+  font-size: 17px;
+  color: #33;
+  
+  font-weight: bold;
 }
 
 /* 信息值 */
 .value {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
 }
+/* 分割线 */
+.divider {
+  width: 100%;
+  height: 1px;
+  background-color: #ddd;
+  margin: 25px 0;
+}
+
 
 /* 反馈按钮 */
 .feedback-btn {
