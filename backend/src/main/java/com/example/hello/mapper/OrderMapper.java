@@ -2,6 +2,7 @@ package com.example.hello.mapper;
 
 import com.example.hello.common.OrderStatus;
 import com.example.hello.entity.Order;
+import com.example.hello.handler.OrderStatusTypeHandler;
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.type.EnumTypeHandler;
 import org.apache.ibatis.type.JdbcType;
@@ -24,7 +25,7 @@ public interface OrderMapper {
      * @return 影响的行数
      */
     @Insert("INSERT INTO Orders (user_id, scooter_id, start_time, end_time, duration, cost, status, extended_duration, discount, address) " +
-            "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status, typeHandler=org.apache.ibatis.type.EnumTypeHandler}, #{extendedDuration}, #{discount}, #{address})")
+            "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status, typeHandler=com.example.hello.handler.OrderStatusTypeHandler}, #{extendedDuration}, #{discount}, #{address})")
     @Options(useGeneratedKeys = true, keyProperty = "orderId")
     int insertOrder(Order order);
     
@@ -43,7 +44,7 @@ public interface OrderMapper {
         @Result(property = "endTime", column = "end_time"),
         @Result(property = "duration", column = "duration"),
         @Result(property = "cost", column = "cost"),
-        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = EnumTypeHandler.class),
+        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
         @Result(property = "extendedDuration", column = "extended_duration"),
         @Result(property = "discount", column = "discount"),
         @Result(property = "address", column = "address")
@@ -92,7 +93,7 @@ public interface OrderMapper {
         @Result(property = "endTime", column = "end_time"),
         @Result(property = "duration", column = "duration"),
         @Result(property = "cost", column = "cost"),
-        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = EnumTypeHandler.class),
+        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
         @Result(property = "extendedDuration", column = "extended_duration"),
         @Result(property = "discount", column = "discount"),
         @Result(property = "address", column = "address")
@@ -114,7 +115,7 @@ public interface OrderMapper {
         @Result(property = "endTime", column = "end_time"),
         @Result(property = "duration", column = "duration"),
         @Result(property = "cost", column = "cost"),
-        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = EnumTypeHandler.class),
+        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
         @Result(property = "extendedDuration", column = "extended_duration"),
         @Result(property = "discount", column = "discount"),
         @Result(property = "address", column = "address")
