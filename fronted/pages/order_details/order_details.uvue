@@ -18,43 +18,44 @@
         show-location
       />
     </view>
-
+	 <!-- 蓝色渐变蒙层 -->
+	  <cover-view class="map-overlay"></cover-view>
     <!-- 订单详情浮动面板 -->
     <van-floating-panel v-model:height="panelHeight" :anchors="anchors" class="floating-panel">
       <view class="order-details">
         <!-- 订单标题 -->
         <view class="order-info">
-          <text class="order-price">订单费用：{{ order.price }}元</text>
+          <text class="order-price">Order cost: $ {{ order.price }}</text>
           <van-icon name="chat-o" class="feedback-icon" @click="goToFeedback" />
         </view>
 
         <!-- 订单信息 -->
         <view class="info-box">
           <view class="info-item">
-            <text class="label">下单时间：</text>
+            <text class="label">Order time:</text>
             <text class="value">{{ order.orderTime }}</text>
           </view>
           <view class="info-item">
-            <text class="label">滑板车编号：</text>
+            <text class="label">Scooter number:</text>
             <text class="value">{{ order.scooterId }}</text>
           </view>
           <view class="info-item">
-            <text class="label">租用时间：</text>
+            <text class="label">Rental Time:</text>
             <text class="value">{{ order.rentStart }}</text>
           </view>
           <view class="info-item">
-            <text class="label">使用时长：</text>
+            <text class="label">Usage duration:</text>
             <text class="value">{{ order.actualDuration }}</text>
           </view>
           <view class="info-item" v-if="order.extraCost > 0">
-            <text class="label">超时费用：</text>
-            <text class="value">{{ order.extraCost }}元</text>
+            <text class="label">Overtime fee:</text>
+            <text class="value">{{ order.extraCost }}$</text>
           </view>
         </view>
 
         <!-- 反馈按钮 -->
         <van-button class="feedback-btn" type="primary" @click="goToFeedback">
-          意见反馈
+          Feedback information
         </van-button>
       </view>
     </van-floating-panel>
@@ -73,7 +74,7 @@ const order = ref({
   orderTime: "2025-02-05 11:15",
   scooterId: "111111",
   rentStart: "2025-02-05 11:15",
-  actualDuration: "10 分钟",
+  actualDuration: "10 min",
   extraCost: 0,
 });
 
@@ -84,7 +85,7 @@ const markers = ref([]);
 
 // 自定义浮动面板锚点
 const anchors = [
-  120, // 最小高度
+  100, // 最小高度
   Math.round(0.45 * window.innerHeight), 
   Math.round(0.6 * window.innerHeight), 
 ];
@@ -223,6 +224,22 @@ const goToFeedback = () => {
 .map {
   width: 100%;
   height: 100%;
+}
+
+.map-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   /* 顶部浅蓝色 */
+    rgba(0, 123, 255, 0.1) 50%,  /* 中间更透明 */
+    rgba(255, 255, 255, 0) 100%  /* 底部完全透明 */
+  );
+  pointer-events: none; /* 让地图仍可交互 */
+  z-index: 2; /* 确保蒙层在地图上方 */
 }
 
 /* 浮动面板 - 磨砂玻璃风格 */
