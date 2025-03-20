@@ -246,7 +246,7 @@ const goToFeedback = () => {
 
 /* 浮动面板 - 磨砂玻璃风格 */
 .floating-panel {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(15px);
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
@@ -284,11 +284,12 @@ const goToFeedback = () => {
 
 /* 订单信息框 */
 .info-box {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
+  background: rgba(229, 231, 245, 0.5);
+  backdrop-filter: blur(25px);
   padding: 30px;
   border-radius: 15px;
   margin-top: 15px;
+  border: 1px solid #82b1ff;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
