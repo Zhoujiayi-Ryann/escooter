@@ -1,0 +1,133 @@
+<template>
+  <view class="container">
+	<view class="close-btn" @click="goToLogin">
+      <van-icon name="close" class="close-icon" />
+    </view>
+    <view class="content">
+      <view class="icon">
+        <img src="/static/booking_su/icon.png" alt="icon" />
+      </view>
+      <h2>Booking placed successfully</h2>
+      <p>Thanks for your Booking. <br />
+	  Your Booking has been placed successfully.<br/>
+		Please continue your Book.
+	  </p>
+    </view> 
+    
+    <view class="btn-content">
+      <button class="see">
+        See Details
+      </button>
+      <button class="back" @click="goToLogin">
+        Back Home
+      </button>
+    </view>
+  </view>
+</template>
+
+<script>
+export default {
+	methods:{
+		goToLogin() {
+		  uni.navigateTo({ url: '/pages/login/login' });
+		}
+	}
+};
+</script>
+
+<style>
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100vh; 
+  padding: 20px;
+  text-align: center;
+  background-color: #f6f8fa;
+}
+
+.close-btn {
+  position: absolute;
+  top: 50rpx;
+  left: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10; /* 确保它在最上层 */
+}
+
+/* 关闭图标样式 */
+.close-icon {
+  font-size: 90rpx;  /* 设置图标大小 */
+  color:#7dafff;       /* 设置颜色 */
+}
+
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1; 
+  text-align: center;
+}
+
+.icon {
+  margin: 20rpx 0;
+}
+
+
+h2 {
+  font-size: 60rpx;
+  font-weight: bold;
+  margin: 20rpx 30rpx;
+}
+
+p {
+  font-size: 30rpx;
+  color: #666;
+  padding: 0 30rpx;
+  margin: 0 10rpx;
+  margin-top: 50rpx;
+}
+
+
+.btn-content {
+  width: 100%;
+  position: absolute;
+  bottom: 50rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+.back,
+.see {
+  width: 80%;
+  margin: 10rpx 0;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 35rpx;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  color: #fff;
+  border-radius: 70rpx;
+  transition: all 0.3s;
+}
+
+
+.see {
+  background: #fff;
+  color: #82b1ff;
+  border: 1px solid #82b1ff;
+}
+
+
+.back:active,
+.see:active {
+  transform: scale(0.96);
+}
+</style>

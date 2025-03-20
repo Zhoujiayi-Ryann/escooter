@@ -1,0 +1,314 @@
+<template>
+  <view class="container">
+	  <view class="back-btn">
+	    <van-icon name="arrow-left" class="back-icon"/>
+	  </view>
+	  <view class="person-btn">
+	    <van-icon name="manager" class="person-icon" />
+	  </view>
+
+    <view class="map-container">
+      <map
+        id="tencentMap"
+        class="map"
+        :longitude="location.lng"
+        :latitude="location.lat"
+        :markers="markers"
+        :scale="16"
+        show-location
+      />
+    </view>
+
+    <!-- 订单详情浮动面板 -->
+    <van-floating-panel v-model:height="panelHeight" :anchors="anchors" class="floating-panel">
+      <view class="order-details">
+        <!-- 订单标题 -->
+        <view class="order-info">
+          <text class="order-price">订单费用：{{ order.price }}元</text>
+          <van-icon name="chat-o" class="feedback-icon" @click="goToFeedback" />
+        </view>
+
+        <!-- 订单信息 -->
+        <view class="info-box">
+          <view class="info-item">
+            <text class="label">下单时间：</text>
+            <text class="value">{{ order.orderTime }}</text>
+          </view>
+          <view class="info-item">
+            <text class="label">滑板车编号：</text>
+            <text class="value">{{ order.scooterId }}</text>
+          </view>
+          <view class="info-item">
+            <text class="label">租用时间：</text>
+            <text class="value">{{ order.rentStart }}</text>
+          </view>
+          <view class="info-item">
+            <text class="label">使用时长：</text>
+            <text class="value">{{ order.actualDuration }}</text>
+          </view>
+          <view class="info-item" v-if="order.extraCost > 0">
+            <text class="label">超时费用：</text>
+            <text class="value">{{ order.extraCost }}元</text>
+          </view>
+        </view>
+
+        <!-- 反馈按钮 -->
+        <van-button class="feedback-btn" type="primary" @click="goToFeedback">
+          意见反馈
+        </van-button>
+      </view>
+    </van-floating-panel>
+  </view>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+
+// 订单详情
+const order = ref({
+  price: 12,
+  orderTime: "2025-02-05 11:15",
+  scooterId: "111111",
+  rentStart: "2025-02-05 11:15",
+  actualDuration: "10 分钟",
+  extraCost: 0,
+});
+
+// 订单地图信息
+const location = ref({ lng: 104.0668, lat: 30.5728 }); // 成都
+
+const markers = ref([]);
+
+// 自定义浮动面板锚点
+const anchors = [
+  120, // 最小高度
+  Math.round(0.45 * window.innerHeight), 
+  Math.round(0.6 * window.innerHeight), 
+];
+const panelHeight = ref(anchors[0]);
+
+// 获取用户 GPS 定位
+const getLocation = () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        location.value = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        markers.value = [
+          {
+            id: 1,
+            latitude: location.value.lat,
+            longitude: location.value.lng,
+            iconPath: "/static/order_details/marker.png",
+            width: 30,
+            height: 30,
+          },
+        ];
+        console.log("GPS 定位成功：", location.value);
+      },
+      (error) => {
+        console.error("获取 GPS 位置失败:", error);
+        getLocationFromAPI(); // 如果 GPS 失败，使用 IP 定位
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  } else {
+    console.error("浏览器不支持 GPS 定位");
+    getLocationFromAPI();
+  }
+};
+
+// 使用腾讯 Web API 获取 IP 定位
+const getLocationFromAPI = async () => {
+  const tencentKey = "JG2BZ-CWQKQ-VXT56-4MFNY-5R3S5-QSF34"; 
+  const url = `https://apis.map.qq.com/ws/location/v1/ip?key=${tencentKey}`;
+
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const data = await res.json();
+    if (data.status === 0) {
+      location.value = {
+        lat: data.result.location.lat,
+        lng: data.result.location.lng,
+      };
+      markers.value = [
+        {
+          id: 1,
+          latitude: location.value.lat,
+          longitude: location.value.lng,
+          iconPath: "/static/order_details/marker.png",
+        },
+      ];
+      console.log("IP 定位成功", location.value);
+    } else {
+      console.error("IP 定位失败", data);
+    }
+  } catch (error) {
+    console.error("腾讯 Web API 获取定位失败", error);
+  }
+};
+
+// 动态加载腾讯地图 SDK
+onMounted(() => {
+  const tencentKey = "JG2BZ-CWQKQ-VXT56-4MFNY-5R3S5-QSF34"; 
+  if (typeof window !== "undefined") {
+    const script = document.createElement("script");
+    script.src = `https://map.qq.com/api/gljs?v=1.exp&key=${tencentKey}`;
+    script.onload = () => {
+      console.log("✅ 腾讯地图 SDK 加载成功");
+      getLocation(); 
+    };
+    document.head.appendChild(script);
+  } else {
+    getLocation();
+  }
+});
+
+
+// 跳转意见反馈
+const goToFeedback = () => {
+  router.push("/pages/feedback/feedback");
+};
+</script>
+
+<style scoped>
+
+.back-btn{
+  position: absolute;
+  top: 50rpx;
+  left: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #ffffff;
+  border-radius: 25rpx;
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.back-icon,.person-icon {
+  font-size: 40rpx;  
+  color: #1f1f1f;
+}
+.person-btn {
+  position: absolute;
+  top: 50rpx;
+  right: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #ffffff;
+  border-radius: 25rpx;
+  width: 60rpx;
+  height: 60rpx;
+}
+
+
+/* 地图容器 */
+.map-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+/* 浮动面板 - 磨砂玻璃风格 */
+.floating-panel {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(15px);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* 订单详情 */
+.order-details {
+  padding: 20px;
+}
+
+/* 订单信息栏 */
+.order-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+  font-size: 16px;
+  font-weight: bold;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.order-price {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 反馈按钮 */
+.feedback-icon {
+  font-size: 24px;
+  color: #007aff;
+  cursor: pointer;
+}
+
+/* 订单信息框 */
+.info-box {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  padding: 15px;
+  border-radius: 15px;
+  margin-top: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 每行信息 */
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* 信息标签 */
+.label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* 信息值 */
+.value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 反馈按钮 */
+.feedback-btn {
+  margin-top: 20px;
+  width: 100%;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  height: 45px;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);
+}
+
+/* 按钮点击动画 */
+.feedback-btn:active {
+  transform: scale(0.98);
+}
+</style>

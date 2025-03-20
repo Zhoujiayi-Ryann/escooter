@@ -1,0 +1,156 @@
+<template>
+  <view class="container">
+    <!-- 轮播区域 -->
+    <swiper
+      class="swipe-box"
+      :current="currentIndex"
+      @change="onSwipeChange"
+      :circular="false"
+      :autoplay="false"
+    >
+      <swiper-item v-for="(item, index) in slides" :key="index">
+        <div class="slide-content">
+          <img :src="item.image" class="illustration" />
+          <h2>{{ item.title }}</h2>
+          <p>{{ item.description }}</p>
+        </div>
+      </swiper-item>
+    </swiper>
+
+    <!-- 按钮部分（固定位置） -->
+    <view class="content">
+      <!-- <button v-if="currentIndex > 0" class="prev-btn" @click="prevSlide">
+        上一页
+      </button> -->
+      <button class="next-btn" @click="handleButtonClick">
+        {{ currentIndex < slides.length - 1 ? '下一页' : '立即体验' }}
+      </button>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const slides = ref([
+  {
+    image: '/static/loading/img1.png',
+    title: '我们为您提供专业的出租车服务',
+    description: '享受轻松便捷的叫车体验',
+  },
+  {
+    image: '/static/loading/img2.png',
+    title: '我们为您提供既叫即到的打车体验',
+    description: '快速叫车，出行无忧',
+  },
+  {
+    image: '/static/loading/img3.png',
+    title: '立即体验感受不一样的出租车服务',
+    description: '更多智能出行方式，等你发现',
+  },
+]);
+
+const currentIndex = ref(0);
+const router = useRouter();
+
+// 监听 `swiper` 变化，更新索引
+const onSwipeChange = (event) => {
+  currentIndex.value = event.detail.current;
+};
+
+// 处理“下一页”按钮
+const handleButtonClick = () => {
+  if (currentIndex.value < slides.value.length - 1) {
+    currentIndex.value++;
+  } else {
+    router.push('/pages/register/register'); // 跳转注册页面
+  }
+};
+
+// 处理“上一页”按钮
+// const prevSlide = () => {
+//   if (currentIndex.value > 0) {
+//     currentIndex.value--;
+//   }
+// };
+</script>
+
+<style scoped>
+/* 整体容器 */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 20px;
+  text-align: center;
+}
+
+/* 轮播区域 */
+.swipe-box {
+  width: 100%;
+  height: 400px;
+}
+
+/* 每张幻灯片的内容 */
+.slide-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 轮播图片 */
+.illustration {
+  width: 80%;
+  max-height: 250px;
+  object-fit: contain;
+  margin-bottom: 20px;
+}
+
+/* 文本内容 */
+h2 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* 按钮固定在底部 */
+.content {
+  position: absolute;
+  bottom: 80px;
+  width: 100%;
+  text-align: center;
+}
+
+/* 按钮样式 */
+.next-btn{
+  margin: 0 50rpx;
+  margin-top: 40rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 30rpx;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3);
+  color: #fff;
+  border-radius: 70rpx;
+  transition: all 0.3s;
+}
+.next-btn:active {
+  transform: scale(0.96);
+}
+/* .prev-btn{
+	background: #fff;
+	color: #82b1ff;
+} */
+</style>
