@@ -14,25 +14,22 @@
 			}
 		},
 		{
-			"path" : "pages/home/home",
-			"style" : 
-			{
-				"navigationBarTitleText" : "home"
+			"path": "pages/home/home",
+			"style": {
+				"navigationBarTitleText": "home"
 			}
 		},
 		{
-			"path" : "pages/register/register",
-			"style" : 
-			{
-				"navigationBarTitleText" : "Register",
+			"path": "pages/register/register",
+			"style": {
+				"navigationBarTitleText": "Register",
 				"navigationBarBackgroundColor": "#a9c9fd"
 			}
 		},
 		{
-			"path" : "pages/order/confirm",
-			"style" : 
-			{
-				"navigationBarTitleText" : "Order confirmation",
+			"path": "pages/order/confirm",
+			"style": {
+				"navigationBarTitleText": "Order confirmation",
 				"navigationBarBackgroundColor": "#cccccc"
 			}
 		},
@@ -44,60 +41,32 @@
 			}
 		},
 		{
-			"path" : "pages/rent-details/rent-details",
-			"style" : 
-			{
-				"navigationBarTitleText" : "rent-tdetails"
+			"path": "pages/rent-details/rent-details",
+			"style": {
+				"navigationBarTitleText": "rent-details"
 			}
 		},
-				{
-			"path" : "pages/loading/loading",
-			"style" : 
-			{
-				"navigationBarTitleText" : "",
+		{
+			"path": "pages/loading/loading",
+			"style": {
+				"navigationBarTitleText": "",
 				"navigationStyle": "custom"
 			}
 		},
 		{
-			"path" : "pages/booking_right/booking_right",
-			"style" : 
-			{
-				"navigationBarTitleText" : "",
+			"path": "pages/booking_right/booking_right",
+			"style": {
+				"navigationBarTitleText": "",
 				"navigationStyle": "custom"
 			}
 		},
 		{
-			"path" : "pages/order_details/order_details",
-			"style" : 
-			{
-				"navigationBarTitleText" : "",
+			"path": "pages/order_details/order_details",
+			"style": {
+				"navigationBarTitleText": "",
 				"navigationStyle": "custom"
 			}
-		},
-		{
-					"path" : "pages/loading/loading",
-					"style" : 
-					{
-						"navigationBarTitleText" : "",
-						"navigationStyle": "custom"
-					}
-				},
-				{
-					"path" : "pages/booking_right/booking_right",
-					"style" : 
-					{
-						"navigationBarTitleText" : "",
-						"navigationStyle": "custom"
-					}
-				},
-				{
-					"path" : "pages/order_details/order_details",
-					"style" : 
-					{
-						"navigationBarTitleText" : "",
-						"navigationStyle": "custom"
-					}
-				}
+		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
