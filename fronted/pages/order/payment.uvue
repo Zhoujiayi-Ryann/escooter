@@ -1,6 +1,102 @@
 <template>
-	<view>
-		
+	<view class="payment-page">
+		<!-- 订单信息 -->
+		<van-cell-group inset class="order-card">
+			<van-cell title="Order Number" :value="orderId" />
+			<van-cell title="Scooter Number" :value="orderInfo.scooterCode" />
+			<van-cell title="Rental Period">
+				<template #value>
+					<view class="time-value">
+						<text class="small-text">{{ orderInfo.startDate }} {{ orderInfo.startTime }}</text>
+						<text class="to-text small-text">to</text>
+						<text class="small-text">{{ orderInfo.endDate }} {{ orderInfo.endTime }}</text>
+					</view>
+				</template>
+			</van-cell>
+			<van-cell title="Rental Days" :value="`${orderInfo.days} days`" />
+			<van-cell title="Pickup address" :value="orderInfo.address" />
+		</van-cell-group>
+
+		<!-- 优惠券选择 -->
+		<van-cell-group inset class="coupon-card">
+			<van-coupon-cell
+			  :coupons="coupons"
+			  :chosen-coupon="chosenCoupon"
+			  @click="showList = true"
+			/>
+		</van-cell-group>
+
+		<van-cell-group inset class="amount-card">
+			<van-cell title="Payment Amount" class="amount">
+				<template #value>
+					<text class="currency">¥</text>
+					<text class="price">{{ totalAmount }}</text>
+				</template>
+			</van-cell>
+		</van-cell-group>
+
+		<!-- 支付方式选择 -->
+		<van-cell-group inset title="Select Payment Method" class="payment-method">
+			<van-cell title="Bank Card Payment" clickable @click="togglePayment('bankcard')">
+				<template #icon>
+					<image src="/static/icons/bankcard.svg" class="payment-icon" />
+				</template>
+				<template #right-icon>
+					<!-- 阻止时间冒泡 -->
+					<van-checkbox v-model="bankCardSelected" @click.stop />
+				</template>
+			</van-cell>
+		</van-cell-group>
+
+		<view class="bottom-button">
+			<van-button type="primary" block round @click="showPasswordInput">
+				Confirm Payment
+			</van-button>
+		</view>
+
+		<!-- 密码弹出层 -->
+		<van-popup v-model:show="showPassword" position="bottom" round :style="{ padding: '24px' }">
+			<view class="password-popup">
+				<text class="popup-title">Enter Payment Password</text>
+				<text class="popup-amount">¥{{ totalAmount }}</text>
+
+				<van-password-input 
+					:value="password" 
+					:mask="true" 
+					:focused="passwordFocus"
+					@focus="passwordFocus = true" 
+					class="password-input"
+				/>
+
+				<!-- 数字键盘 -->
+				<van-number-keyboard 
+					v-model:show="passwordFocus" 
+					v-model:value="password" 
+					:maxlength="6"
+					@blur="passwordFocus = false" 
+					@close="closePasswordInput" 
+					@input="onPasswordInput"
+					@delete="onPasswordDelete" 
+					:safe-area-inset-bottom="true"
+				/>
+			</view>
+		</van-popup>
+
+		<!-- 优惠券列表 -->
+		<van-popup
+		  v-model:show="showList"
+		  round
+		  position="bottom"
+		  style="height: 90%; padding-top: 4px;"
+		>
+		  <van-coupon-list
+			:coupons="coupons"
+			:chosen-coupon="chosenCoupon"
+			:disabled-coupons="disabledCoupons"
+			@change="onChange"
+			@exchange="onExchange"
+		  />
+		</van-popup>
 	</view>
 </template>
 
@@ -8,15 +104,384 @@
 	export default {
 		data() {
 			return {
-				
+				orderId: 'OD' + Date.now(),
+				orderInfo: {},
+				totalAmount: 99.00, 
+				unitPrice: 12.00,
+				paymentMethod: 'bankcard',
+				showPassword: false,
+				showKeyboard: false,
+				password: '',
+				passwordFocus: false,
+				showList: false,
+				chosenCoupon: -1, // -1 未选择优惠券
+				coupons: [
+					{
+						id: 1,
+						condition: 'No minimum',
+						discount: 5,
+						denominations: 500, // 单位为分
+						originCondition: 0,
+						name: '$5 Coupon',
+						startAt: Date.now() / 1000 - 86400,
+						endAt: Date.now() / 1000 + 86400 * 30,
+						valueDesc: '$5',
+						unitDesc: '',
+						description: 'Rental Coupon'
+					},
+					{
+						id: 2,
+						condition: 'Min $50',
+						discount: 10,
+						denominations: 1000, // 单位为分
+						originCondition: 5000,
+						name: '$10 off on $50',
+						startAt: Date.now() / 1000 - 86400,
+						endAt: Date.now() / 1000 + 86400 * 30,
+						valueDesc: '$10',
+						unitDesc: '',
+						description: 'Rental Coupon'
+					}
+				],
+				disabledCoupons: [
+					{
+						id: 3,
+						condition: 'Min $100',
+						discount: 20,
+						denominations: 2000, // 单位为分
+						originCondition: 10000,
+						name: '$20 off on $100',
+						startAt: Date.now() / 1000 - 86400 * 60,
+						endAt: Date.now() / 1000 - 86400,
+						valueDesc: '$20',
+						unitDesc: '',
+						description: 'Expired'
+					}
+				],
+				bankCardSelected: false,
+				//12.00: 12.00  // API(B->F)
+			}
+		},
+		onLoad(options) {
+			if (options.orderInfo) {
+				this.orderInfo = JSON.parse(decodeURIComponent(options.orderInfo));
+				// 根据天数计算实际金额
+				this.totalAmount = this.orderInfo.days * this.unitPrice;
+				// 初始加载时刷新
+				this.calculateTotal();
+				// 更新优惠券可用状态
+				this.updateCouponsAvailability();
 			}
 		},
 		methods: {
-			
+			togglePayment(method) {
+				this.paymentMethod = method;
+			},
+			showPasswordInput() {
+				this.showPassword = true;
+				this.showKeyboard = true;
+				this.passwordFocus = true;
+			},
+			closePasswordInput() {
+				this.showPassword = false;
+				this.showKeyboard = false;
+				this.password = '';
+				this.passwordFocus = false;
+			},
+			onPasswordInput(key) {
+				if (this.password.length >= 6) {
+					return;
+				}
+				this.password += key;
+				if (this.password.length === 6) {
+					this.handlePayment();
+				}
+			},
+			onPasswordDelete() {
+				this.password = this.password.slice(0, -1);
+			},
+			handlePayment() {
+				// 模拟支付过程
+				setTimeout(() => {
+					this.closePasswordInput();
+					uni.showToast({
+						title: 'Payment Successful',
+						icon: 'success',
+						duration: 2000
+					});
+					// 支付成功后跳转 接跳转成功页面
+					setTimeout(() => {
+						uni.reLaunch({
+							url: '/pages/index/index'
+						});
+					}, 2000);
+				}, 1000);
+			},
+			onChange(index) {
+				// toggle-toggle
+				if (this.chosenCoupon === index) {
+					this.chosenCoupon = -1;
+				} else {
+					this.chosenCoupon = index;
+				}
+				this.showList = false;
+				this.calculateTotal();
+			},
+			// ds-start
+			onExchange(code) {
+				if (code === '123456') {
+					// 假设兑换成功，添加新优惠券
+					this.coupons.push({
+						id: this.coupons.length + 1,
+						condition: 'No minimum',
+						discount: 15,
+						denominations: 1500,
+						originCondition: 0,
+						name: 'New $15 Coupon',
+						startAt: Date.now() / 1000,
+						endAt: Date.now() / 1000 + 86400 * 30,
+						valueDesc: '$15',
+						unitDesc: '',
+						description: 'Redeemed'
+					});
+					uni.showToast({
+						title: 'Redemption Successful',
+						icon: 'success'
+					});
+				} else {
+					uni.showToast({
+						title: 'Invalid Code',
+						icon: 'error'
+					});
+				}
+			},
+			// ds-end
+			calculateTotal() {
+				let basePrice = this.orderInfo.days * this.unitPrice;
+				
+				// 优惠券折扣
+				if (this.chosenCoupon !== -1 && this.coupons.length > this.chosenCoupon) {
+					const coupon = this.coupons[this.chosenCoupon];
+					// 检查是否满足优惠券使用条件
+					if (basePrice * 100 >= coupon.originCondition) {
+						basePrice = Math.max(0, basePrice - coupon.denominations / 100);
+					}
+				}
+				
+				this.totalAmount = basePrice.toFixed(2);
+				// test
+				console.log('计算后money:', this.totalAmount, '选择的优惠券索引:', this.chosenCoupon);
+				
+				// 更新优惠券可用状态
+				this.updateCouponsAvailability();
+			},
+			updateCouponsAvailability() {
+				// 获取当前订单基础金额（不含优惠券折扣）
+				const baseAmount = this.orderInfo.days * this.unitPrice;
+				const baseAmountInCents = Math.floor(baseAmount * 100);
+				
+				// 所有可用优惠券（API(B->F)）
+				// 原始所有可用优惠券
+				const allCoupons = [
+					{
+						id: 1,
+						condition: 'No minimum',
+						discount: 5,
+						denominations: 500,
+						originCondition: 0,
+						name: '$5 Coupon',
+						startAt: Date.now() / 1000 - 86400,
+						endAt: Date.now() / 1000 + 86400 * 30,
+						valueDesc: '$5',
+						unitDesc: '',
+						description: 'Rental Coupon'
+					},
+					{
+						id: 2,
+						condition: 'Min $50',
+						discount: 10,
+						denominations: 1000,
+						originCondition: 5000,
+						name: '$10 off on $50',
+						startAt: Date.now() / 1000 - 86400,
+						endAt: Date.now() / 1000 + 86400 * 30,
+						valueDesc: '$10',
+						unitDesc: '',
+						description: 'Rental Coupon'
+					}
+				];
+				
+				// 清空当前所有优惠券列表
+				this.coupons = [];
+				
+				// 已过期的优惠券
+				const expiredCoupon = {
+					id: 3,
+					condition: 'Min $100',
+					discount: 20,
+					denominations: 2000,
+					originCondition: 10000,
+					name: '$20 off on $100',
+					startAt: Date.now() / 1000 - 86400 * 60,
+					endAt: Date.now() / 1000 - 86400,
+					valueDesc: '$20',
+					unitDesc: '',
+					description: 'Expired'
+				};
+				
+				this.disabledCoupons = [expiredCoupon];
+				
+				// 保存当前选中的优惠券ID（如果有）
+				const selectedCouponId = this.chosenCoupon !== -1 && this.coupons.length > this.chosenCoupon 
+					? this.coupons[this.chosenCoupon]?.id 
+					: null;
+				
+				// 根据金额筛选可用优惠券
+				allCoupons.forEach(coupon => {
+					if (baseAmountInCents >= coupon.originCondition) {
+						this.coupons.push(coupon);
+					} else {
+						const disabledCoupon = {...coupon};
+						disabledCoupon.description = 'Order amount does not meet requirements';
+						this.disabledCoupons.push(disabledCoupon);
+					}
+				});
+				
+				// 如果之前选中的优惠券变成不可用，需要重置选择
+				if (selectedCouponId) {
+					const newIndex = this.coupons.findIndex(c => c.id === selectedCouponId);
+					this.chosenCoupon = newIndex !== -1 ? newIndex : -1;
+				}
+			}
 		}
 	}
 </script>
 
 <style>
+	.payment-page {
+		background: linear-gradient(to bottom right, #c4dbff, #f2f6fc);
+		min-height: 100vh;
+		padding: 20rpx;
+	}
 
+	.order-card, .coupon-card, .amount-card, .payment-method {
+		background: rgba(255, 255, 255, 0.2) !important;
+		backdrop-filter: blur(15px);
+		border-radius: 20rpx !important;
+		box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+		margin-bottom: 20rpx;
+		overflow: hidden;
+	}
+
+	.time-value {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8rpx;
+		font-size: 16rpx;
+	}
+
+	.to-text {
+		margin: 0 4rpx;
+	}
+
+	.amount {
+		font-size: 32rpx;
+	}
+
+	.currency {
+		font-size: 24rpx;
+		margin-right: 8rpx;
+	}
+
+	.price {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #007aff;  /* 蓝色替代红色 */
+	}
+
+	.payment-icon {
+		width: 48rpx;
+		height: 48rpx;
+		margin-right: 16rpx;
+	}
+
+	.bottom-button {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		padding: 20rpx;
+		background: rgba(255, 255, 255, 0.2);
+		backdrop-filter: blur(15px);
+		box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.05);
+	}
+
+	/* 自定义按钮样式，覆盖vant按钮 */
+	.van-button--primary {
+		background: linear-gradient(to right, #82b1ff, #007aff) !important;
+		border: none !important;
+		color: #fff !important;
+		box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3) !important;
+		transition: all 0.3s !important;
+		height: 90rpx !important;
+		line-height: 90rpx !important;
+	}
+
+	.van-button--primary:active {
+		transform: scale(0.96);
+	}
+
+	.password-popup {
+		padding: 32rpx;
+		padding-bottom: 380rpx;
+	}
+
+	.popup-title {
+		display: block;
+		text-align: center;
+		font-size: 32rpx;
+		margin-bottom: 16rpx;
+		color: #333;
+	}
+
+	.popup-amount {
+		display: block;
+		text-align: center;
+		font-size: 48rpx;
+		font-weight: bold;
+		margin-bottom: 32rpx;
+		color: #007aff;
+	}
+
+	.password-input {
+		margin-bottom: 48rpx;
+	}
+
+	/* 为全局的van-cell添加透明背景 */
+	:deep(.van-cell) {
+		background-color: transparent !important;
+	}
+
+	/* 自定义优惠券颜色 */
+	:deep(.van-coupon-cell), :deep(.van-coupon-list) {
+		background: rgba(255, 255, 255, 0.2) !important;
+	}
+
+	:deep(.van-coupon) {
+		background: rgba(255, 255, 255, 0.6) !important;
+	}
+
+	:deep(.van-coupon__content) {
+		background: rgba(255, 255, 255, 0.4) !important;
+	}
+
+	:deep(.van-coupon__corner) {
+		background: linear-gradient(to right, #82b1ff, #007aff) !important;
+	}
+
+	/* 弹出层背景 */
+	:deep(.van-popup) {
+		backdrop-filter: blur(15px);
+	}
 </style>
