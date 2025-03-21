@@ -7,5 +7,8 @@ import com.example.hello.entity.User;
 
 public interface UserService {
     User register(RegisterRequest request);
+
     LoginResponse login(LoginRequest request);
-} 
+
+    User getUserById(Long id);
+}

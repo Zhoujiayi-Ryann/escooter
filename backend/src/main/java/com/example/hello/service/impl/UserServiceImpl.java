@@ -17,13 +17,13 @@ import java.time.LocalDateTime;
 
 @Service
 public class UserServiceImpl implements UserService {
-    
+
     @Autowired
     private UserMapper userMapper;
-    
+
     @Autowired
     private JwtUtil jwtUtil;
-    
+
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService {
 
         // 保存用户
         userMapper.insertUser(user);
-        
+
         // 清除密码后返回
         user.setPassword(null);
         return user;
@@ -81,4 +81,14 @@ public class UserServiceImpl implements UserService {
 
         return response;
     }
-} 
+
+    @Override
+    public User getUserById(Long id) {
+        User user = userMapper.findById(id);
+        if (user != null) {
+            // 出于安全考虑，清除密码信息
+            user.setPassword(null);
+        }
+        return user;
+    }
+}

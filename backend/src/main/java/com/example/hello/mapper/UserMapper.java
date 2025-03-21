@@ -16,4 +16,7 @@ public interface UserMapper {
 
     @Select("SELECT * FROM Users WHERE username = #{username}")
     User findByUsername(String username);
-} 
+
+    @Select("SELECT * FROM Users WHERE user_id = #{id}")
+    User findById(Long id);
+}
