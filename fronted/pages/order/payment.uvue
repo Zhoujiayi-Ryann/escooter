@@ -209,10 +209,10 @@
 						icon: 'success',
 						duration: 2000
 					});
-					// 支付成功后跳转 接跳转成功页面
+					// 支付成功后跳转到booking_right界面
 					setTimeout(() => {
 						uni.reLaunch({
-							url: '/pages/index/index'
+							url: '/pages/booking_right/booking_right'
 						});
 					}, 2000);
 				}, 1000);
