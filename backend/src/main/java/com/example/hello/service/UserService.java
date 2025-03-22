@@ -3,6 +3,7 @@ package com.example.hello.service;
 import com.example.hello.dto.LoginRequest;
 import com.example.hello.dto.LoginResponse;
 import com.example.hello.dto.RegisterRequest;
+import com.example.hello.dto.UpdateUserRequest;
 import com.example.hello.entity.User;
 
 public interface UserService {
@@ -11,4 +12,6 @@ public interface UserService {
     LoginResponse login(LoginRequest request);
 
     User getUserById(Long id);
+
+    User updateUser(Long id, UpdateUserRequest request);
 }

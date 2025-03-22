@@ -3,6 +3,7 @@ package com.example.hello.mapper;
 import com.example.hello.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface UserMapper {
@@ -19,4 +20,9 @@ public interface UserMapper {
 
     @Select("SELECT * FROM Users WHERE user_id = #{id}")
     User findById(Long id);
+
+    @Update("UPDATE Users SET username = #{username}, password = #{password}, " +
+            "email = #{email}, phone_number = #{phoneNumber} " +
+            "WHERE user_id = #{userId}")
+    void updateUser(User user);
 }
