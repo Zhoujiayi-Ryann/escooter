@@ -9,12 +9,19 @@
 			<van-cell-group class="list-container">
 				<van-cell
 				class="escooter-choice"
-				v-for="i in 26"
-				:key="i"
-				:title="String.fromCharCode(i + 64)"
+				v-for="i in scooters"
+				:key="i.scooter_id"
+				:title="`Scooter ID: ${i.scooter_id}`"
+				label="Location: "
+				:value="`${i.location_lat}, ${i.location_lng}`"
 				size="large"
-				:class="{'selected': selected === i}"
-				@click="selectEscooter(i)">
+				:class="{'selected': selected === i.scooter_id}"
+				@click="selectEscooter(i.scooter_id)">
+				<view slot="label">
+					<text>Battery: {{ i.battery_level }}%</text>
+					<text>Status: {{ i.status }}</text>
+					<text>Price: {{ i.price }}+</text>
+				</view>
 				</van-cell>
 		    </van-cell-group>
 			<view class="next-button-area">
@@ -41,6 +48,7 @@
 </template>
 
 <script>
+	import { api } from '@/utils/request'
 	export default {
 		data() {
 			return {
@@ -53,12 +61,14 @@
 				scale: 16,
 				height: 60,
 				anchors: [60, 0],
-				selected: null
+				selected: null,
+				scooters: []
 			};
 		},
 		mounted() {
 			this.getLocation();
 			this.startCompass();
+			this.getScootersData();
 		},
 		onReady() {
 			this.setHeight();
@@ -111,9 +121,32 @@
 				uni.navigateTo({
 					url: '/pages/order/confirm'
 				});
+			},
+			async getScootersData() {
+				try {
+					const response = await api.getScooters();
+					if (response.code === 200) {
+						this.addScooter(response.data);
+					} else {
+						uni.showToast({
+							title: 'Fail to find e-scooters.',
+							icon: 'none',
+							duration: 2000
+						});
+					}
+				} catch (error) {
+					uni.showToast({
+						title: 'Network error.',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			},
+			addScooter(i) {
+				this.scooters = i;
 			}
 		}
-	}
+	};
 </script>
 
 <style>
