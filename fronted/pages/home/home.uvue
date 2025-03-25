@@ -8,22 +8,24 @@
 			</view>
 			<van-cell-group class="list-container">
 				<van-cell
-				class="escooter-choice"
-				v-for="i in scooters"
-				:key="i.scooter_id"
-				:title="`Scooter ID: ${i.scooter_id}`"
-				label="Location: "
-				:value="`${i.location_lat}, ${i.location_lng}`"
-				size="large"
-				:class="{'selected': selected === i.scooter_id}"
-				@click="selectEscooter(i.scooter_id)">
-				<view slot="label">
-					<text>Battery: {{ i.battery_level }}%</text>
-					<text>Status: {{ i.status }}</text>
-					<text>Price: {{ i.price }}+</text>
-				</view>
+				v-for="scooter in scooters" 
+				:key="scooter.id"
+				:class="{'selected': selected === scooter.id}"
+				@click="selectEscooter(scooter.id)">
+					<template #title>
+						<view class="cell-content">
+							<text class="scooter-id">{{scooter.id}}</text>
+							<text class="battery">{{scooter.battery}}%</text>
+						</view>
+					</template>
+					<template #label>
+						<view v-if="selected === scooter.id" class="detail">
+							<text>Status: {{scooter.status}}</text>
+							<text>Price: ￡{{scooter.price}}</text>
+						</view>
+					</template>
 				</van-cell>
-		    </van-cell-group>
+			</van-cell-group>
 			<view class="next-button-area">
 				<van-button
 				round
@@ -36,19 +38,18 @@
 		</van-floating-panel>
 		<map
 		id="myMap"
-		:longitude="longitude"
-		:latitude="latitude"
+		:longitude="mapCenter.longitude"
+		:latitude="mapCenter.latitude"
 		:style="{ width: windowWidth + 'px', height: windowHeight + 'px' }"
 		:show-location="true"
 		:markers="markers"
-		:rotate = "direction"
+		:rotate="direction"
 		:scale="scale">
 		</map>
 	</view>
 </template>
 
 <script>
-	import { api } from '@/utils/request'
 	export default {
 		data() {
 			return {
@@ -56,19 +57,74 @@
 				latitude: 39.909,
 				windowWidth: 0,
 				windowHeight: 0,
-				markers: [],
+				markers: [] as Array<{
+					id: string;
+					latitude: number;
+					longitude: number;
+					width: number;
+					height: number;
+					callout: {
+						content: string;
+						display: 'ALWAYS' | 'BYCLICK';
+					};
+				}>,
 				direction: 0,
 				scale: 16,
 				height: 60,
 				anchors: [60, 0],
 				selected: null,
-				scooters: []
+				mapCenter: {
+					longitude: 116.39742,
+					latitude: 39.909
+				},
+				scooters: [
+					{
+						id: 'A001',
+						location_lat: 39.909,
+						location_lng: 116.397,
+						battery: 85,
+						status: 'Available',
+						price: 1.5
+					},
+					{
+						id: 'A002', 
+						location_lat: 39.908,
+						location_lng: 116.398,
+						battery: 92,
+						status: 'Available',
+						price: 1.5
+					},
+					{
+						id: 'A003',
+						location_lat: 39.907,
+						location_lng: 116.396,
+						battery: 45,
+						status: 'Low Battery',
+						price: 1.2
+					},
+					{
+						id: 'A004',
+						location_lat: 39.910,
+						location_lng: 116.395,
+						battery: 76,
+						status: 'Available',
+						price: 1.5
+					},
+					{
+						id: 'A005',
+						location_lat: 39.911,
+						location_lng: 116.394,
+						battery: 88,
+						status: 'Available', 
+						price: 1.5
+					}
+				]
 			};
 		},
 		mounted() {
 			this.getLocation();
 			this.startCompass();
-			this.getScootersData();
+			this.updateMarkers();
 		},
 		onReady() {
 			this.setHeight();
@@ -82,6 +138,8 @@
 					success: (res) => {
 						this.longitude = res.longitude;
 						this.latitude = res.latitude;
+						this.mapCenter.longitude = res.longitude;
+						this.mapCenter.latitude = res.latitude;
 					},
 					fail: (err) => {
 						console.log(err);
@@ -110,40 +168,38 @@
 					Math.round(0.7 * this.windowHeight)
 				];
 			},
-			selectEscooter(i) {
-				if (this.selected === i) {
+			updateMarkers() {
+				this.markers = this.scooters.map(scooter => ({
+					id: scooter.id,
+					latitude: scooter.location_lat,
+					longitude: scooter.location_lng,
+					width: 32,
+					height: 32,
+					callout: {
+						content: `Scooter ${scooter.id}`,
+						display: this.selected === scooter.id ? 'ALWAYS' : 'BYCLICK'
+					}
+				}));
+			},
+			selectEscooter(id) {
+				if (this.selected === id) {
 					this.selected = null;
+					this.mapCenter.longitude = this.longitude;
+					this.mapCenter.latitude = this.latitude;
 				} else {
-					this.selected = i;
+					this.selected = id;
+					const selectedScooter = this.scooters.find(s => s.id === id);
+					if (selectedScooter) {
+						this.mapCenter.longitude = selectedScooter.location_lng;
+						this.mapCenter.latitude = selectedScooter.location_lat;
+					}
 				}
+				this.updateMarkers();
 			},
 			nextStep() {
 				uni.navigateTo({
 					url: '/pages/order/confirm'
 				});
-			},
-			async getScootersData() {
-				try {
-					const response = await api.getScooters();
-					if (response.code === 200) {
-						this.addScooter(response.data);
-					} else {
-						uni.showToast({
-							title: 'Fail to find e-scooters.',
-							icon: 'none',
-							duration: 2000
-						});
-					}
-				} catch (error) {
-					uni.showToast({
-						title: 'Network error.',
-						icon: 'none',
-						duration: 2000
-					});
-				}
-			},
-			addScooter(i) {
-				this.scooters = i;
 			}
 		}
 	};
@@ -161,7 +217,7 @@
 		background-color: #ffffff;
 	}
 	.list-container {
-		margin-top: 30px;
+		margin-top: 35px;
 		margin-bottom: 55px;
 	}
 	.next-button-area {
@@ -171,7 +227,33 @@
 		padding: 5px;
 		bottom: 0;
 	}
+	.cell-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+	.scooter-id {
+		font-size: 16px;
+		font-weight: bold;
+	}
+	.battery {
+		color: #666;
+	}
 	.selected {
-		border: 2px solid #007aff;
+		border: 2px solid #007aff !important;
+		border-radius: 8px;
+	}
+	.van-cell {
+		border: 1px solid #eee;
+		border-radius: 8px;
+		width: 95%;
+		margin: auto;
+	}
+	.detail {
+		display: flex;
+		flex-direction: column;
+		font-size: 14px;
+		color: #666;
+		padding: 8px 0;
 	}
 </style> 
