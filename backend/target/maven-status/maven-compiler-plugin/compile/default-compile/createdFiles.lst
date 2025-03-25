@@ -19,6 +19,7 @@ com/example/hello/config/SchedulingConfig.class
 com/example/hello/config/MyBatisConfig.class
 com/example/hello/handler/OrderStatusTypeHandler.class
 com/example/hello/dto/LoginRequest.class
+com/example/hello/filter/SimpleCorsFilter.class
 com/example/hello/service/UserService.class
 com/example/hello/dto/RegisterRequest.class
 com/example/hello/config/DatabaseConfig.class

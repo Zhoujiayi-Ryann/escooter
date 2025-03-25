@@ -4,6 +4,10 @@ const BASE_URL = 'https://aadujkrrrwxp.sealoshzh.site/api';
 // 存储 token 的 key
 const TOKEN_KEY = 'token';
 
+// 开发模式开关，设置为true表示开发模式，所有请求都无需token
+// TODO: 在生产环境中必须设置为false
+const DEV_MODE = true;
+
 // 定义接口返回类型
 interface ApiResponse<T> {
     code: number;
@@ -113,8 +117,8 @@ export function request<T>(options: {
             'Accept': 'application/json'
         };
         
-        // 如果需要 token 且 token 存在，则添加到请求头
-        if (options.needToken && token) {
+        // 如果不是开发模式且需要token且token存在，则添加到请求头
+        if (!DEV_MODE && options.needToken && token) {
             header.token = token;
         }
 
@@ -125,8 +129,8 @@ export function request<T>(options: {
             header: header,
             withCredentials: true, // 允许发送 cookie
             success: (res: any) => {
-                // 处理 401 未授权的情况
-                if (res.statusCode === 401) {
+                // 如果不是开发模式，则处理401未授权的情况
+                if (!DEV_MODE && res.statusCode === 401) {
                     // 清除 token
                     removeToken();
                     // 跳转到登录页

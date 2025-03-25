@@ -29,6 +29,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/common/OrderStatus.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/ScooterController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/OrderDetailResponse.java
+/home/devbox/project/backend/src/main/java/com/example/hello/filter/SimpleCorsFilter.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/OrderService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/ScooterServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/UserController.java
