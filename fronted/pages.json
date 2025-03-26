@@ -66,6 +66,12 @@
 				"navigationBarTitleText": "",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/settings/orders/orders",
+			"style": {
+				"navigationBarTitleText": "My orders"
+			}
 		}
 	],
 	"globalStyle": {
