@@ -29,6 +29,7 @@ com/example/hello/service/impl/OrderServiceImpl.class
 com/example/hello/exception/GlobalExceptionHandler.class
 com/example/hello/HelloApplication.class
 com/example/hello/dto/OrderDetailResponse$ScooterInfoDto.class
+com/example/hello/dto/UpdateUserRequest.class
 com/example/hello/entity/User.class
 com/example/hello/service/OrderService.class
 com/example/hello/interceptor/JwtInterceptor.class
