@@ -18,6 +18,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/common/Result.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/User.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/LoginRequest.java
+/home/devbox/project/backend/src/main/java/com/example/hello/dto/UpdateUserRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/UserService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/ScooterMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/config/DatabaseConfig.java
