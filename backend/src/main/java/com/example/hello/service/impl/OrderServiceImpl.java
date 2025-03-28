@@ -268,4 +268,69 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderException("激活失败: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    @Transactional
+    public Optional<ChangeOrderStatusResponse> completeOrder(Integer orderId) {
+        log.info("开始处理订单完成请求: orderId={}", orderId);
+
+        // 1. 查询订单详情
+        Map<String, Object> detailMap = orderMapper.getOrderDetail(orderId);
+        if (detailMap == null || detailMap.isEmpty()) {
+            log.warn("完成失败: 订单{}不存在", orderId);
+            throw OrderException.notFound(orderId);
+        }
+
+        // 2. 验证订单状态
+        String currentStatus = (String) detailMap.get("status");
+        if (!OrderStatus.ACTIVE.getValue().equals(currentStatus)) {
+            log.warn("完成失败: 订单{}当前状态为{}, 不允许完成", orderId, currentStatus);
+            throw OrderException.invalidStatus(orderId, currentStatus, OrderStatus.COMPLETED.getValue());
+        }
+
+        try {
+            // 3. 更新订单状态为completed
+            log.info("更新订单{}状态为completed", orderId);
+            int updated = orderMapper.updateOrderStatus(orderId, OrderStatus.COMPLETED.getValue());
+
+            // 4. 更新滑板车状态为free
+            Integer scooterId = (Integer) detailMap.get("scooter_id");
+            scooterMapper.updateScooterStatus(scooterId, "free");
+
+            // 5. 如果更新成功，返回完整的订单信息
+            if (updated > 0) {
+                ChangeOrderStatusResponse response = new ChangeOrderStatusResponse();
+
+                // 设置订单基本信息
+                response.setOrder_id((Integer) detailMap.get("order_id"));
+                response.setUser_id((Integer) detailMap.get("user_id"));
+                response.setScooter_id(scooterId);
+                response.setStart_time((LocalDateTime) detailMap.get("start_time"));
+                response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
+                response.setCost((BigDecimal) detailMap.get("cost"));
+                response.setStatus(OrderStatus.COMPLETED.getValue());
+                response.setPickup_address((String) detailMap.get("address"));
+
+                // 设置滑板车信息
+                OrderDetailResponse.ScooterInfoDto scooterInfo = new OrderDetailResponse.ScooterInfoDto();
+                scooterInfo.setLatitude((BigDecimal) detailMap.get("location_lat"));
+                scooterInfo.setLongitude((BigDecimal) detailMap.get("location_lng"));
+                scooterInfo.setBattery_level((Integer) detailMap.get("battery_level"));
+                scooterInfo.setPrice((BigDecimal) detailMap.get("price"));
+                response.setScooter_info(scooterInfo);
+
+                // 设置滑板车状态
+                response.setScooter_status("free");
+
+                log.info("订单{}完成成功", orderId);
+                return Optional.of(response);
+            } else {
+                log.error("订单{}完成失败: 更新状态失败", orderId);
+                throw new OrderException("完成失败: 更新订单状态失败");
+            }
+        } catch (Exception e) {
+            log.error("订单{}完成失败: {}", orderId, e.getMessage(), e);
+            throw new OrderException("完成失败: " + e.getMessage(), e);
+        }
+    }
 }

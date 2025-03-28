@@ -45,4 +45,13 @@ public interface OrderService {
      * @return 激活结果
      */
     Optional<ChangeOrderStatusResponse> activateOrder(Integer orderId);
+
+    /**
+     * 完成订单
+     * 将订单状态从active更新为completed
+     *
+     * @param orderId 订单ID
+     * @return 完成结果
+     */
+    Optional<ChangeOrderStatusResponse> completeOrder(Integer orderId);
 }

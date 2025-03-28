@@ -126,4 +126,37 @@ public class OrderController {
             return Result.error("激活失败: 系统异常，请稍后重试");
         }
     }
+
+    /**
+     * 完成订单接口
+     * 将订单状态从active更新为completed
+     * 
+     * @param orderId 订单ID
+     * @return 完成结果
+     */
+    @PostMapping("/orders/{order_id}/complete")
+    public Result<ChangeOrderStatusResponse> completeOrder(@PathVariable("order_id") Integer orderId) {
+        try {
+            log.info("接收到订单完成请求: orderId={}", orderId);
+
+            // 调用服务进行完成处理
+            return orderService.completeOrder(orderId)
+                    .map(response -> {
+                        log.info("订单{}完成处理完成", orderId);
+                        return Result.success(response, "完成成功");
+                    })
+                    .orElseGet(() -> {
+                        log.warn("订单{}完成失败: 未返回有效结果", orderId);
+                        return Result.error("完成失败: 系统错误");
+                    });
+        } catch (OrderException e) {
+            // 使用自定义异常处理订单相关错误
+            log.warn("订单{}完成失败: {}", orderId, e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            // 处理其他未预期的错误
+            log.error("订单{}完成失败: 系统异常", orderId, e);
+            return Result.error("完成失败: 系统异常，请稍后重试");
+        }
+    }
 }
