@@ -1,4 +1,342 @@
 <template>
-	<view></view>
+	<view class="orders-container">
+		
+		<!-- 分类标签 -->
+		<van-tabs v-model="currentTab" sticky @click="onTabChange">
+			<van-tab 
+				v-for="(tab, index) in tabs" 
+				:key="index"
+				:title="tab"
+				:name="index"
+			>
+				<!-- 订单列表 -->
+				<view class="order-list">
+					<van-empty v-if="filteredOrders.length === 0" description="No Orders" />
+					
+					<van-card
+						v-for="(order, index) in filteredOrders"
+						:key="index"
+						:price="order.price"
+						:desc="order.orderTime"
+						:title="order.type"
+						:tag="order.status"
+						currency="¥"
+						thumb="/static/bike.png"
+						class="order-card"
+					>
+						<template #footer>
+							<view class="card-footer">
+								<!-- 未使用订单显示"修改订单"和"取消订单"按钮 -->
+								<template v-if="order.statusCode === 1">
+									<van-button 
+										size="small" 
+										icon="edit"
+										plain
+										@click="modifyOrder(order.id)"
+									>
+										Modify Order
+									</van-button>
+									<van-button 
+										size="small" 
+										type="danger"
+										plain
+										@click="showCancelOrderConfirm(order)"
+									>
+										Cancel
+									</van-button>
+								</template>
+								
+								<!-- 进行中订单显示"延长租车"按钮 -->
+								<template v-else-if="order.statusCode === 2">
+									<van-button 
+										size="small" 
+										type="primary"
+										plain
+										@click="showExtendRentalDialog(order)"
+									>
+										Extend Rental
+									</van-button>
+								</template>
+								
+								<!-- 其他状态订单显示"删除"和"订单详情"按钮 -->
+								<template v-else>
+									<van-button 
+										size="small" 
+										icon="delete" 
+										plain
+										@click="deleteOrder(order.id)"
+									>
+										Delete
+									</van-button>
+									<van-button 
+										size="small" 
+										type="primary"
+										plain
+										@click="viewOrderDetail(order.id)"
+									>
+										Order Details
+									</van-button>
+								</template>
+							</view>
+						</template>
+						
+						<template #desc>
+							<view>
+								<view class="info-item">
+									<text class="info-label">Rental Duration:
+										<text class="info-value">{{ order.duration }}</text>
+									</text>
+								</view>
+								<view class="info-item">
+									<text class="info-label">Order Time:
+										<text class="info-value">{{ order.orderTime }}</text>
+									</text>
+								</view>
+							</view>
+						</template>
+					</van-card>
+				</view>
+			</van-tab>
+		</van-tabs>
+	</view>
 </template>
-<script></script>
+
+<script>
+export default {
+	data() {
+		return {
+			tabs: ['All', 'Unused', 'In Progress', 'Completed'],
+			currentTab: 0, // 默认选中"已完成"标签
+			selectedStatus: 0, // 新增：当前选中的状态码
+			orders: [
+				{
+					id: '20230001',
+					type: 'Bicycle',
+					status: 'Completed',
+					duration: '2 hours 30 minutes',
+					orderTime: '2023-05-20 14:30',
+					price: '12',
+					statusCode: 3 // 0: 全部, 1: 未使用, 2: 进行中, 3: 已完成
+				},
+				{
+					id: '20230002',
+					type: 'Bicycle',
+					status: 'Unused',
+					duration: 'Est. 3 hours',
+					orderTime: '2023-05-22 09:15',
+					price: '15',
+					statusCode: 1
+				},
+				{
+					id: '20230003',
+					type: 'Bicycle',
+					status: 'In Progress',
+					duration: 'Used 1 hour 15 minutes',
+					orderTime: '2023-05-22 13:40',
+					price: '10',
+					statusCode: 2
+				}
+			],
+			// 添加取消订单的相关数据
+			showCancelDialog: false,
+			currentCancelOrder: null,
+			
+			// 添加延长租车的相关数据
+			showExtendDialog: false,
+			currentExtendOrder: null,
+			extendDuration: '1 day',
+			extendOptions: ['1 hour', '2 hours', '4 hours', '1 day']
+		}
+	},
+	computed: {
+		filteredOrders() {
+			if (this.selectedStatus === 0) {
+				return this.orders; // 全部订单
+			} else {
+				return this.orders.filter(order => order.statusCode === this.selectedStatus);
+			}
+		}
+	},
+	methods: {
+		onTabChange(index) {
+			// zjy的超级超级天才想法：解决莫名奇妙的报错
+			const tabElement = index.target.closest('.van-tab');
+			if (tabElement && tabElement.id) {
+				// 从ID "van-tabs-1-1" 中提取末尾的数字作为索引
+				const tabId = tabElement.id;
+				const tabIndex = tabId.split('-').pop();
+				// 更新选中的状态码
+				this.selectedStatus = Number(tabIndex);
+				console.log('当前状态码:', this.selectedStatus);
+			}
+		},
+		deleteOrder(orderId) {
+			uni.showModal({
+				title: 'Tip',
+				content: 'Are you sure to delete this order?',
+				success: (res) => {
+					if (res.confirm) {
+						// 模拟删除订单
+						this.orders = this.orders.filter(order => order.id !== orderId);
+						uni.showToast({
+							title: 'Deleted',
+							icon: 'success'
+						});
+					}
+				}
+			});
+		},
+		viewOrderDetail(orderId) {
+			// 跳转到订单详情页
+			uni.navigateTo({
+				url: '/pages/order_details/order_details?id=' + orderId
+			});
+		},
+		// 修改订单方法（延长使用时间）
+		modifyOrder(orderId) {
+			uni.showToast({
+				title: 'Extend rental feature in development',
+				icon: 'none'
+			});
+			// 这里可以跳转到修改订单页面或显示修改弹窗
+		},
+		
+		// 显示取消订单确认弹窗
+		showCancelOrderConfirm(order) {
+			this.currentCancelOrder = order;
+			uni.showModal({
+				title: 'Confirm Order Cancellation?',
+				content: `Rental Duration: ${order.duration}\nBicycle ID: ${order.id}`,
+				cancelText: 'Cancel',
+				confirmText: 'Confirm',
+				success: (res) => {
+					if (res.confirm) {
+						this.cancelOrder(order.id);
+					}
+				}
+			});
+		},
+		
+		// 取消订单方法
+		cancelOrder(orderId) {
+			// 模拟取消订单
+			this.orders = this.orders.filter(order => order.id !== orderId);
+			uni.showToast({
+				title: 'Order Cancelled',
+				icon: 'success'
+			});
+		},
+		
+		// 显示延长租车对话框
+		showExtendRentalDialog(order) {
+			this.currentExtendOrder = order;
+			this.extendDuration = '1 day'; // 默认延长时间
+			
+			uni.showModal({
+				title: 'Extend Rental?',
+				content: `Rental Duration: ${this.extendDuration}`,
+				cancelText: 'Cancel',
+				confirmText: 'Confirm',
+				editable: true, // 使用可编辑的模态框
+				placeholderText: 'Select extension time',
+				success: (res) => {
+					if (res.confirm) {
+						// 用户点击确认，处理延长租车逻辑
+						this.extendRental(order.id, res.content || this.extendDuration);
+					}
+				}
+			});
+		},
+		
+		// 处理延长租车
+		extendRental(orderId, duration) {
+			// 找到对应订单
+			const orderIndex = this.orders.findIndex(order => order.id === orderId);
+			if (orderIndex !== -1) {
+				// 更新订单信息，这里只是模拟
+				this.orders[orderIndex].duration += ` + ${duration}`;
+				
+				uni.showToast({
+					title: 'Rental Extended',
+					icon: 'success'
+				});
+			}
+		}
+	},
+	// 组件创建时确保默认选中的状态码正确
+	created() {
+		this.selectedStatus = this.currentTab;
+	}
+}
+</script>
+
+<style>
+.orders-container {
+	background-color: #f5f5f5;
+	min-height: 100vh;
+}
+
+.order-list {
+	padding: 20rpx;
+}
+
+.order-card {
+	margin-bottom: 20rpx;
+	background-color: #ffffff;
+	border-radius: 12rpx;
+	overflow: hidden;
+}
+
+.card-footer {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 16rpx;
+	margin-top: 16rpx;
+	flex-direction: row;
+	flex-wrap: nowrap;
+}
+
+.info-item {
+	margin-bottom: 10rpx;
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-start;
+}
+
+.info-label {
+	font-size: 24rpx;
+	color: #666;
+	text-align: left;
+}
+
+.info-value {
+	font-size: 24rpx;
+	color: #999;
+	margin-left: 10rpx;
+	text-align: left;
+}
+
+.van-card__price {
+	font-size: 36rpx !important;
+	color: #f44 !important;
+}
+
+.van-card__title {
+	font-size: 32rpx !important;
+	font-weight: bold !important;
+}
+
+.van-card__tag {
+	padding: 2rpx 8rpx !important;
+	background-color: #1989fa !important;
+	color: #fff !important;
+	border-radius: 4rpx !important;
+}
+
+/* 为不同状态设置不同颜色 */
+.van-tab--active {
+	color: #1989fa !important;
+	font-weight: bold !important;
+}
+</style>
