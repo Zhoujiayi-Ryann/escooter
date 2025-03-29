@@ -5,6 +5,7 @@ import com.example.hello.dto.CreateOrderRequest;
 import com.example.hello.dto.OrderDetailResponse;
 import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
+import com.example.hello.dto.ChangeOrderStatusResponse;
 import com.example.hello.exception.OrderException;
 import com.example.hello.service.OrderService;
 import jakarta.validation.Valid;
@@ -41,7 +42,7 @@ public class OrderController {
             return Result.error(e.getMessage());
         }
     }
-    
+
     /**
      * 获取订单详情接口
      * 
@@ -71,7 +72,7 @@ public class OrderController {
     public Result<PayOrderResponse> payOrder(@PathVariable("order_id") Integer orderId) {
         try {
             log.info("接收到订单支付请求: orderId={}", orderId);
-            
+
             // 调用服务进行支付处理，使用Java 8 Optional处理
             return orderService.payOrder(orderId)
                     .map(response -> {
@@ -92,4 +93,70 @@ public class OrderController {
             return Result.error("支付失败: 系统异常，请稍后重试");
         }
     }
-} 
+
+    /**
+     * 激活订单接口
+     * 将订单状态从paid更新为active
+     * 
+     * @param orderId 订单ID
+     * @return 激活结果
+     */
+    @PostMapping("/orders/{order_id}/activate")
+    public Result<ChangeOrderStatusResponse> activateOrder(@PathVariable("order_id") Integer orderId) {
+        try {
+            log.info("接收到订单激活请求: orderId={}", orderId);
+
+            // 调用服务进行激活处理
+            return orderService.activateOrder(orderId)
+                    .map(response -> {
+                        log.info("订单{}激活处理完成", orderId);
+                        return Result.success(response, "激活成功");
+                    })
+                    .orElseGet(() -> {
+                        log.warn("订单{}激活失败: 未返回有效结果", orderId);
+                        return Result.error("激活失败: 系统错误");
+                    });
+        } catch (OrderException e) {
+            // 使用自定义异常处理订单相关错误
+            log.warn("订单{}激活失败: {}", orderId, e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            // 处理其他未预期的错误
+            log.error("订单{}激活失败: 系统异常", orderId, e);
+            return Result.error("激活失败: 系统异常，请稍后重试");
+        }
+    }
+
+    /**
+     * 完成订单接口
+     * 将订单状态从active更新为completed
+     * 
+     * @param orderId 订单ID
+     * @return 完成结果
+     */
+    @PostMapping("/orders/{order_id}/complete")
+    public Result<ChangeOrderStatusResponse> completeOrder(@PathVariable("order_id") Integer orderId) {
+        try {
+            log.info("接收到订单完成请求: orderId={}", orderId);
+
+            // 调用服务进行完成处理
+            return orderService.completeOrder(orderId)
+                    .map(response -> {
+                        log.info("订单{}完成处理完成", orderId);
+                        return Result.success(response, "完成成功");
+                    })
+                    .orElseGet(() -> {
+                        log.warn("订单{}完成失败: 未返回有效结果", orderId);
+                        return Result.error("完成失败: 系统错误");
+                    });
+        } catch (OrderException e) {
+            // 使用自定义异常处理订单相关错误
+            log.warn("订单{}完成失败: {}", orderId, e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            // 处理其他未预期的错误
+            log.error("订单{}完成失败: 系统异常", orderId, e);
+            return Result.error("完成失败: 系统异常，请稍后重试");
+        }
+    }
+}
