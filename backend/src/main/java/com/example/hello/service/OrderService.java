@@ -54,4 +54,13 @@ public interface OrderService {
      * @return 完成结果
      */
     Optional<ChangeOrderStatusResponse> completeOrder(Integer orderId);
+
+    /**
+     * 删除未支付订单
+     * 只能删除状态为pending的订单
+     *
+     * @param orderId 订单ID
+     * @return 是否删除成功
+     */
+    boolean deleteOrder(Integer orderId);
 }

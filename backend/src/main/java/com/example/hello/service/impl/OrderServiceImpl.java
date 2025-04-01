@@ -333,4 +333,42 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderException("完成失败: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    @Transactional
+    public boolean deleteOrder(Integer orderId) {
+        log.info("开始处理订单删除请求: orderId={}", orderId);
+
+        // 1. 查询订单
+        Order order = orderMapper.findById(orderId);
+        if (order == null) {
+            log.warn("删除失败: 订单{}不存在", orderId);
+            throw OrderException.notFound(orderId);
+        }
+
+        // 2. 验证订单状态
+        if (order.getStatus() != OrderStatus.PENDING) {
+            log.warn("删除失败: 订单{}当前状态为{}, 不允许删除", orderId, order.getStatus());
+            throw OrderException.invalidStatus(orderId, order.getStatus().getValue(), OrderStatus.PENDING.getValue());
+        }
+
+        try {
+            // 3. 删除订单
+            log.info("删除订单{}", orderId);
+            int deleted = orderMapper.deleteOrder(orderId, OrderStatus.PENDING.getValue());
+
+            // 4. 更新滑板车状态为free
+            if (deleted > 0) {
+                scooterMapper.updateScooterStatus(order.getScooterId(), "free");
+                log.info("订单{}删除成功，滑板车状态已更新为可用", orderId);
+                return true;
+            } else {
+                log.error("订单{}删除失败", orderId);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("订单{}删除失败: {}", orderId, e.getMessage(), e);
+            throw new OrderException("删除失败: " + e.getMessage(), e);
+        }
+    }
 }

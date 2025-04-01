@@ -159,4 +159,36 @@ public class OrderController {
             return Result.error("完成失败: 系统异常，请稍后重试");
         }
     }
+
+    /**
+     * 删除未支付订单接口
+     * 只能删除状态为pending的订单
+     * 
+     * @param orderId 订单ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/orders/{order_id}")
+    public Result<Void> deleteOrder(@PathVariable("order_id") Integer orderId) {
+        try {
+            log.info("接收到订单删除请求: orderId={}", orderId);
+
+            // 调用服务进行删除处理
+            boolean deleted = orderService.deleteOrder(orderId);
+            if (deleted) {
+                log.info("订单{}删除成功", orderId);
+                return Result.success(null, "删除成功");
+            } else {
+                log.warn("订单{}删除失败", orderId);
+                return Result.error("删除失败");
+            }
+        } catch (OrderException e) {
+            // 使用自定义异常处理订单相关错误
+            log.warn("订单{}删除失败: {}", orderId, e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            // 处理其他未预期的错误
+            log.error("订单{}删除失败: 系统异常", orderId, e);
+            return Result.error("删除失败: 系统异常，请稍后重试");
+        }
+    }
 }
