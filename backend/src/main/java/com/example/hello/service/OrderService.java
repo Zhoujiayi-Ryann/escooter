@@ -63,4 +63,13 @@ public interface OrderService {
      * @return 是否删除成功
      */
     boolean deleteOrder(Integer orderId);
+
+    /**
+     * 软删除已完成的订单
+     * 只能删除状态为completed的订单
+     *
+     * @param orderId 订单ID
+     * @return 是否删除成功
+     */
+    boolean softDeleteOrder(Integer orderId);
 }

@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,14 +48,10 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Optional<OrderResponse> createOrder(CreateOrderRequest request) {
-        // 1. 检查滑板车是否存在且可用
+        // 1. 检查滑板车是否存在
         Scooter scooter = scooterMapper.findById(request.getScooter_id());
         if (scooter == null) {
             throw new RuntimeException("滑板车不存在");
-        }
-
-        if (!"free".equals(scooter.getStatus())) {
-            throw new RuntimeException("滑板车当前不可用，状态为: " + scooter.getStatus());
         }
 
         // 2. 验证开始时间和结束时间
@@ -62,16 +59,25 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("结束时间不能早于开始时间");
         }
 
-        // 3. 计算使用时长（小时）
+        // 3. 检查时间段是否与其他订单重叠
+        List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
+                request.getScooter_id(),
+                request.getStart_time(),
+                request.getEnd_time());
+        if (!overlappingOrders.isEmpty()) {
+            throw new RuntimeException("该时间段内滑板车已被预订");
+        }
+
+        // 4. 计算使用时长（小时）
         Duration duration = Duration.between(request.getStart_time(), request.getEnd_time());
         float durationHours = duration.toMinutes() / 60.0f;
 
-        // 4. 计算费用
+        // 5. 计算费用
         BigDecimal hourlyRate = scooter.getPrice();
         BigDecimal cost = hourlyRate.multiply(BigDecimal.valueOf(durationHours))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // 5. 创建订单
+        // 6. 创建订单
         Order order = new Order();
         order.setUserId(request.getUser_id());
         order.setScooterId(request.getScooter_id());
@@ -85,11 +91,8 @@ public class OrderServiceImpl implements OrderService {
         order.setDiscount(BigDecimal.ZERO);
         order.setAddress(request.getPickup_address());
 
-        // 6. 保存订单
+        // 7. 保存订单
         orderMapper.insertOrder(order);
-
-        // 7. 更新滑板车状态为已预订
-        scooterMapper.updateScooterStatus(request.getScooter_id(), "booked");
 
         // 8. 构建响应
         OrderResponse response = new OrderResponse();
@@ -228,18 +231,14 @@ public class OrderServiceImpl implements OrderService {
             log.info("更新订单{}状态为active", orderId);
             int updated = orderMapper.updateOrderStatus(orderId, OrderStatus.ACTIVE.getValue());
 
-            // 5. 更新滑板车状态为in_use
-            Integer scooterId = (Integer) detailMap.get("scooter_id");
-            scooterMapper.updateScooterStatus(scooterId, "in_use");
-
-            // 6. 如果更新成功，返回完整的订单信息
+            // 5. 如果更新成功，返回完整的订单信息
             if (updated > 0) {
                 ChangeOrderStatusResponse response = new ChangeOrderStatusResponse();
 
                 // 设置订单基本信息
                 response.setOrder_id((Integer) detailMap.get("order_id"));
                 response.setUser_id((Integer) detailMap.get("user_id"));
-                response.setScooter_id(scooterId);
+                response.setScooter_id((Integer) detailMap.get("scooter_id"));
                 response.setStart_time(startTime);
                 response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
                 response.setCost((BigDecimal) detailMap.get("cost"));
@@ -253,9 +252,6 @@ public class OrderServiceImpl implements OrderService {
                 scooterInfo.setBattery_level((Integer) detailMap.get("battery_level"));
                 scooterInfo.setPrice((BigDecimal) detailMap.get("price"));
                 response.setScooter_info(scooterInfo);
-
-                // 设置滑板车状态
-                response.setScooter_status("in_use");
 
                 log.info("订单{}激活成功", orderId);
                 return Optional.of(response);
@@ -293,18 +289,14 @@ public class OrderServiceImpl implements OrderService {
             log.info("更新订单{}状态为completed", orderId);
             int updated = orderMapper.updateOrderStatus(orderId, OrderStatus.COMPLETED.getValue());
 
-            // 4. 更新滑板车状态为free
-            Integer scooterId = (Integer) detailMap.get("scooter_id");
-            scooterMapper.updateScooterStatus(scooterId, "free");
-
-            // 5. 如果更新成功，返回完整的订单信息
+            // 4. 如果更新成功，返回完整的订单信息
             if (updated > 0) {
                 ChangeOrderStatusResponse response = new ChangeOrderStatusResponse();
 
                 // 设置订单基本信息
                 response.setOrder_id((Integer) detailMap.get("order_id"));
                 response.setUser_id((Integer) detailMap.get("user_id"));
-                response.setScooter_id(scooterId);
+                response.setScooter_id((Integer) detailMap.get("scooter_id"));
                 response.setStart_time((LocalDateTime) detailMap.get("start_time"));
                 response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
                 response.setCost((BigDecimal) detailMap.get("cost"));
@@ -318,9 +310,6 @@ public class OrderServiceImpl implements OrderService {
                 scooterInfo.setBattery_level((Integer) detailMap.get("battery_level"));
                 scooterInfo.setPrice((BigDecimal) detailMap.get("price"));
                 response.setScooter_info(scooterInfo);
-
-                // 设置滑板车状态
-                response.setScooter_status("free");
 
                 log.info("订单{}完成成功", orderId);
                 return Optional.of(response);
@@ -357,10 +346,8 @@ public class OrderServiceImpl implements OrderService {
             log.info("删除订单{}", orderId);
             int deleted = orderMapper.deleteOrder(orderId, OrderStatus.PENDING.getValue());
 
-            // 4. 更新滑板车状态为free
             if (deleted > 0) {
-                scooterMapper.updateScooterStatus(order.getScooterId(), "free");
-                log.info("订单{}删除成功，滑板车状态已更新为可用", orderId);
+                log.info("订单{}删除成功", orderId);
                 return true;
             } else {
                 log.error("订单{}删除失败", orderId);
@@ -369,6 +356,71 @@ public class OrderServiceImpl implements OrderService {
         } catch (Exception e) {
             log.error("订单{}删除失败: {}", orderId, e.getMessage(), e);
             throw new OrderException("删除失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public boolean softDeleteOrder(Integer orderId) {
+        log.info("开始处理订单软删除请求: orderId={}", orderId);
+
+        // 1. 查询订单
+        Order order = orderMapper.findById(orderId);
+        if (order == null) {
+            log.warn("软删除失败: 订单{}不存在", orderId);
+            throw OrderException.notFound(orderId);
+        }
+
+        // 2. 验证订单状态
+        if (order.getStatus() != OrderStatus.COMPLETED) {
+            log.warn("软删除失败: 订单{}当前状态为{}, 不允许软删除", orderId, order.getStatus());
+            throw OrderException.invalidStatus(orderId, order.getStatus().getValue(), OrderStatus.COMPLETED.getValue());
+        }
+
+        try {
+            // 3. 更新订单的删除状态
+            log.info("更新订单{}的删除状态为已删除", orderId);
+            int updated = orderMapper.updateOrderDeletedStatus(orderId, true, OrderStatus.COMPLETED.getValue());
+
+            if (updated > 0) {
+                log.info("订单{}软删除成功", orderId);
+                return true;
+            } else {
+                log.error("订单{}软删除失败", orderId);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("订单{}软删除失败: {}", orderId, e.getMessage(), e);
+            throw new OrderException("软删除失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 处理超时的pending订单
+     * 删除创建时间超过15分钟的pending订单
+     */
+    @Transactional
+    public void handleTimeoutPendingOrders() {
+        log.info("开始处理超时的pending订单");
+        try {
+            // 查询超时的pending订单
+            List<Order> timeoutOrders = orderMapper.findTimeoutPendingOrders(15);
+
+            if (timeoutOrders.isEmpty()) {
+                log.info("没有需要处理的超时pending订单");
+                return;
+            }
+
+            // 删除超时的订单
+            for (Order order : timeoutOrders) {
+                log.info("删除超时pending订单: orderId={}", order.getOrderId());
+                orderMapper.deleteOrder(order.getOrderId(), OrderStatus.PENDING.getValue());
+            }
+
+            log.info("成功处理{}个超时pending订单", timeoutOrders.size());
+        } catch (Exception e) {
+            log.error("处理超时pending订单失败: {}", e.getMessage(), e);
+            throw new OrderException("处理超时pending订单失败: " + e.getMessage());
         }
     }
 }
