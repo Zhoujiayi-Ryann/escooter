@@ -59,7 +59,7 @@ public interface OrderMapper {
          * @param orderId 订单ID
          * @return 包含订单和滑板车信息的Map
          */
-        @Select("SELECT o.*, s.latitude, s.longitude, s.battery_level, s.price " +
+        @Select("SELECT o.*, s.location_lat, s.location_lng, s.battery_level, s.price " +
                         "FROM Orders o " +
                         "LEFT JOIN Scooters s ON o.scooter_id = s.scooter_id " +
                         "WHERE o.order_id = #{orderId} AND o.is_deleted = false")
@@ -76,8 +76,8 @@ public interface OrderMapper {
                         @Result(property = "discount", column = "discount"),
                         @Result(property = "address", column = "address"),
                         @Result(property = "create_at", column = "create_at"),
-                        @Result(property = "latitude", column = "latitude"),
-                        @Result(property = "longitude", column = "longitude"),
+                        @Result(property = "location_lat", column = "location_lat"),
+                        @Result(property = "location_lng", column = "location_lng"),
                         @Result(property = "battery_level", column = "battery_level"),
                         @Result(property = "price", column = "price")
         })
