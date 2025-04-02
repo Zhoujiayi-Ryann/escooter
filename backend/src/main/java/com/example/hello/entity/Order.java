@@ -70,4 +70,9 @@ public class Order {
      * 是否已删除（伪删除）
      */
     private Boolean isDeleted;
+
+    /**
+     * 订单创建时间
+     */
+    private LocalDateTime createdAt;
 }

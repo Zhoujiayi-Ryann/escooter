@@ -87,7 +87,6 @@ public class OrderServiceImpl implements OrderService {
         order.setCost(cost);
         order.setStatus(OrderStatus.PENDING);
         order.setExtendedDuration(0.0f);
-        // 初始折扣设为0
         order.setDiscount(BigDecimal.ZERO);
         order.setAddress(request.getPickup_address());
 

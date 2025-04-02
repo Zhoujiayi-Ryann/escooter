@@ -3,6 +3,7 @@ package com.example.hello.mapper;
 import com.example.hello.common.OrderStatus;
 import com.example.hello.entity.Order;
 import com.example.hello.handler.OrderStatusTypeHandler;
+import com.example.hello.dto.OrderDetailResponse;
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.type.EnumTypeHandler;
 import org.apache.ibatis.type.JdbcType;
@@ -58,22 +59,25 @@ public interface OrderMapper {
          * @param orderId 订单ID
          * @return 包含订单和滑板车信息的Map
          */
-        @Select("SELECT o.order_id, o.user_id, o.scooter_id, o.start_time, o.end_time, o.cost, o.status, o.address, " +
-                        "s.location_lat, s.location_lng, s.battery_level, s.price " +
+        @Select("SELECT o.*, s.latitude, s.longitude, s.battery_level, s.price " +
                         "FROM Orders o " +
-                        "JOIN Scooters s ON o.scooter_id = s.scooter_id " +
-                        "WHERE o.order_id = #{orderId}")
+                        "LEFT JOIN Scooters s ON o.scooter_id = s.scooter_id " +
+                        "WHERE o.order_id = #{orderId} AND o.is_deleted = false")
         @Results({
                         @Result(property = "order_id", column = "order_id"),
                         @Result(property = "user_id", column = "user_id"),
                         @Result(property = "scooter_id", column = "scooter_id"),
                         @Result(property = "start_time", column = "start_time"),
                         @Result(property = "end_time", column = "end_time"),
+                        @Result(property = "duration", column = "duration"),
                         @Result(property = "cost", column = "cost"),
                         @Result(property = "status", column = "status"),
+                        @Result(property = "extended_duration", column = "extended_duration"),
+                        @Result(property = "discount", column = "discount"),
                         @Result(property = "address", column = "address"),
-                        @Result(property = "location_lat", column = "location_lat"),
-                        @Result(property = "location_lng", column = "location_lng"),
+                        @Result(property = "create_at", column = "create_at"),
+                        @Result(property = "latitude", column = "latitude"),
+                        @Result(property = "longitude", column = "longitude"),
                         @Result(property = "battery_level", column = "battery_level"),
                         @Result(property = "price", column = "price")
         })
@@ -204,7 +208,7 @@ public interface OrderMapper {
          * @param timeoutMinutes 超时时间（分钟）
          * @return 超时的订单列表
          */
-        @Select("SELECT * FROM Orders WHERE status = 'pending' AND created_at <= DATE_SUB(NOW(), INTERVAL #{timeoutMinutes} MINUTE)")
+        @Select("SELECT * FROM Orders WHERE status = 'pending' AND create_at <= DATE_SUB(NOW(), INTERVAL #{timeoutMinutes} MINUTE)")
         @Results({
                         @Result(property = "orderId", column = "order_id"),
                         @Result(property = "userId", column = "user_id"),
@@ -216,7 +220,8 @@ public interface OrderMapper {
                         @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
                         @Result(property = "extendedDuration", column = "extended_duration"),
                         @Result(property = "discount", column = "discount"),
-                        @Result(property = "address", column = "address")
+                        @Result(property = "address", column = "address"),
+                        @Result(property = "createdAt", column = "create_at")
         })
         List<Order> findTimeoutPendingOrders(@Param("timeoutMinutes") int timeoutMinutes);
 }
