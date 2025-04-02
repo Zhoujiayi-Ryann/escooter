@@ -9,96 +9,122 @@
 				:title="tab"
 				:name="index"
 			>
-				<!-- 订单列表 -->
-				<view class="order-list">
-					<van-empty v-if="filteredOrders.length === 0" description="No Orders" />
-					
-					<van-card
-						v-for="(order, index) in filteredOrders"
-						:key="index"
-						:price="order.price"
-						:desc="order.orderTime"
-						:title="order.type"
-						:tag="order.status"
-						currency="¥"
-						thumb="/static/bike.png"
-						class="order-card"
-					>
-						<template #footer>
-							<view class="card-footer">
-								<!-- 未使用订单显示"修改订单"和"取消订单"按钮 -->
-								<template v-if="order.statusCode === 1">
-									<van-button 
-										size="small" 
-										icon="edit"
-										plain
-										@click="modifyOrder(order.id)"
-									>
-										Modify Order
-									</van-button>
-									<van-button 
-										size="small" 
-										type="danger"
-										plain
-										@click="showCancelOrderConfirm(order)"
-									>
-										Cancel
-									</van-button>
-								</template>
-								
-								<!-- 进行中订单显示"延长租车"按钮 -->
-								<template v-else-if="order.statusCode === 2">
-									<van-button 
-										size="small" 
-										type="primary"
-										plain
-										@click="showExtendRentalDialog(order)"
-									>
-										Extend Rental
-									</van-button>
-								</template>
-								
-								<!-- 其他状态订单显示"删除"和"订单详情"按钮 -->
-								<template v-else>
-									<van-button 
-										size="small" 
-										icon="delete" 
-										plain
-										@click="deleteOrder(order.id)"
-									>
-										Delete
-									</van-button>
-									<van-button 
-										size="small" 
-										type="primary"
-										plain
-										@click="viewOrderDetail(order.id)"
-									>
-										Order Details
-									</van-button>
-								</template>
-							</view>
-						</template>
+				<!-- 添加下拉刷新组件 -->
+				<van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+					<!-- 订单列表 -->
+					<view class="order-list">
+						<van-empty v-if="filteredOrders.length === 0" description="No Orders" />
 						
-						<template #desc>
-							<view>
-								<view class="info-item">
-									<text class="info-label">Rental Duration:
-										<text class="info-value">{{ order.duration }}</text>
-									</text>
+						<van-card
+							v-for="(order, index) in filteredOrders"
+							:key="index"
+							:price="order.price"
+							:desc="order.orderTime"
+							:title="order.type"
+							:tag="order.status"
+							currency="$"
+							thumb="/static/bikelogo/withseat.png"
+							class="order-card"
+						>
+							<template #footer>
+								<view class="card-footer">
+									<!-- 未使用订单显示"修改订单"和"取消订单"按钮 -->
+									<template v-if="order.statusCode === 1">
+										<van-button 
+											size="small" 
+											icon="edit"
+											plain
+											@click="showExtendRentalDialog(order)"
+										>
+											Extend Rental
+										</van-button>
+										<van-button 
+											size="small" 
+											type="danger"
+											plain
+											@click="showCancelOrderConfirm(order)"
+										>
+											Cancel
+										</van-button>
+									</template>
+									
+									<!-- 进行中订单显示"延长租车"按钮 -->
+									<template v-else-if="order.statusCode === 2">
+										<van-button 
+											size="small" 
+											type="primary"
+											plain
+											@click="showExtendRentalDialog(order)"
+										>
+											Extend Rental
+										</van-button>
+									</template>
+									
+									<!-- 其他状态订单显示"删除"和"订单详情"按钮 -->
+									<template v-else>
+										<van-button 
+											size="small" 
+											icon="delete" 
+											plain
+											@click="deleteOrder(order.id)"
+										>
+											Delete
+										</van-button>
+										<van-button 
+											size="small" 
+											type="primary"
+											plain
+											@click="viewOrderDetail(order.id)"
+										>
+											Order Details
+										</van-button>
+									</template>
 								</view>
-								<view class="info-item">
-									<text class="info-label">Order Time:
-										<text class="info-value">{{ order.orderTime }}</text>
-									</text>
+							</template>
+							
+							<template #desc>
+								<view>
+									<view class="info-item">
+										<text class="info-label">Rental Duration:
+											<text class="info-value">{{ order.duration }}</text>
+										</text>
+									</view>
+									<view class="info-item">
+										<text class="info-label">Order Time:
+											<text class="info-value">{{ order.orderTime }}</text>
+										</text>
+									</view>
 								</view>
-							</view>
-						</template>
-					</van-card>
-				</view>
+							</template>
+						</van-card>
+					</view>
+				</van-pull-refresh>
 			</van-tab>
 		</van-tabs>
 	</view>
+	
+	<!-- 添加日期时间选择器弹出层 -->
+	<van-popup 
+	  v-model:show="showTimePicker" 
+	  position="bottom"
+	  round
+	>
+	  <van-picker-group 
+	    title="选择延长时间" 
+	    :tabs="['选择日期', '选择时间']"
+	    @confirm="onDateTimePickerConfirm" 
+	    @cancel="onDateTimePickerCancel"
+	  >
+	    <van-date-picker 
+	      v-model="dateColumns" 
+	      :min-date="new Date()"
+	      :max-date="maxDate"
+	    />
+	    <van-time-picker 
+	      v-model="timeColumns" 
+	    />
+	  </van-picker-group>
+	</van-popup>
 </template>
 
 <script>
@@ -145,7 +171,19 @@ export default {
 			showExtendDialog: false,
 			currentExtendOrder: null,
 			extendDuration: '1 day',
-			extendOptions: ['1 hour', '2 hours', '4 hours', '1 day']
+			extendOptions: ['1 hour', '2 hours', '4 hours', '1 day'],
+			
+			// 修改日期时间选择器相关数据
+			showTimePicker: false,
+			currentDate: new Date(),
+			minDate: new Date(),
+			maxDate: new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate()),
+			selectedExtendDate: '',
+			
+			// 修正为正确的数组格式
+			dateColumns: ['', '', ''], // 确保格式为 ['年', '月', '日']
+			timeColumns: ['', ''],     // 确保格式为 ['时', '分']
+			refreshing: false,
 		}
 	},
 	computed: {
@@ -192,14 +230,6 @@ export default {
 				url: '/pages/order_details/order_details?id=' + orderId
 			});
 		},
-		// 修改订单方法（延长使用时间）
-		modifyOrder(orderId) {
-			uni.showToast({
-				title: 'Extend rental feature in development',
-				icon: 'none'
-			});
-			// 这里可以跳转到修改订单页面或显示修改弹窗
-		},
 		
 		// 显示取消订单确认弹窗
 		showCancelOrderConfirm(order) {
@@ -227,40 +257,114 @@ export default {
 			});
 		},
 		
-		// 显示延长租车对话框
+		// 显示延长租车对话框 - 简化版
 		showExtendRentalDialog(order) {
-			this.currentExtendOrder = order;
-			this.extendDuration = '1 day'; // 默认延长时间
-			
-			uni.showModal({
-				title: 'Extend Rental?',
-				content: `Rental Duration: ${this.extendDuration}`,
-				cancelText: 'Cancel',
-				confirmText: 'Confirm',
-				editable: true, // 使用可编辑的模态框
-				placeholderText: 'Select extension time',
-				success: (res) => {
-					if (res.confirm) {
-						// 用户点击确认，处理延长租车逻辑
-						this.extendRental(order.id, res.content || this.extendDuration);
-					}
-				}
-			});
+		  this.currentExtendOrder = order;
+		  this.selectedExtendDate = '';
+		  
+		  // 直接显示日期选择器
+		  this.showDateTimePicker();
+		},
+		
+		// 显示日期时间选择器
+		showDateTimePicker() {
+		  this.showTimePicker = true;
+		  // 初始化日期和时间列
+		  this.initDateTimeColumns();
+		},
+		
+		// 初始化日期和时间列 - 修正格式
+		initDateTimeColumns() {
+		  // 获取当前日期，作为初始值
+		  const now = new Date();
+		  
+		  // 设置初始日期为当前日期
+		  this.dateColumns = [
+		    now.getFullYear().toString(),
+		    (now.getMonth() + 1).toString().padStart(2, '0'),
+		    now.getDate().toString().padStart(2, '0')
+		  ];
+		  
+		  // 设置初始时间为当前时间后一小时
+		  const hour = now.getHours();
+		  const nextHour = (hour + 1) % 24;
+		  
+		  this.timeColumns = [
+		    nextHour.toString().padStart(2, '0'),
+		    '00' // 分钟默认为00
+		  ];
+		},
+		
+		// 日期时间选择器确认 - 修改为直接执行
+		onDateTimePickerConfirm() {
+		  // 使用正确的日期时间格式
+		  const year = this.dateColumns[0];
+		  const month = this.dateColumns[1];
+		  const day = this.dateColumns[2];
+		  const hour = this.timeColumns[0];
+		  const minute = this.timeColumns[1];
+		  
+		  this.selectedExtendDate = `${year}-${month}-${day} ${hour}:${minute}`;
+		  this.showTimePicker = false;
+		  
+		  // 直接执行延长租车功能，不再弹出确认对话框
+		  if (this.currentExtendOrder && this.selectedExtendDate) {
+		    this.extendRental(this.currentExtendOrder.id, this.selectedExtendDate);
+		  }
+		},
+		
+		// 日期时间选择器取消
+		onDateTimePickerCancel() {
+		  this.showTimePicker = false;
+		},
+		
+		// 格式化日期
+		formatDate(date) {
+		  const year = date.getFullYear();
+		  const month = this.padZero(date.getMonth() + 1);
+		  const day = this.padZero(date.getDate());
+		  const hour = this.padZero(date.getHours());
+		  const minute = this.padZero(date.getMinutes());
+		  
+		  return `${year}-${month}-${day} ${hour}:${minute}`;
+		},
+		
+		// 补零
+		padZero(num) {
+		  return String(num).padStart(2, '0');
 		},
 		
 		// 处理延长租车
-		extendRental(orderId, duration) {
-			// 找到对应订单
-			const orderIndex = this.orders.findIndex(order => order.id === orderId);
-			if (orderIndex !== -1) {
-				// 更新订单信息，这里只是模拟
-				this.orders[orderIndex].duration += ` + ${duration}`;
+		extendRental(orderId, dateTime) {
+		  // 找到对应订单
+		  const orderIndex = this.orders.findIndex(order => order.id === orderId);
+		  if (orderIndex !== -1) {
+		    // 更新订单信息，这里只是模拟
+		    this.orders[orderIndex].duration += ` → ${dateTime}`;
+		
+		    uni.showToast({
+		      title: '租期已延长',
+		      icon: 'success'
+		    });
+		  }
+		},
+		onRefresh() {
+			console.log('开始刷新');
+			// 模拟获取订单数据
+			setTimeout(() => {
+				// 这里应该是从服务器获取最新订单数据的代码
+				console.log('刷新数据中');
 				
+				// 停止刷新状态
+				this.refreshing = false;
+				console.log('刷新完成，状态：', this.refreshing);
+				
+				// 显示提示
 				uni.showToast({
-					title: 'Rental Extended',
+					title: 'Refresh successfully',
 					icon: 'success'
 				});
-			}
+			}, 1000);
 		}
 	},
 	// 组件创建时确保默认选中的状态码正确
