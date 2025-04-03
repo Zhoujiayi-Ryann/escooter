@@ -191,4 +191,36 @@ public class OrderController {
             return Result.error("删除失败: 系统异常，请稍后重试");
         }
     }
+
+    /**
+     * 软删除已完成的订单接口
+     * 只能删除状态为completed的订单
+     * 
+     * @param orderId 订单ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/orders/{order_id}/soft")
+    public Result<Void> softDeleteOrder(@PathVariable("order_id") Integer orderId) {
+        try {
+            log.info("接收到订单软删除请求: orderId={}", orderId);
+
+            // 调用服务进行软删除处理
+            boolean deleted = orderService.softDeleteOrder(orderId);
+            if (deleted) {
+                log.info("订单{}软删除成功", orderId);
+                return Result.success(null, "软删除成功");
+            } else {
+                log.warn("订单{}软删除失败", orderId);
+                return Result.error("软删除失败");
+            }
+        } catch (OrderException e) {
+            // 使用自定义异常处理订单相关错误
+            log.warn("订单{}软删除失败: {}", orderId, e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            // 处理其他未预期的错误
+            log.error("订单{}软删除失败: 系统异常", orderId, e);
+            return Result.error("软删除失败: 系统异常，请稍后重试");
+        }
+    }
 }

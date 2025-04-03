@@ -54,9 +54,4 @@ public class ChangeOrderStatusResponse {
      * 滑板车信息
      */
     private OrderDetailResponse.ScooterInfoDto scooter_info;
-
-    /**
-     * 滑板车状态
-     */
-    private String scooter_status;
 }
