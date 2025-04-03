@@ -1,19 +1,23 @@
 <template>
   <view class="order-confirm-page">
-    <view class="header">
-      <text class="header-title">Order Confirmation</text>
-    </view>
 
     <!-- 订单信息 -->
     <view class="info-card">
-      <view class="info-item">
-        <text class="info-label">Scooter Number：</text>
-        <text class="info-value">{{ scooterCode }}</text>
+      <!-- 添加自行车图片 -->
+      <view class="bike-image-container">
+        <image class="bike-image" src="/static/bikelogo/withseat.png" mode="aspectFit"></image>
       </view>
 
       <view class="info-item">
-        <text class="info-label">Other Information：</text>
-        <text class="info-value">{{ otherInfo }}</text>
+        <text class="info-label">Scooter Number：
+        <text class="info-value">{{ scooterCode }}</text>
+        </text>
+        
+      </view>
+
+      <view class="info-item">
+        <text class="info-label">Other Information：
+        </text>
       </view>
     </view>
 
@@ -112,13 +116,15 @@
 
 <script>
 import { ref, computed } from 'vue';
+import { api, getToken } from '@/utils/request.uts';  // 导入API工具
 
 export default {
   data() {
     return {
       // 车辆信息
-      scooterCode: 'SC12345',  // API(B->F)
-      otherInfo: '电动车型号XYZ，续航100km',  // API(B->F)
+      scooterCode: '',  // 将从API获取
+      scooterId: 0,     // 存储滑板车ID
+      otherInfo: '',    // 将从API获取
       
       // 日期时间选择
       startDate: new Date(),  // API(F->A)
@@ -137,10 +143,13 @@ export default {
       showEndPicker: false,
       
       address: '', // API(F->A)
-      addressError: ''
+      addressError: '',
+      
+      isLoading: false, // 加载状态
+      apiError: ''      // API错误信息
     };
   },
-  onLoad() {
+  onLoad(options) {
     // 初始化临时日期为数组格式(!!!IMPORTANT)
     const today = new Date(this.startDate);
     this.tempStartDate = [
@@ -155,6 +164,16 @@ export default {
       (endDay.getMonth() + 1).toString().padStart(2, '0'),
       endDay.getDate().toString().padStart(2, '0')
     ];
+    
+    // 获取从home页面传递的滑板车ID
+    if (options.scooterId) {
+      this.scooterId = Number(options.scooterId);
+      this.getScooterInfo(this.scooterId);
+    } else {
+      // 如果没有传递ID，使用默认值用于测试
+      this.scooterCode = 'SC12345';
+      this.otherInfo = '电动车型号XYZ，续航100km';
+    }
   },
   computed: {
     rentalDays() {
@@ -345,7 +364,39 @@ export default {
       return true;
     },
     
-	// 跳转
+    // 获取滑板车详细信息
+    getScooterInfo(scooterId) {
+      this.isLoading = true;
+      api.getScooterById(scooterId)
+        .then(res => {
+          if (res.code === 0) {
+            // 获取成功，设置滑板车信息
+            const scooter = res.data;
+            this.scooterCode = `SC${scooter.scooter_id}`;
+            this.otherInfo = `电动车，电量: ${scooter.battery_level}%，价格: ¥${scooter.price}/天`;
+          } else {
+            // 获取失败
+            this.apiError = res.msg || '获取滑板车信息失败';
+            uni.showToast({
+              title: this.apiError,
+              icon: 'none'
+            });
+          }
+        })
+        .catch(err => {
+          this.apiError = '网络请求异常';
+          uni.showToast({
+            title: this.apiError,
+            icon: 'none'
+          });
+          console.error('获取滑板车信息异常:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    
+    // 跳转
     goToRent() {
       // 验证地址
       if (!this.validateAddress()) {
@@ -356,21 +407,108 @@ export default {
         return;
       }
       
-      // 订单对象// API(F->A) 以下所有要传给后端！！！
-      const orderInfo = {
-        scooterCode: this.scooterCode,
-        startDate: this.formatDate(this.startDate),
-        startTime: this.startTime,
-        endDate: this.formatDate(this.endDate),
-        endTime: this.endTime,
-        days: this.rentalDays,
-        address: this.address
+      // 开始创建订单
+      this.createOrder();
+    },
+    
+    // 创建订单
+    createOrder() {
+      this.isLoading = true;
+      
+      // 格式化日期时间为ISO字符串
+      const startDateTime = new Date(this.startDate);
+      const startHours = Number(this.startTime.split(':')[0]);
+      const startMinutes = Number(this.startTime.split(':')[1]);
+      startDateTime.setHours(startHours, startMinutes, 0, 0);
+      
+      const endDateTime = new Date(this.endDate);
+      const endHours = Number(this.endTime.split(':')[0]);
+      const endMinutes = Number(this.endTime.split(':')[1]);
+      endDateTime.setHours(endHours, endMinutes, 0, 0);
+      
+      // 从Storage获取用户ID
+      const userInfoStr = uni.getStorageSync('userInfo');
+      let userId = 0;
+      
+      if (userInfoStr) {
+        try {
+          const userInfo = JSON.parse(userInfoStr);
+          userId = userInfo.user_id;
+        } catch (e) {
+          console.error('解析用户信息失败:', e);
+        }
+      }
+      
+      if (!userId) {
+        uni.showToast({
+          title: '用户未登录，请先登录',
+          icon: 'none'
+        });
+        
+        // 重定向到登录页
+        setTimeout(() => {
+          uni.redirectTo({
+            url: '/pages/login/login'
+          });
+        }, 1500);
+        return;
+      }
+      
+      // 构建创建订单请求
+      const orderData = {
+        user_id: userId,
+        scooter_id: this.scooterId || 1, // 如果没有ID则使用默认值1
+        pickup_address: this.address,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString()
       };
       
-      // 跳转到支付页面并传递订单信息
-      uni.navigateTo({
-        url: '/pages/order/payment?orderInfo=' + encodeURIComponent(JSON.stringify(orderInfo))
-      });
+      // 调用创建订单API
+      api.createOrder(orderData)
+        .then(res => {
+          if (res.code === 0) {
+            // 订单创建成功
+            const order = res.data;
+            
+            // 计算租赁天数和总费用
+            const days = this.rentalDays;
+            const cost = order.cost || (days * 12.00); // 如果API没返回价格，使用默认价格
+            
+            // 订单对象
+            const orderInfo = {
+              orderId: order.order_id,
+              scooterCode: this.scooterCode,
+              startDate: this.formatDate(this.startDate),
+              startTime: this.startTime,
+              endDate: this.formatDate(this.endDate),
+              endTime: this.endTime,
+              days: days,
+              address: this.address,
+              cost: cost
+            };
+            
+            // 跳转到支付页面并传递订单信息
+            uni.navigateTo({
+              url: '/pages/order/payment?orderInfo=' + encodeURIComponent(JSON.stringify(orderInfo))
+            });
+          } else {
+            // 创建失败
+            uni.showToast({
+              title: res.msg || '创建订单失败',
+              icon: 'none'
+            });
+          }
+        })
+        .catch(err => {
+          uni.showToast({
+            title: '网络请求异常',
+            icon: 'none'
+          });
+          console.error('创建订单异常:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
     }
   }
 };
@@ -378,7 +516,7 @@ export default {
 
 <style>
 .order-confirm-page {
-  background-color: #f5f5f5;
+  background: linear-gradient(to bottom right, #c4dbff, #f2f6fc);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -386,9 +524,13 @@ export default {
 
 /* 标题栏 */
 .header {
-  background-color: #cccccc;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
   padding: 30rpx 0;
   text-align: center;
+  border-bottom-left-radius: 30rpx;
+  border-bottom-right-radius: 30rpx;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .header-title {
@@ -398,10 +540,12 @@ export default {
 }
 
 .info-card {
-  background-color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
   margin: 20rpx;
   padding: 30rpx;
   border-radius: 20rpx;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .info-item {
@@ -419,10 +563,12 @@ export default {
 }
 
 .time-section {
-  background-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
   margin: 20rpx;
   padding: 30rpx;
   border-radius: 20rpx;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .section-title {
@@ -440,11 +586,12 @@ export default {
 }
 
 .date-item {
-  background-color: #f0f0f0;
+  background-color: rgba(255, 255, 255, 0.6);
   padding: 20rpx 30rpx;
   border-radius: 10rpx;
   flex: 1;
   text-align: center;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .date-text {
@@ -470,13 +617,15 @@ export default {
 }
 
 .address-section {
-  background-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
   margin: 20rpx;
   padding: 30rpx;
   border-radius: 20rpx;
   display: flex;
   flex-direction: row;
   align-items: center;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .section-label {
@@ -490,6 +639,9 @@ export default {
   height: 80rpx;
   font-size: 28rpx;
   border: none;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 40rpx;
+  padding: 0 20rpx;
 }
 
 .address-error {
@@ -498,7 +650,7 @@ export default {
 }
 
 .error-text {
-  color: #ff4d4f;
+  color: #0073f1;
   font-size: 24rpx;
 }
 
@@ -509,12 +661,31 @@ export default {
 }
 
 .rent-button {
-  background-color: #cccccc;
-  color: #333;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  color: #fff;
   font-size: 32rpx;
   height: 90rpx;
   line-height: 90rpx;
   border-radius: 45rpx;
   text-align: center;
+  box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3);
+  transition: all 0.3s;
+}
+
+.rent-button:active {
+  transform: scale(0.96);
+}
+
+.bike-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.bike-image {
+  width: 320rpx;
+  height: 320rpx;
+  object-fit: contain;
 }
 </style> 
