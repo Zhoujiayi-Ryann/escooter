@@ -9,17 +9,17 @@
 			<van-cell-group class="list-container">
 				<van-cell
 				v-for="scooter in scooters" 
-				:key="scooter.id"
-				:class="{'selected': selected === scooter.id}"
-				@click="selectEscooter(scooter.id)">
+				:key="scooter.scooterId"
+				:class="{'selected': selected === scooter.scooterId}"
+				@click="selectEscooter(scooter.scooterId)">
 					<template #title>
 						<view class="cell-content">
-							<text class="scooter-id">{{scooter.id}}</text>
-							<text class="battery">{{scooter.battery}}%</text>
+							<text class="scooter-id">{{scooter.scooterId}}</text>
+							<text class="battery">{{scooter.batteryLevel}}%</text>
 						</view>
 					</template>
 					<template #label>
-						<view v-if="selected === scooter.id" class="detail">
+						<view v-if="selected === scooter.scooterId" class="detail">
 							<text>Status: {{scooter.status}}</text>
 							<text>Price: ￡{{scooter.price}}</text>
 						</view>
@@ -50,159 +50,148 @@
 </template>
 
 <script>
-	export default {
-		data() {
-			return {
+import { api } from '../../utils/request';
+export default {
+	data() {
+		return {
+			longitude: 116.39742,
+			latitude: 39.909,
+			windowWidth: 0,
+			windowHeight: 0,
+			markers: [] as Array<{
+				id: string;
+				latitude: number;
+				longitude: number;
+				width: number;
+				height: number;
+				iconPath: string;
+				callout: {
+					content: string;
+					display: 'ALWAYS' | 'BYCLICK';
+				};
+			}>,
+			direction: 0,
+			scale: 16,
+			height: 60,
+			anchors: [60, 0],
+			selected: null,
+			mapCenter: {
 				longitude: 116.39742,
-				latitude: 39.909,
-				windowWidth: 0,
-				windowHeight: 0,
-				markers: [] as Array<{
-					id: string;
-					latitude: number;
-					longitude: number;
-					width: number;
-					height: number;
-					callout: {
-						content: string;
-						display: 'ALWAYS' | 'BYCLICK';
-					};
-				}>,
-				direction: 0,
-				scale: 16,
-				height: 60,
-				anchors: [60, 0],
-				selected: null,
-				mapCenter: {
-					longitude: 116.39742,
-					latitude: 39.909
+				latitude: 39.909
+			},
+			scooters: [] as Array<{
+				scooterId: number;
+				locationLat: number;
+				locationLng: number;
+				status: string;
+				batteryLevel: number;
+				price: number;
+			}>
+		};
+	},
+	mounted() {
+		console.log('mounted 钩子被调用');
+		this.getLocation();
+		this.startCompass();
+		this.updateMarkers();
+		this.fetchScooters();
+	},
+	onReady() {
+		this.setHeight();
+		this.setWidth();
+		this.getAnchors();
+	},
+	methods: {
+		getLocation() {
+			uni.getLocation({
+				type: 'gcj02',
+				success: (res) => {
+					this.longitude = res.longitude;
+					this.latitude = res.latitude;
+					this.mapCenter.longitude = res.longitude;
+					this.mapCenter.latitude = res.latitude;
 				},
-				scooters: [
-					{
-						id: 'A001',
-						location_lat: 39.909,
-						location_lng: 116.397,
-						battery: 85,
-						status: 'Available',
-						price: 1.5
-					},
-					{
-						id: 'A002', 
-						location_lat: 39.908,
-						location_lng: 116.398,
-						battery: 92,
-						status: 'Available',
-						price: 1.5
-					},
-					{
-						id: 'A003',
-						location_lat: 39.907,
-						location_lng: 116.396,
-						battery: 45,
-						status: 'Low Battery',
-						price: 1.2
-					},
-					{
-						id: 'A004',
-						location_lat: 39.910,
-						location_lng: 116.395,
-						battery: 76,
-						status: 'Available',
-						price: 1.5
-					},
-					{
-						id: 'A005',
-						location_lat: 39.911,
-						location_lng: 116.394,
-						battery: 88,
-						status: 'Available', 
-						price: 1.5
-					}
-				]
-			};
+				fail: (err) => {
+					console.log(err);
+					uni.showToast({
+						title: 'Fail to locate.',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			});
 		},
-		mounted() {
-			this.getLocation();
-			this.startCompass();
+		setHeight() {
+			this.windowHeight = uni.getSystemInfoSync().windowHeight;
+		},
+		setWidth() {
+			this.windowWidth = uni.getSystemInfoSync().windowWidth;
+		},
+		startCompass() {
+			uni.onCompassChange((res) => {
+				this.direction = res.direction;
+			});
+		},
+		getAnchors() {
+			this.anchors = [
+				60,
+				Math.round(0.7 * this.windowHeight)
+			];
+		},
+		updateMarkers() {
+			this.markers = this.scooters.map(scooter => ({
+				id: scooter.scooterId.toString(),
+				latitude: scooter.locationLat,
+				longitude: scooter.locationLng,
+				width: this.selected === scooter.scooterId ? 32 : 25,
+				height: this.selected === scooter.scooterId ? 32 : 25,
+				iconPath: '/static/order_details/maker.svg',
+				callout: {
+					content: `Scooter ${scooter.scooterId}`,
+					display: this.selected === scooter.scooterId ? 'ALWAYS' : 'BYCLICK'
+				}
+			}));
+		},
+		selectEscooter(id) {
+			if (this.selected === id) {
+				this.selected = null;
+				this.mapCenter.longitude = this.longitude;
+				this.mapCenter.latitude = this.latitude;
+			} else {
+				this.selected = id;
+				const selectedScooter = this.scooters.find(s => s.scooterId === id);
+				if (selectedScooter) {
+					this.mapCenter.longitude = selectedScooter.locationLng;
+					this.mapCenter.latitude = selectedScooter.locationLat;
+				}
+			}
 			this.updateMarkers();
 		},
-		onReady() {
-			this.setHeight();
-			this.setWidth();
-			this.getAnchors();
+		nextStep() {
+			uni.navigateTo({
+				url: '/pages/order/confirm'
+			});
 		},
-		methods: {
-			getLocation() {
-				uni.getLocation({
-					type: 'gcj02',
-					success: (res) => {
-						this.longitude = res.longitude;
-						this.latitude = res.latitude;
-						this.mapCenter.longitude = res.longitude;
-						this.mapCenter.latitude = res.latitude;
-					},
-					fail: (err) => {
-						console.log(err);
-						uni.showToast({
-							title: 'Fail to locate.',
-							icon: 'none',
-							duration: 2000
-						});
+		fetchScooters() {
+			api.getScooters().then(res => {
+				console.log('API 响应:', res);
+				if (res.code === 1) {
+					this.scooters = res.data.map(scooter => JSON.parse(JSON.stringify(scooter)));
+					console.log('转换后的滑板车数据:', this.scooters);
+					console.log('第一个滑板车的所有字段:', this.scooters[0]);
+					for (const key in this.scooters[0]) {
+						console.log(`字段: ${key}, 值: ${this.scooters[0][key]}`);
 					}
-				});
-			},
-			setHeight() {
-				this.windowHeight = uni.getSystemInfoSync().windowHeight;
-			},
-			setWidth() {
-				this.windowWidth = uni.getSystemInfoSync().windowWidth;
-			},
-			startCompass() {
-				uni.onCompassChange((res) => {
-					this.direction = res.direction;
-				});
-			},
-			getAnchors() {
-				this.anchors = [
-					60,
-					Math.round(0.7 * this.windowHeight)
-				];
-			},
-			updateMarkers() {
-				this.markers = this.scooters.map(scooter => ({
-					id: scooter.id,
-					latitude: scooter.location_lat,
-					longitude: scooter.location_lng,
-					width: 32,
-					height: 32,
-					callout: {
-						content: `Scooter ${scooter.id}`,
-						display: this.selected === scooter.id ? 'ALWAYS' : 'BYCLICK'
-					}
-				}));
-			},
-			selectEscooter(id) {
-				if (this.selected === id) {
-					this.selected = null;
-					this.mapCenter.longitude = this.longitude;
-					this.mapCenter.latitude = this.latitude;
+					this.updateMarkers();
 				} else {
-					this.selected = id;
-					const selectedScooter = this.scooters.find(s => s.id === id);
-					if (selectedScooter) {
-						this.mapCenter.longitude = selectedScooter.location_lng;
-						this.mapCenter.latitude = selectedScooter.location_lat;
-					}
+					console.error('获取滑板车失败:', res.msg);
 				}
-				this.updateMarkers();
-			},
-			nextStep() {
-				uni.navigateTo({
-					url: '/pages/order/confirm'
-				});
-			}
+			}).catch(err => {
+				console.error('请求异常:', err);
+			});
 		}
-	};
+	}
+};
 </script>
 
 <style>
