@@ -6,6 +6,7 @@ import com.example.hello.dto.OrderDetailResponse;
 import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
 import com.example.hello.dto.ChangeOrderStatusResponse;
+import com.example.hello.dto.ExtendOrderRequest;
 import com.example.hello.entity.Order;
 import com.example.hello.entity.Scooter;
 import com.example.hello.exception.OrderException;
@@ -133,6 +134,7 @@ public class OrderServiceImpl implements OrderService {
         response.setScooter_id((Integer) detailMap.get("scooter_id"));
         response.setStart_time((LocalDateTime) detailMap.get("start_time"));
         response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
+        response.setExtended_duration((Float) detailMap.get("extended_duration"));
         response.setCost((BigDecimal) detailMap.get("cost"));
         response.setStatus((String) detailMap.get("status"));
         response.setPickup_address((String) detailMap.get("address"));
@@ -421,5 +423,77 @@ public class OrderServiceImpl implements OrderService {
             log.error("处理超时pending订单失败: {}", e.getMessage(), e);
             throw new OrderException("处理超时pending订单失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional
+    public Optional<OrderResponse> extendOrder(ExtendOrderRequest request) {
+        // 1. 检查订单是否存在且状态为active或paid
+        final Order order = orderMapper.findById(request.getOrder_id());
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+
+        if (order.getStatus() != OrderStatus.ACTIVE && order.getStatus() != OrderStatus.PAID) {
+            throw new RuntimeException("只有进行中和已支付的订单可以延长");
+        }
+
+        // 2. 检查新的结束时间是否晚于当前结束时间
+        if (!request.getNew_end_time().isAfter(order.getEndTime())) {
+            throw new RuntimeException("新的结束时间必须晚于当前结束时间");
+        }
+
+        // 3. 检查时间段是否与其他订单重叠（排除completed状态）
+        List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
+                order.getScooterId(),
+                order.getStartTime(),
+                request.getNew_end_time());
+
+        // 过滤掉当前订单
+        overlappingOrders.removeIf(o -> o.getOrderId().equals(order.getOrderId()));
+
+        if (!overlappingOrders.isEmpty()) {
+            throw new RuntimeException("该时间段内滑板车已被预订");
+        }
+
+        // 4. 计算延长时间（小时）
+        Duration duration = Duration.between(order.getEndTime(), request.getNew_end_time());
+        float newExtendedDuration = duration.toMinutes() / 60.0f;
+        // 总延长时间 = 原有延长时间 + 新的延长时间
+        float totalExtendedDuration = order.getExtendedDuration() + newExtendedDuration;
+
+        // 5. 计算新的费用
+        // 获取滑板车当前价格
+        BigDecimal currentPrice = orderMapper.getScooterPrice(order.getScooterId());
+        // 延长部分的价格比原来贵2元
+        BigDecimal extendedPrice = currentPrice.add(new BigDecimal("2.00"));
+        // 计算延长部分的费用
+        BigDecimal extendedCost = extendedPrice.multiply(BigDecimal.valueOf(newExtendedDuration))
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
+        // 总费用 = 原费用 + 延长费用
+        BigDecimal newCost = order.getCost().add(extendedCost);
+
+        // 6. 更新订单
+        orderMapper.extendOrder(
+                order.getOrderId(),
+                request.getNew_end_time(),
+                totalExtendedDuration,
+                newCost);
+
+        // 7. 重新查询订单以获取最新数据
+        final Order updatedOrder = orderMapper.findById(order.getOrderId());
+
+        // 8. 构建响应
+        OrderResponse response = new OrderResponse();
+        response.setOrder_id(updatedOrder.getOrderId());
+        response.setUser_id(updatedOrder.getUserId());
+        response.setScooter_id(updatedOrder.getScooterId());
+        response.setStart_time(updatedOrder.getStartTime());
+        response.setEnd_time(updatedOrder.getEndTime()); // 使用更新后的结束时间
+        response.setCost(newCost);
+        response.setPickup_address(updatedOrder.getAddress());
+        response.setStatus(updatedOrder.getStatus().getValue());
+
+        return Optional.of(response);
     }
 }

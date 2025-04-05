@@ -6,12 +6,15 @@ import com.example.hello.dto.OrderDetailResponse;
 import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
 import com.example.hello.dto.ChangeOrderStatusResponse;
+import com.example.hello.dto.ExtendOrderRequest;
 import com.example.hello.exception.OrderException;
 import com.example.hello.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 /**
  * 订单控制器
@@ -221,6 +224,25 @@ public class OrderController {
             // 处理其他未预期的错误
             log.error("订单{}软删除失败: 系统异常", orderId, e);
             return Result.error("软删除失败: 系统异常，请稍后重试");
+        }
+    }
+
+    /**
+     * 延长订单时间
+     * 
+     * @param request 延长订单请求
+     * @return 更新后的订单信息
+     */
+    @PostMapping("/orders/{order_id}/extend")
+    public Result<OrderResponse> extendOrder(@PathVariable("order_id") Integer orderId,
+            @RequestBody ExtendOrderRequest request) {
+        try {
+            request.setOrder_id(orderId); // 设置订单ID
+            Optional<OrderResponse> response = orderService.extendOrder(request);
+            return response.map(Result::success)
+                    .orElseGet(() -> Result.error("延长订单失败"));
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
         }
     }
 }

@@ -5,6 +5,7 @@ import com.example.hello.dto.OrderDetailResponse;
 import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
 import com.example.hello.dto.ChangeOrderStatusResponse;
+import com.example.hello.dto.ExtendOrderRequest;
 import java.util.Optional;
 
 /**
@@ -72,4 +73,12 @@ public interface OrderService {
      * @return 是否删除成功
      */
     boolean softDeleteOrder(Integer orderId);
+
+    /**
+     * 延长订单时间
+     * 
+     * @param request 延长订单请求
+     * @return 更新后的订单信息
+     */
+    Optional<OrderResponse> extendOrder(ExtendOrderRequest request);
 }

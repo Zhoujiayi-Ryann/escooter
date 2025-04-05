@@ -94,11 +94,9 @@ public interface OrderMapper {
          */
         @Select("SELECT * FROM Orders WHERE scooter_id = #{scooterId} " +
                         "AND status IN ('pending', 'paid', 'active') " +
-                        "AND ((start_time <= #{startTime} AND DATE_ADD(end_time, INTERVAL extended_duration HOUR) > #{startTime}) "
-                        +
-                        "OR (start_time < #{endTime} AND DATE_ADD(end_time, INTERVAL extended_duration HOUR) >= #{endTime}) "
-                        +
-                        "OR (start_time >= #{startTime} AND DATE_ADD(end_time, INTERVAL extended_duration HOUR) <= #{endTime}))")
+                        "AND ((start_time <= #{startTime} AND end_time > #{startTime}) " +
+                        "OR (start_time < #{endTime} AND end_time >= #{endTime}) " +
+                        "OR (start_time >= #{startTime} AND end_time <= #{endTime}))")
         @Results({
                         @Result(property = "orderId", column = "order_id"),
                         @Result(property = "userId", column = "user_id"),
@@ -180,4 +178,19 @@ public interface OrderMapper {
          */
         @Update("UPDATE Orders SET status = #{status} WHERE order_id = #{orderId}")
         int updateOrderStatus(@Param("orderId") Integer orderId, @Param("status") String status);
+
+        /**
+         * 延长订单时间
+         *
+         * @param orderId          订单ID
+         * @param newEndTime       新的结束时间
+         * @param extendedDuration 延长时间（小时）
+         * @param newCost          新的费用
+         * @return 影响的行数
+         */
+        @Update("UPDATE Orders SET end_time = #{newEndTime}, extended_duration = #{extendedDuration}, cost = #{newCost} WHERE order_id = #{orderId}")
+        int extendOrder(@Param("orderId") Integer orderId,
+                        @Param("newEndTime") LocalDateTime newEndTime,
+                        @Param("extendedDuration") Float extendedDuration,
+                        @Param("newCost") BigDecimal newCost);
 }
