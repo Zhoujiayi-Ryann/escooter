@@ -1,0 +1,55 @@
+// 用户相关API
+import { request } from '../request';
+import { ApiResponse, LoginResponseData, RegisterResponseData } from '../types';
+
+/**
+ * 用户API模块
+ */
+export const userApi = {
+    /**
+     * 用户登录
+     * @param data 登录信息
+     * @returns 登录结果
+     */
+    login(data: { username: string, password: string }): Promise<ApiResponse<LoginResponseData>> {
+        return request<LoginResponseData>({
+            url: '/users/login',
+            method: 'POST',
+            data: data
+        });
+    },
+
+    /**
+     * 用户注册
+     * @param data 注册信息
+     * @returns 注册结果
+     */
+    register(data: { 
+        username: string, 
+        password: string, 
+        email: string, 
+        phone_number: string
+    }): Promise<ApiResponse<RegisterResponseData>> {
+        return request<RegisterResponseData>({
+            url: '/users/register',
+            method: 'POST',
+            data: data
+        });
+    }
+}
+
+/**
+ * 使用示例：
+ * 
+ * import { userApi } from '../utils/api/user';
+ * 
+ * // 登录
+ * userApi.login({
+ *     username: 'user123',
+ *     password: 'password123'
+ * }).then(res => {
+ *     if (res.code === 0) {
+ *         console.log('登录成功:', res.data);
+ *     }
+ * });
+ */ 

@@ -105,7 +105,8 @@
 </template>
 
 <script>
-import { api } from '../../utils/request.uts';
+// 导入重构后的API
+import { userApi } from '../../utils/api';
 
 export default {
   data() {
@@ -187,7 +188,7 @@ export default {
       }
 
       try {
-        const res = await api.register({
+        const res = await userApi.register({
           username: this.username,
           password: this.password,
           email: this.email,

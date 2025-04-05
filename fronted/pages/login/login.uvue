@@ -96,7 +96,8 @@
 </template>
 
 <script>
-import { api, setToken } from '../../utils/request.uts';
+// 导入重构后的API
+import { userApi, setToken } from '../../utils/api';
 
 export default {
   data() {
@@ -120,7 +121,7 @@ export default {
       }
 
       try {
-        const res = await api.login({
+        const res = await userApi.login({
           username: this.username,
           password: this.password
         });

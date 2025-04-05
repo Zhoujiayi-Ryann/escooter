@@ -1,0 +1,38 @@
+// API统一导出文件
+import { getToken, setToken, removeToken } from './request';
+import { userApi } from './user';
+import { scooterApi } from './scooter';
+import { orderApi } from './order';
+import { creditCardApi } from './creditCard';
+
+// 导出所有API模块
+export {
+    // Token相关方法
+    getToken,
+    setToken,
+    removeToken,
+    
+    // 各个功能模块API
+    userApi,
+    scooterApi,
+    orderApi,
+    creditCardApi
+}
+
+/**
+ * 使用示例：
+ * 
+ * import { userApi, scooterApi, orderApi, creditCardApi } from '../utils/api';
+ * 
+ * // 用户登录
+ * userApi.login({ username: 'test', password: '123456' });
+ * 
+ * // 获取滑板车列表
+ * scooterApi.getScooters();
+ * 
+ * // 创建订单
+ * orderApi.createOrder({ ... });
+ * 
+ * // 添加银行卡
+ * creditCardApi.addCreditCard({ ... });
+ */ 

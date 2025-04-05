@@ -1,0 +1,46 @@
+// 滑板车相关API
+import { request } from '../request';
+import { ApiResponse, Scooter } from '../types';
+
+/**
+ * 滑板车API模块
+ */
+export const scooterApi = {
+    /**
+     * 获取所有可用的滑板车
+     * @returns 可用滑板车列表
+     */
+    getScooters(): Promise<ApiResponse<Scooter[]>> {
+        return request<Scooter[]>({
+            url: '/scooters',
+            method: 'GET',
+            needToken: true // 需要登录权限
+        });
+    },
+
+    /**
+     * 获取指定滑板车的详细信息
+     * @param scooterId 滑板车ID
+     * @returns 滑板车详细信息
+     */
+    getScooterById(scooterId: number): Promise<ApiResponse<Scooter>> {
+        return request<Scooter>({
+            url: `/scooters/${scooterId}`,
+            method: 'GET',
+            needToken: true // 需要登录权限
+        });
+    }
+}
+
+/**
+ * 使用示例：
+ * 
+ * import { scooterApi } from '../utils/api/scooter';
+ * 
+ * // 获取所有可用滑板车
+ * scooterApi.getScooters().then(res => {
+ *     if (res.code === 0) {
+ *         console.log('可用滑板车:', res.data);
+ *     }
+ * });
+ */ 

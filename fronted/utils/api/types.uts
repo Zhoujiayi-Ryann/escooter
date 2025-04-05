@@ -1,0 +1,102 @@
+// API通用类型定义
+
+// 定义接口返回类型
+export interface ApiResponse<T> {
+    code: number;
+    msg: string;
+    data: T;
+}
+
+// 定义登录响应数据类型
+export interface LoginResponseData {
+    user_id: number;
+    username: string;
+    token: string;
+}
+
+// 定义注册响应数据类型
+export interface RegisterResponseData {
+    user_id: number;
+    username: string;
+    email: string;
+}
+
+// 定义滑板车数据类型
+export interface Scooter {
+    scooter_id: number;
+    location_lat: number;
+    location_lng: number;
+    battery_level: number;
+    status: string;
+    price: number;
+}
+
+// 定义订单创建请求类型
+export interface CreateOrderRequest {
+    user_id: number;
+    scooter_id: number;
+    pickup_address: string;
+    start_time: string; // ISO 格式的日期时间字符串
+    end_time: string;   // ISO 格式的日期时间字符串
+}
+
+// 定义订单响应类型
+export interface OrderResponse {
+    order_id: number;
+    user_id: number;
+    scooter_id: number;
+    start_time: string;
+    end_time: string;
+    cost: number;
+    pickup_address: string;
+    status: string;
+}
+
+// 定义订单详情的滑板车信息类型
+export interface ScooterInfo {
+    latitude: number;
+    longitude: number;
+    battery_level: number;
+    price: number;
+}
+
+// 定义订单详情响应类型
+export interface OrderDetailResponse {
+    order_id: number;
+    user_id: number;
+    scooter_id: number;
+    start_time: string;
+    end_time: string;
+    cost: number;
+    pickup_address: string;
+    status: string;
+    scooter_info: ScooterInfo;
+}
+
+// 定义支付订单响应类型
+export interface PayOrderResponse {
+    order_id: number;
+    status: string;
+}
+
+// 定义添加银行卡请求类型
+export interface AddCreditCardRequest {
+    user_id: number;
+    card_number: string;
+    security_code: string;
+    expiry_date: string; // 格式为: YYYY-MM-DD
+    country?: string;    // 可选，默认为"中国"
+}
+
+// 定义添加银行卡响应类型
+export interface AddCreditCardResponse {
+    card_id: number;
+}
+
+// 定义银行卡详情响应类型
+export interface CreditCardResponse {
+    card_id: number;
+    card_number: string; // 掩码处理后的卡号
+    expiry_date: string; // 格式为: YYYY-MM-DD
+    country: string;
+} 
