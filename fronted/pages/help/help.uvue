@@ -1,20 +1,65 @@
 <template>
 	<view class="container">
+		<text class="page-title">Usual Questions</text>
 		<view class="help-list">
-			<view class="help-item">
-				<text class="help-text">How to rent e-scooters?</text>
-				<van-icon name="arrow" size="16px" color="#999" />
+			<view class="help-item" @click="toggleExpand('start')">
+				<view class="item-left">
+					<van-icon name="question-o" size="20px" color="#007AFF" />
+					<text class="help-text">How to rent an e-scooter？</text>
+				</view>
+				<van-icon :name="expanded.start ? 'arrow-up' : 'arrow'" size="16px" color="#999" />
 			</view>
-			<view class="help-item">
-				<text class="help-text">Fail to unlock?</text>
-				<van-icon name="arrow" size="16px" color="#999" />
+			<view class="expand-wrapper" :class="{ 'expanded': expanded.start }">
+				<view class="expand-content">
+					<text class="solution-text">
+					1. Select the time and the period you would like to rent an e-scooter and click next button\n
+					2. Choose an e-scooter from the list. You can see information about available e-scooters on the list and map\n
+					3. Click next button to confirm the renting details\n
+					4. 
+					</text>
+				</view>
 			</view>
-			<view class="help-item">
-				<text class="help-text">The e-scooter is broken?</text>
-				<van-icon name="arrow" size="16px" color="#999" />
+			<view class="divider"></view>
+			<view class="help-item" @click="toggleExpand('unlock')">
+				<view class="item-left">
+					<van-icon name="warning-o" size="20px" color="#FF9500" />
+					<text class="help-text">How to unlock？</text>
+				</view>
+				<van-icon :name="expanded.unlock ? 'arrow-up' : 'arrow'" size="16px" color="#999" />
 			</view>
-			<view class="help-item">
-				<text class="help-text">Give feedback</text>
+			<view class="expand-wrapper" :class="{ 'expanded': expanded.unlock }">
+				<view class="expand-content">
+					<text class="solution-text">
+					1. Make sure you have completed the payment\n
+					2. 
+					3. 
+					4. 
+					</text>
+				</view>
+			</view>
+			<view class="divider"></view>
+			<view class="help-item" @click="toggleExpand('broken')">
+				<view class="item-left">
+					<van-icon name="info-o" size="20px" color="#FF3B30" />
+					<text class="help-text">The e-scooter is broken？</text>
+				</view>
+				<van-icon :name="expanded.broken ? 'arrow-up' : 'arrow'" size="16px" color="#999" />
+			</view>
+			<view class="expand-wrapper" :class="{ 'expanded': expanded.broken }">
+				<view class="expand-content">
+					<text class="solution-text">
+					1. Go to your personal settings and find the corresponding bill\n
+					2. Click the feedback button on the bottom\n
+					3. Write down the problem you met and submit
+					</text>
+				</view>
+			</view>
+			<view class="divider"></view>
+			<view class="help-item" @click="navigateToDetail('feedback')">
+				<view class="item-left">
+					<van-icon name="comment-o" size="20px" color="#34C759" />
+					<text class="help-text">Give feedback</text>
+				</view>
 				<van-icon name="arrow" size="16px" color="#999" />
 			</view>
 		</view>
@@ -25,20 +70,23 @@
 	export default {
 		data() {
 			return {
-				
+				expanded: {
+					start: false,
+					unlock: false,
+					broken: false
+				}
 			}
 		},
 		methods: {
-			goBack() {
-				uni.navigateBack();
+			toggleExpand(type) {
+				this.expanded[type] = !this.expanded[type];
 			},
 			navigateToDetail(type) {
-				// 跳转到具体的帮助详情页面
 				const typeMapping = {
 					'daily': '/pages/help/daily-issues',
 					'start': '/pages/help/start-issues',
 					'return': '/pages/help/damaged-vehicle',
-					'illegal': '/pages/help/illegal-parking',
+					'feedback': '/pages/help/feedback',
 					'faq': '/pages/help/faq'
 				};
 				
@@ -63,49 +111,83 @@
 	flex: 1;
 	background-color: #f8f8f8;
 	min-height: 100vh;
-}
-
-.nav-header {
-	position: sticky;
-	top: 0;
-	display: flex;
-	align-items: center;
-	padding: 15px;
-	background-color: #fff;
-	border-bottom: 1px solid #eee;
-	z-index: 10;
-}
-
-.back-button {
-	padding: 5px;
+	padding: 20px;
 }
 
 .page-title {
-	font-size: 18px;
+	font-size: 24px;
 	font-weight: bold;
-	margin-left: 15px;
+	color: #333;
+	margin-bottom: 20px;
+	display: block;
 }
 
 .help-list {
-	margin-top: 10px;
 	background-color: #fff;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .help-item {
 	display: flex;
+	flex-direction: row;
 	justify-content: space-between;
 	align-items: center;
-	padding: 15px;
+	padding: 16px 20px;
+	background-color: #fff;
+	transition: background-color 0.2s;
+}
+
+.help-item:active {
+	background-color: #f5f5f5;
+}
+
+.item-left {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
 }
 
 .help-text {
 	font-size: 16px;
 	color: #333;
+	font-weight: 500;
 }
 
 .divider {
 	height: 1px;
-	background-color: #eee;
-	margin: 0 15px;
+	background-color: #f0f0f0;
+	margin: 0 20px;
+}
+
+.expand-wrapper {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.3s ease-out;
+}
+
+.expand-wrapper.expanded {
+	max-height: 200px; /* 根据实际内容调整这个值 */
+}
+
+.expand-content {
+	padding: 15px 20px;
+	background-color: #f8f8f8;
+	border-top: 1px solid #f0f0f0;
+	transform: translateY(-100%);
+	transition: transform 0.3s ease-out;
+}
+
+.expand-wrapper.expanded .expand-content {
+	transform: translateY(0);
+}
+
+.solution-text {
+	font-size: 14px;
+	color: #666;
+	line-height: 1.6;
+	white-space: pre-line;
 }
 </style>

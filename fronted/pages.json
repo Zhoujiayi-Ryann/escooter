@@ -115,6 +115,14 @@
 			{
 				"navigationBarTitleText" : "Help"
 			}
+		},
+		{
+			"path" : "pages/feedback/feedback",
+			"style" : 
+			{
+				"navigationBarTitleText" : "Feedback\r
+		\t\t"
+			}
 		}
 	],
 	"globalStyle": {

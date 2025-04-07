@@ -9,7 +9,7 @@
 		<view class="sidebar"
 		:class="{ 'sidebar-open': showSidebar }">			
 			<view class="user-info">
-				<text class="greeting">Welcome, xxx!</text>
+				<text class="greeting">{{ greetingText }}</text>
 				<view class="user-stats">
 					<view class="stat-item">
 						<van-icon name="circle" color="#4cd964" size="24px" />
@@ -106,7 +106,7 @@
 </template>
 
 <script>
-import { scooterApi } from '../../utils/api/scooter';
+import { scooterApi, userApi } from '../../utils/api';
 export default {
 	data() {
 		return {
@@ -143,8 +143,16 @@ export default {
 				status: string;
 				batteryLevel: number;
 				price: number;
-			}>
+			}>,
+			greetingText: 'Welcome!',
+			userId: null
 		};
+	},
+	onLoad(options) {
+		if (options.userId) {
+			this.userId = options.userId;
+			this.updateGreeting();
+		}
 	},
 	mounted() {
 		this.getLocation();
@@ -268,6 +276,21 @@ export default {
 				uni.navigateTo({
 					url: pageMapping[page]
 				});
+			}
+		},
+		updateGreeting() {
+			if (this.userId) {
+				const userInfoStr = uni.getStorageSync('userInfo');
+				if (userInfoStr) {
+					try {
+						const userInfo = JSON.parse(userInfoStr);
+						if (userInfo.username) {
+							this.greetingText = `Welcome, ${userInfo.username}!`;
+						}
+					} catch (e) {
+						console.error('解析用户信息失败:', e);
+					}
+				}
 			}
 		}
 	}
