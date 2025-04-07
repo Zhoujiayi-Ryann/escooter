@@ -120,8 +120,7 @@
 			"path" : "pages/feedback/feedback",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Feedback\r
-		\t\t"
+				"navigationBarTitleText" : "Feedback"
 			}
 		}
 	],
