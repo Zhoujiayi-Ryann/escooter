@@ -1,0 +1,302 @@
+<template>
+  <view class="card-page">
+
+    <!-- 返回按钮 -->
+    <view class="close-btn" @click="onClose">
+      <van-icon name="cross" class="close-icon" />
+    </view>
+
+    <!-- 标题 -->
+    <view class="header">
+	 <van-icon name="credit-pay" size="30" />
+      <text class="title">Add Bank Card </text>
+    </view>
+
+    <!-- 卡号 -->
+    <view class="input-card" @click="focus('card')">
+      <van-icon name="credit-pay" size="20" />
+      <input v-model="cardNumber" placeholder="Credit Card Number" readonly />
+      <van-icon name="photograph" size="20" />
+    </view>
+
+    <!-- 有效期 + CVV + 国家 -->
+    <view class="input-row">
+
+      <!-- Expiry -->
+      <view class="input-half" @click="focus('expiry')">
+        <input v-model="expiry" placeholder="MM/YY" readonly />
+      </view>
+
+      <!-- CVV + Country -->
+      <view class="input-half">
+        <input v-model="cvv" placeholder="CVV" readonly maxlength="3" @click="focus('cvv')" />
+        <view class="country" @click="showCountryPicker = true">
+          <text>{{ selectedCountry.flag }} {{ selectedCountry.code }}</text>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 保存 -->
+    <van-button class="save-btn" type="primary" block @click="onSave">
+      Save
+    </van-button>
+
+    <!-- 弹窗国家选择 -->
+    <van-popup v-model:show="showCountryPicker" position="bottom">
+	<van-picker
+	  show-toolbar
+	  title="Select Country"
+	  :columns="countries"
+	  :columns-field-names="{ text: 'text', value: 'value' }"
+	  @confirm="onCountryConfirm"
+	  @cancel="showCountryPicker = false"
+	/>
+    </van-popup>
+
+    <!-- 数字键盘 -->
+    <van-number-keyboard
+      :show="showKeyboard"
+      extra-key="."
+      close-button-text="Finish"
+      @blur="showKeyboard = false"
+      @input="onInput"
+      @delete="onDelete"
+    />
+
+  </view>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { showToast } from 'vant'
+
+// 数据
+const cardNumber = ref('')
+const expiry = ref('')
+const cvv = ref('')
+const showKeyboard = ref(false)
+const showCountryPicker = ref(false)
+const currentField = ref('')
+
+// 默认国家
+const selectedCountry = ref({ flag: '🇨🇳', code: 'CN' })
+
+// 国家列表
+const countries = ref([
+  { text: '🇨🇳 CN', value: 'CN' },
+  { text: '🇺🇸 US', value: 'US' },
+  { text: '🇯🇵 JP', value: 'JP' },
+  { text: '🇫🇷 FR', value: 'FR' },
+  { text: '🇩🇪 DE', value: 'DE' },
+])
+
+// 切换国家
+const onCountryConfirm = ({ selectedOptions }) => {
+    if (selectedOptions && selectedOptions[0]) {
+        const code = selectedOptions[0].value
+        const flag = selectedOptions[0].text.split(' ')[0]
+        selectedCountry.value = { flag, code }
+    }
+    showCountryPicker.value = false;
+}
+
+// 输入框控制
+const focus = (field) => {
+  currentField.value = field
+  showKeyboard.value = true
+}
+
+// 输入处理
+const onInput = (val) => {
+  // 卡号
+  if (currentField.value === 'card' && cardNumber.value.replace(/\s/g, '').length < 17) {
+    cardNumber.value = formatCardNumber(cardNumber.value + val);
+  }
+
+  // 有效期
+  if (currentField.value === 'expiry' && expiry.value.replace('/', '').length < 4) {
+    const newValue = expiry.value.replace('/', '') + val;
+
+    // 当输入到2位时，判断月份是否合法
+    if (newValue.length === 2) {
+      const month = parseInt(newValue.slice(0, 2), 10);
+      if (month < 1 || month > 12) {
+        showToast('Invalid month');
+        return;
+      }
+    }
+
+    expiry.value = formatExpiry(newValue);
+  }
+
+  // CVV
+  if (currentField.value === 'cvv' && cvv.value.length < 3) {
+    cvv.value += val;
+  }
+}
+
+
+const onDelete = () => {
+  if (currentField.value === 'card') {
+    cardNumber.value = formatCardNumber(cardNumber.value.slice(0, -1).replace(/\s/g, ''));
+  }
+  if (currentField.value === 'expiry') {
+    expiry.value = formatExpiry(expiry.value.replace('/', '').slice(0, -1));
+  }
+  if (currentField.value === 'cvv') {
+    cvv.value = cvv.value.slice(0, -1);
+  }
+}
+
+// 格式化
+const formatCardNumber = (val) => val.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ').trim()
+const formatExpiry = (val) => val.replace(/\D/g, '').slice(0, 4).replace(/^(\d{2})(\d{0,2})$/, (_, m, y) => (y ? `${m}/${y}` : m))
+
+// 保存
+const onSave = () => {
+  if (!cardNumber.value || !expiry.value || !cvv.value) {
+    return showToast('Please complete all fields');
+  }
+
+  // 额外检查 expiry
+  const expiryRaw = expiry.value.replace('/', '');
+  const month = parseInt(expiryRaw.slice(0, 2), 10);
+  const year = parseInt(expiryRaw.slice(2), 10);
+
+  if (month < 1 || month > 12) {
+    return showToast('Expiry month invalid');
+  }
+
+  if (expiryRaw.length !== 4) {
+    return showToast('Expiry date incomplete');
+  }
+
+  showToast('Saved successfully');
+}
+// 返回
+const onClose = () => {
+  uni.navigateTo({
+  	url: '/pages/settings/my_settings/my_settings'
+  });
+}
+</script>
+
+<style scoped>
+.card-page {
+  background: #f8fbff;
+  min-height: 100vh;
+  padding: 20rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.close-btn {
+  position: absolute;
+  top: 50rpx;
+  left: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 45rpx;
+  background-color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  width: 90rpx;
+  height: 90rpx;
+}
+
+.close-icon {
+  font-size: 50rpx;
+  color: #3b88c3;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-top: 150px;
+  margin-bottom: 100rpx;
+}
+
+.title {
+  font-size: 60rpx;
+  font-weight: bold;
+  margin-left: 20rpx;
+  align-items: center;
+  text-align: center;
+}
+
+.input-card {
+  background: #fff;
+  border-radius: 50rpx;
+  padding: 40rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  height: 60px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.input-card input {
+  flex: 1;
+  margin: 0 20rpx;
+  border: none;
+  outline: none;
+  font-size: 28rpx;
+}
+
+.input-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 40rpx;
+  border-radius: 50rpx;
+  height: 60px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.input-half {
+  background: #fff;
+  border-radius: 10rpx;
+  padding: 40rpx;
+  width: 49%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.input-half input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 28rpx;
+}
+
+.country {
+  padding-left: 15rpx;
+  font-size: 30rpx;
+  cursor: pointer;
+}
+
+.save-btn {
+  margin-top: 40rpx;
+  height: 100rpx;
+  line-height: 90rpx;
+  font-size: 30rpx;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3);
+  color: #fff;
+  border-radius: 70rpx;
+  transition: all 0.3s;
+}
+
+.save-btn:active {
+  transform: scale(0.96);
+}
+</style>
+

@@ -73,6 +73,34 @@
 			"style": {
 				"navigationBarTitleText": "My orders"
 			}
+		},
+		{
+			"path" : "pages/settings/my_settings/my_settings",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom",
+				"animationType": "slide-in-bottom",   // 从下方滑入
+				"animationDuration": 500
+			}
+		},
+		{
+			"path" : "pages/settings/card/card",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom",
+				"animationType": "slide-in-top",   // 从下方滑入
+				"animationDuration": 500
+				  
+			}
+		},
+		{
+			"path" : "pages/settings/change/change",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
 		}
 	],
 	"globalStyle": {

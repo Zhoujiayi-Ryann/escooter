@@ -1,0 +1,171 @@
+<template>
+  <view class="container">
+
+    <view class="edit-page">
+
+      <!-- 头像修改 -->
+      <van-cell title="Avatar" is-link center @click="chooseAvatar">
+        <template #icon>
+          <van-image round width="60" height="60" :src="user.avatar" />
+        </template>
+      </van-cell>
+
+      <!-- 表单 -->
+      <van-cell-group class="form-group">
+
+        <van-field
+          label="Name"
+          v-model="user.name"
+          placeholder="Enter your name"
+          clearable
+        />
+
+        <van-field
+          label="Email"
+          v-model="user.email"
+          placeholder="Enter your email"
+          clearable
+        />
+
+        <van-field
+          label="Phone"
+          v-model="user.phone"
+          placeholder="Enter your phone number"
+          clearable
+        />
+
+        <van-field
+          label="Password"
+          v-model="user.password"
+          placeholder="Enter new password"
+          type="password"
+          clearable
+        />
+
+      </van-cell-group>
+
+      <!-- 保存按钮 -->
+      <view class="button-group">
+        <van-button type="primary" block round @click="save">Save</van-button>
+      </view>
+
+    </view>
+
+  </view>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      user: {
+        name: 'Cindy',
+        email: '',
+        phone: '',
+        password: '',
+        avatar: '/static/settings/userp.jpg'
+      }
+    }
+  },
+  methods: {
+    chooseAvatar() {
+      uni.chooseImage({
+        count: 1,
+        success: (res) => {
+          this.user.avatar = res.tempFilePaths[0];
+        }
+      });
+    },
+    save() {
+      // 这里可以接接口
+      uni.showToast({
+        title: 'Saved successfully',
+        icon: 'success'
+      });
+    }
+  }
+}
+</script>
+
+<style scoped>
+.mine-page {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   
+    rgba(0, 123, 255, 0.1) 50%,  
+    rgba(255, 255, 255, 0) 100%  
+  );
+  min-height: 100vh;
+  padding: 20rpx;
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+/* 用户信息 */
+.user-info {
+  margin-top: 100rpx;  
+  border-radius: 24rpx;
+  padding: 30rpx;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  background: rgba(255,255,255,0.95) !important;
+}
+
+/* 用户文本 */
+.username {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #222;
+  margin-left: 25rpx;
+}
+.userid {
+  font-size: 26rpx;
+  color: #777;
+  margin-top: 6rpx;
+  margin-left: 25rpx;
+}
+.edit-page {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,
+    rgba(0, 123, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  min-height: 100vh;
+  padding: 20rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+/* form 样式 */
+.form-group {
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+/* button 样式 */
+.button-group {
+  margin-top: 40rpx;
+}
+
+.van-button {
+  font-size: 30rpx;
+  height: 80rpx;
+}
+
+/* cell 样式 */
+.van-cell {
+  margin-bottom: 20rpx;
+}
+
+.van-cell__title {
+  font-size: 30rpx;
+}
+
+</style>

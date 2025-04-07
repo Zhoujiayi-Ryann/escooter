@@ -1,0 +1,252 @@
+<template>
+  <view class="container">
+
+    <view class="mine-page">
+
+      <!-- User Info -->
+      <van-cell class="user-info" center>
+        <template #icon>
+          <van-image round width="60" height="60" :src="user.avatar" />
+        </template>
+        <template #title>
+          <view>
+            <view class="username">{{ user.name }}</view>
+            <view class="userid">ID: {{ user.id }}</view>
+          </view>
+        </template>
+      </van-cell>
+
+      <!-- Membership Banner -->
+      <van-notice-bar scrollable text="Save up to 200 CNY per month by becoming a member, click to learn more!" />
+	  <!-- Mileage -->
+	  <view class="mileage-card">
+	    <van-row gutter="20">
+	      <van-col span="12" class="mileage-item">
+	        <van-icon name="guide-o" class="mileage-icon" />
+	        <view class="mileage-value">{{ mileage.km }}</view>
+	        <view class="mileage-label">KM</view>
+	      </van-col>
+	      <van-col span="12" class="mileage-item">
+	        <van-icon name="location-o" class="mileage-icon" />
+	        <view class="mileage-value">{{ mileage.trips }}</view>
+	        <view class="mileage-label">Trips</view>
+	      </van-col>
+	    </van-row>
+	  </view>
+      
+
+      <!-- Bottom Section -->
+      <view class="page-section">
+		  <!-- Order Section -->
+		  <van-grid :column-num="4" border>
+		    <van-grid-item icon="orders-o" :text="'All Orders'" />
+		    <van-grid-item icon="clock-o" :text="'Unused'" :badge="orderStatus.unused" />
+		    <van-grid-item icon="pending-payment" :text="'In Progress'" />
+		    <van-grid-item icon="passed" :text="'Completed'" />
+		  </van-grid>
+
+
+
+        <!-- Function List -->
+        <van-cell-group class="function-group">
+          <van-cell title="Feedback" is-link size="large" />
+		  <van-cell title="Add Card" is-link size="large" @click="goCard" />
+          <van-cell title="Settings" is-link size="large" />
+          <van-cell title="Log Out" is-link size="large" />
+		  
+        </van-cell-group>
+
+      </view>
+
+      <!-- Bottom Tabbar -->
+      <van-tabbar route fixed>
+        <van-tabbar-item icon="home-o" to="/pages/home/home">Home</van-tabbar-item>
+        <van-tabbar-item icon="user-o" to="/pages/settings/my_settings/my_settings" :badge="1">Mine</van-tabbar-item>
+      </van-tabbar>
+
+    </view>
+
+  </view>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      user: {
+        name: 'Cindy',
+        id: '20202002',
+        avatar: '/static/settings/userp.jpg'
+      },
+      orderStatus: {
+        unused: 3
+      },
+      mileage: {
+        km: 256.8,
+        trips: 57
+      }
+    }
+  },
+  methods: {
+    goCard() {
+      uni.navigateTo({
+        url: '/pages/settings/card/card'
+      });
+    }
+  }
+  
+}
+</script>
+
+
+<style scoped>
+
+.mine-page {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   
+    rgba(0, 123, 255, 0.1) 50%,  
+    rgba(255, 255, 255, 0) 100%  
+  );
+  min-height: 100vh;
+  padding: 20rpx;
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+/* 用户信息 */
+.user-info {
+  margin-top: 100rpx;  
+  border-radius: 24rpx;
+  padding: 30rpx;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  background: rgba(255,255,255,0.95) !important;
+}
+
+/* 用户文本 */
+.username {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #222;
+  margin-left: 25rpx;
+}
+.userid {
+  font-size: 26rpx;
+  color: #777;
+  margin-top: 6rpx;
+  margin-left: 25rpx;
+}
+
+/* notice bar */
+.van-notice-bar {
+  margin-top: 10rpx;
+  border-radius: 16rpx;
+  height: 56rpx;
+  font-size: 24rpx;
+}
+
+/* grid */
+.van-grid {
+  border-radius: 20rpx;
+  overflow: hidden;  /* ✅ 裁剪圆角内的格子 */
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.van-grid-item__content {
+  padding: 35rpx 0;
+}
+.van-grid-item__icon {
+  font-size: 44rpx !important;
+}
+.van-grid-item__text {
+  font-size: 26rpx;
+}
+
+/* 下半部分 */
+.page-section {
+  margin-top: 20rpx;   /* ✅ 控制整体下移 */
+  display: flex;
+  flex-direction: column;
+  gap: 45rpx;
+}
+.mileage-card {
+  border-radius: 20rpx;
+  padding: 30rpx 0;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-top: 10rpx;
+}
+
+.mileage-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mileage-icon {
+  font-size: 50rpx;
+  color: #00cc66;
+  margin-bottom: 10rpx;
+}
+
+.mileage-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.mileage-label {
+  font-size: 24rpx;
+  color: #777;
+
+}
+
+
+.function-group {
+  border-radius: 18rpx !important;
+  margin-top: 20rpx;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow: hidden;
+}
+
+/* cell 内部文字、间距 */
+.function-group .van-cell {
+  font-size: 30rpx !important;
+  color: #333 !important;
+  margin-bottom: 30rpx;
+}
+
+/* cell 点击 */
+.function-group .van-cell::after {
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* tabbar */
+.van-tabbar {
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.05);
+  height: 100rpx;
+}
+
+.van-tabbar-item {
+  font-size: 26rpx;
+}
+.van-tabbar-item__icon {
+  font-size: 38rpx;
+}
+.van-tabbar-item--active {
+  color: #007aff !important;
+}
+
+/* badge */
+.van-badge {
+  transform: translate(5rpx,-5rpx);
+}
+</style>
