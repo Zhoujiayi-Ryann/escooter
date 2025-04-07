@@ -116,7 +116,7 @@
 
 <script>
 import { ref, computed } from 'vue';
-import { api, getToken } from '@/utils/request.uts';  // 导入API工具
+import { userApi, scooterApi, orderApi, creditCardApi } from '../../utils/api';  // 导入API工具
 
 export default {
   data() {
@@ -367,7 +367,7 @@ export default {
     // 获取滑板车详细信息
     getScooterInfo(scooterId) {
       this.isLoading = true;
-      api.getScooterById(scooterId)
+      scooterApi.getScooterById(scooterId)
         .then(res => {
           if (res.code === 0) {
             // 获取成功，设置滑板车信息

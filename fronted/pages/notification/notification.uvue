@@ -1,0 +1,154 @@
+<template>
+	<view class="container">
+		<view class="message-list">
+			<view class="message-item" @click="navigateTo('customer-service')">
+				<view class="message-icon customer-service">
+					<van-icon name="service-o" size="30px" color="#fff" />
+				</view>
+				<view class="message-content">
+					<text class="message-title">Support Messages</text>
+				</view>
+				<van-icon name="arrow" size="16px" color="#999" />
+			</view>
+			<view class="message-item" @click="navigateTo('system')">
+				<view class="message-icon system">
+					<van-icon name="volume-o" size="30px" color="#fff" />
+                    <view class="unread-dot" v-if="hasUnread"></view>
+				</view>
+				<view class="message-content">
+					<text class="message-title">System Messages</text>
+				</view>
+				<van-icon name="arrow" size="16px" color="#999" />
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				hasUnread: false
+			}
+		},
+		methods: {
+			goBack() {
+				uni.navigateBack();
+			},
+			navigateTo(type) {
+				// 根据消息类型跳转到对应的详情页面
+				const typeMapping = {
+					'customer-service': '/pages/notification/customer-service',
+					'system': '/pages/notification/system-messages'
+				};
+				
+				if (typeMapping[type]) {
+					uni.navigateTo({
+						url: typeMapping[type]
+					});
+				} else {
+					console.log(`消息类型 ${type} 的页面尚未实现`);
+					uni.showToast({
+						title: `${type} page not ready`,
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			}
+		}
+	}
+</script>
+
+<style>
+.container {
+	flex: 1;
+	background-color: #f5f5f5;
+	min-height: 100vh;
+}
+
+.nav-header {
+	position: sticky;
+	top: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 15px;
+	background-color: #fff;
+	border-bottom: 1px solid #eee;
+	z-index: 10;
+}
+
+.back-button {
+	padding: 5px;
+}
+
+.page-title {
+	font-size: 18px;
+	font-weight: bold;
+}
+
+.right-buttons {
+	display: flex;
+	align-items: center;
+}
+
+.message-list {
+	padding: 10px 0;
+}
+
+.message-item {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	padding: 15px;
+	background-color: #fff;
+	margin-bottom: 1px;
+	position: relative;
+}
+
+.message-icon {
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.customer-service {
+	background-color: #39c5bb;
+}
+
+.system {
+	background-color: #4b8bf4;
+}
+
+.unread-dot {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background-color: #ff4d4f;
+}
+
+.message-content {
+	flex: 1;
+	margin-left: 15px;
+}
+
+.message-title {
+	font-size: 16px;
+	font-weight: 500;
+	display: block;
+}
+
+.message-desc {
+	font-size: 12px;
+	color: #999;
+	display: block;
+}
+</style>

@@ -1,0 +1,111 @@
+<template>
+	<view class="container">
+		<view class="help-list">
+			<view class="help-item">
+				<text class="help-text">How to rent e-scooters?</text>
+				<van-icon name="arrow" size="16px" color="#999" />
+			</view>
+			<view class="help-item">
+				<text class="help-text">Fail to unlock?</text>
+				<van-icon name="arrow" size="16px" color="#999" />
+			</view>
+			<view class="help-item">
+				<text class="help-text">The e-scooter is broken?</text>
+				<van-icon name="arrow" size="16px" color="#999" />
+			</view>
+			<view class="help-item">
+				<text class="help-text">Give feedback</text>
+				<van-icon name="arrow" size="16px" color="#999" />
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				
+			}
+		},
+		methods: {
+			goBack() {
+				uni.navigateBack();
+			},
+			navigateToDetail(type) {
+				// 跳转到具体的帮助详情页面
+				const typeMapping = {
+					'daily': '/pages/help/daily-issues',
+					'start': '/pages/help/start-issues',
+					'return': '/pages/help/damaged-vehicle',
+					'illegal': '/pages/help/illegal-parking',
+					'faq': '/pages/help/faq'
+				};
+				
+				if (typeMapping[type]) {
+					uni.navigateTo({
+						url: typeMapping[type]
+					});
+				} else {
+					uni.showToast({
+						title: '该页面正在开发中',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			}
+		}
+	}
+</script>
+
+<style>
+.container {
+	flex: 1;
+	background-color: #f8f8f8;
+	min-height: 100vh;
+}
+
+.nav-header {
+	position: sticky;
+	top: 0;
+	display: flex;
+	align-items: center;
+	padding: 15px;
+	background-color: #fff;
+	border-bottom: 1px solid #eee;
+	z-index: 10;
+}
+
+.back-button {
+	padding: 5px;
+}
+
+.page-title {
+	font-size: 18px;
+	font-weight: bold;
+	margin-left: 15px;
+}
+
+.help-list {
+	margin-top: 10px;
+	background-color: #fff;
+}
+
+.help-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 15px;
+}
+
+.help-text {
+	font-size: 16px;
+	color: #333;
+}
+
+.divider {
+	height: 1px;
+	background-color: #eee;
+	margin: 0 15px;
+}
+</style>

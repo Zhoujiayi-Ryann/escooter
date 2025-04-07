@@ -101,6 +101,20 @@
 			{
 				"navigationBarTitleText" : ""
 			}
+		},
+		{
+			"path" : "pages/notification/notification",
+			"style" : 
+			{
+				"navigationBarTitleText" : "Notification"
+			}
+		},
+		{
+			"path" : "pages/help/help",
+			"style" : 
+			{
+				"navigationBarTitleText" : "Help"
+			}
 		}
 	],
 	"globalStyle": {
