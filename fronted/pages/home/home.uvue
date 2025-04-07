@@ -256,7 +256,7 @@ export default {
 			this.showSidebar = false;
 			
 			const pageMapping = {
-				'confirm': '/pages/order/confirm',
+				'confirm': `/pages/order/confirm?scooterId=${this.selected}`,
 				'notification': '/pages/notification/notification',
 				'wallet': '/pages/wallet/wallet',
 				'records': '/pages/records/records',
