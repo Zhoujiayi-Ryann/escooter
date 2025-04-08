@@ -174,17 +174,17 @@ export default {
     } else {
       // 如果没有传递ID，使用默认值用于测试
       this.scooterCode = 'SC12345';
-      this.otherInfo = '电动车型号XYZ，续航100km';
+      this.otherInfo = 'Electric Scooter Model XYZ, Range 100km';
     }
     
     // 获取用户ID - 优先使用URL中的参数，否则使用userApi获取
     if (options.userId) {
       this.userId = Number(options.userId);
-      console.log('从URL获取用户ID:', this.userId);
+      console.log('User ID from URL:', this.userId);
     } else {
       // 使用userApi获取用户ID，默认值为1
       this.userId = userApi.getUserId(1);
-      console.log('使用userApi获取用户ID:', this.userId);
+      console.log('User ID from userApi:', this.userId);
     }
   },
   computed: {
@@ -331,7 +331,7 @@ export default {
         // 如果结束时间小于开始时间，则设置为与开始时间相同
         this.tempEndTime = [...this.tempStartTime];
         uni.showToast({
-          title: '结束时间不能早于开始时间',
+          title: 'End time cannot be earlier than start time',
           icon: 'none'
         });
       }
@@ -385,10 +385,10 @@ export default {
             // 获取成功，设置滑板车信息
             const scooter = res.data;
             this.scooterCode = `SC${scooter.scooter_id}`;
-            this.otherInfo = `电动车，电量: ${scooter.battery_level}%，价格: ¥${scooter.price}/天`;
+            this.otherInfo = `Electric Scooter, Battery: ${scooter.battery_level}%, Price: ¥${scooter.price}/day`;
           } else {
             // 获取失败
-            this.apiError = res.msg || '获取滑板车信息失败';
+            this.apiError = res.msg || 'Failed to get scooter information';
             uni.showToast({
               title: this.apiError,
               icon: 'none'
@@ -396,12 +396,12 @@ export default {
           }
         })
         .catch(err => {
-          this.apiError = '网络请求异常';
+          this.apiError = 'Network request exception';
           uni.showToast({
             title: this.apiError,
             icon: 'none'
           });
-          console.error('获取滑板车信息异常:', err);
+          console.error('Exception when getting scooter information:', err);
         })
         .finally(() => {
           this.isLoading = false;
@@ -479,17 +479,17 @@ export default {
           } else {
             // 创建失败
             uni.showToast({
-              title: res.msg || '创建订单失败',
+              title: res.msg || 'Failed to create order',
               icon: 'none'
             });
           }
         })
         .catch(err => {
           uni.showToast({
-            title: '网络请求异常',
+            title: 'Network request exception',
             icon: 'none'
           });
-          console.error('创建订单异常:', err);
+          console.error('Order creation exception:', err);
         })
         .finally(() => {
           this.isLoading = false;

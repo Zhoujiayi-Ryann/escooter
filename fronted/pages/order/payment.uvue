@@ -29,7 +29,7 @@
 		<van-cell-group inset class="amount-card">
 			<van-cell title="Payment Amount" class="amount">
 				<template #value>
-					<text class="currency">¥</text>
+					<text class="currency">$</text>
 					<text class="price">{{ totalAmount }}</text>
 				</template>
 			</van-cell>
@@ -101,6 +101,8 @@
 </template>
 
 <script>
+	import { orderApi } from '@/utils/api';
+
 	export default {
 		data() {
 			return {
@@ -201,21 +203,53 @@
 				this.password = this.password.slice(0, -1);
 			},
 			handlePayment() {
-				// 模拟支付过程
-				setTimeout(() => {
-					this.closePasswordInput();
+				// 获取订单ID
+				const orderId = this.orderInfo.orderId || 0;
+				
+				if (!orderId) {
 					uni.showToast({
-						title: 'Payment Successful',
-						icon: 'success',
-						duration: 2000
+						title: 'Incomplete order information',
+						icon: 'none'
 					});
-					// 支付成功后跳转到booking_right界面
-					setTimeout(() => {
-						uni.reLaunch({
-							url: '/pages/booking_right/booking_right'
+					this.closePasswordInput();
+					return;
+				}
+				
+				// 调用支付API，修改为使用 orderApi
+				orderApi.payOrder(orderId)  // 使用 orderApi 替代 api
+					.then(res => {
+						if (res.code === 0) {
+							// 支付成功
+							this.closePasswordInput();
+							uni.showToast({
+								title: 'Payment successful',
+								icon: 'success',
+								duration: 2000
+							});
+							
+							// 支付成功后跳转到booking_right界面
+							setTimeout(() => {
+								uni.reLaunch({
+									url: '/pages/booking_right/booking_right'
+								});
+							}, 2000);
+						} else {
+							// 支付失败
+							uni.showToast({
+								title: res.msg || 'Payment failed',
+								icon: 'none'
+							});
+							this.closePasswordInput();
+						}
+					})
+					.catch(err => {
+						uni.showToast({
+							title: 'Network request exception',
+							icon: 'none'
 						});
-					}, 2000);
-				}, 1000);
+						console.error('Payment request exception:', err);
+						this.closePasswordInput();
+					});
 			},
 			onChange(index) {
 				// toggle-toggle
@@ -270,7 +304,7 @@
 				
 				this.totalAmount = basePrice.toFixed(2);
 				// test
-				console.log('计算后money:', this.totalAmount, '选择的优惠券索引:', this.chosenCoupon);
+				console.log('Calculated money:', this.totalAmount, 'Selected coupon index:', this.chosenCoupon);
 				
 				// 更新优惠券可用状态
 				this.updateCouponsAvailability();
