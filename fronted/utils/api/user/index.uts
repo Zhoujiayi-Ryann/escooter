@@ -3,6 +3,15 @@ import { request } from '../request';
 import { ApiResponse, LoginResponseData, RegisterResponseData } from '../types';
 
 /**
+ * 用户信息类型
+ */
+export interface UserInfo {
+    user_id: number;
+    username: string;
+    token?: string;
+}
+
+/**
  * 用户API模块
  */
 export const userApi = {
@@ -35,6 +44,85 @@ export const userApi = {
             method: 'POST',
             data: data
         });
+    },
+
+    /**
+     * 保存用户信息到本地存储
+     * @param userInfo 用户信息
+     */
+    saveUserInfo(userInfo: UserInfo): void {
+        try {
+            uni.setStorageSync('userInfo', JSON.stringify(userInfo));
+            console.log('用户信息已保存到本地存储', userInfo);
+        } catch (e) {
+            console.error('保存用户信息失败:', e);
+        }
+    },
+
+    /**
+     * 获取用户信息
+     * @returns 用户信息，如果未找到则返回null
+     */
+    getUserInfo(): UserInfo | null {
+        try {
+            const userInfoStr = uni.getStorageSync('userInfo');
+            if (userInfoStr) {
+                return JSON.parse(userInfoStr);
+            }
+        } catch (e) {
+            console.error('解析用户信息失败:', e);
+        }
+        return null;
+    },
+    
+    /**
+     * 获取用户ID
+     * @param defaultId 默认ID，如果未找到用户ID则返回此值
+     * @returns 用户ID，如果未找到且未提供默认值则返回0
+     */
+    getUserId(defaultId: number = 0): number {
+        const userInfo = this.getUserInfo();
+        if (userInfo && userInfo.user_id) {
+            return userInfo.user_id;
+        }
+        if (defaultId !== 0) {
+            console.warn(`未找到用户ID，使用默认值${defaultId}`);
+        }
+        return defaultId;
+    },
+    
+    /**
+     * 获取用户名
+     * @param defaultName 默认用户名，如果未找到用户名则返回此值
+     * @returns 用户名，如果未找到且未提供默认值则返回'Guest'
+     */
+    getUsername(defaultName: string = 'Guest'): string {
+        const userInfo = this.getUserInfo();
+        if (userInfo && userInfo.username) {
+            return userInfo.username;
+        }
+        return defaultName;
+    },
+    
+    /**
+     * 判断用户是否已登录
+     * @returns 是否已登录
+     */
+    isLoggedIn(): boolean {
+        return this.getUserInfo() !== null;
+    },
+    
+    /**
+     * 退出登录
+     */
+    logout(): void {
+        try {
+            uni.removeStorageSync('userInfo');
+            uni.removeStorageSync('token');
+            console.log('用户已退出登录');
+        } catch (e) {
+            console.error('退出登录失败:', e);
+        }
     }
 }
 
@@ -48,8 +136,30 @@ export const userApi = {
  *     username: 'user123',
  *     password: 'password123'
  * }).then(res => {
- *     if (res.code === 0) {
- *         console.log('登录成功:', res.data);
+ *     if (res.code === 1) {
+ *         // 保存用户信息
+ *         userApi.saveUserInfo({
+ *             user_id: res.data.user_id,
+ *             username: res.data.username,
+ *             token: res.data.token
+ *         });
+ *         console.log('登录成功');
  *     }
  * });
+ * 
+ * // 获取用户信息
+ * const userInfo = userApi.getUserInfo();
+ * 
+ * // 获取用户ID，默认为1
+ * const userId = userApi.getUserId(1);
+ * 
+ * // 获取用户名
+ * const username = userApi.getUsername();
+ * 
+ * // 判断用户是否已登录
+ * if (userApi.isLoggedIn()) {
+ *     console.log('用户已登录');
+ * } else {
+ *     console.log('用户未登录');
+ * }
  */ 

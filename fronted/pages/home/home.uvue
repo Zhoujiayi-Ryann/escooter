@@ -9,7 +9,7 @@
 		<view class="sidebar"
 		:class="{ 'sidebar-open': showSidebar }">			
 			<view class="user-info">
-				<text class="greeting">Welcome, xxx!</text>
+				<text class="greeting">Welcome, {{ username || 'Guest' }}!</text>
 				<view class="user-stats">
 					<view class="stat-item">
 						<van-icon name="circle" color="#4cd964" size="24px" />
@@ -29,7 +29,7 @@
 					<text>Add Payment To Start</text>
 					<van-icon name="card" size="20px" />
 				</view>
-				<van-button type="primary" block round class="payment-button">Add Cards</van-button>
+				<van-button type="primary" block round class="payment-button" @click="navigateTo('card')">Add Cards</van-button>
 			</view>
 			
 			<view class="sidebar-menu">
@@ -37,7 +37,7 @@
 					<van-icon name="balance-o" size="22px" />
 					<text>Wallet</text>
 				</view>
-				<view class="menu-item">
+				<view class="menu-item" @click="navigateTo('records')">
 					<van-icon name="clock-o" size="22px" />
 					<text>Records</text>
 				</view>
@@ -49,7 +49,7 @@
 					<van-icon name="question-o" size="22px" />
 					<text>Help</text>
 				</view>
-				<view class="menu-item">
+				<view class="menu-item" @click="navigateTo('settings')">
 					<van-icon name="setting-o" size="22px" />
 					<text>Settings</text>
 				</view>
@@ -107,6 +107,8 @@
 
 <script>
 import { scooterApi } from '../../utils/api/scooter';
+import { userApi } from '../../utils/api/user';
+
 export default {
 	data() {
 		return {
@@ -143,7 +145,8 @@ export default {
 				status: string;
 				batteryLevel: number;
 				price: number;
-			}>
+			}>,
+			username: ''
 		};
 	},
 	mounted() {
@@ -151,11 +154,15 @@ export default {
 		this.startCompass();
 		this.updateMarkers();
 		this.fetchScooters();
+		this.getUsername();
 	},
 	onReady() {
 		this.setHeight();
 		this.setWidth();
 		this.getAnchors();
+	},
+	onShow() {
+		this.getUsername();
 	},
 	methods: {
 		getLocation() {
@@ -262,13 +269,34 @@ export default {
 				'records': '/pages/records/records',
 				'discount': '/pages/discount/discount',
 				'help': '/pages/help/help',
-				'settings': '/pages/settings/settings'
+				'settings': '/pages/settings/my_settings/my_settings',
+				'card': '/pages/settings/card/card'
 			};
 			if (pageMapping[page]) {
-				uni.navigateTo({
-					url: pageMapping[page]
-				});
+				if (page === 'confirm') {
+					if (this.selected === null) {
+						uni.showToast({
+							title: '请选择一个滑板车',
+							icon: 'none'
+						});
+						return;
+					}
+
+					// 获取用户ID，默认值为1
+					const userId = userApi.getUserId(1);
+					
+					uni.navigateTo({
+						url: `${pageMapping[page]}?scooterId=${this.selected}&userId=${userId}`
+					});
+				} else {
+					uni.navigateTo({
+						url: pageMapping[page]
+					});
+				}
 			}
+		},
+		getUsername() {
+			this.username = userApi.getUsername('Guest');
 		}
 	}
 };

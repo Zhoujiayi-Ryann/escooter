@@ -25,9 +25,9 @@ public interface OrderMapper {
          * @param order 订单对象
          * @return 影响的行数
          */
-        @Insert("INSERT INTO Orders (user_id, scooter_id, start_time, end_time, duration, cost, status, extended_duration, discount, address) "
+        @Insert("INSERT INTO Orders (user_id, scooter_id, start_time, end_time, duration, cost, status, extended_duration, discount, address, create_at) "
                         +
-                        "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status, typeHandler=com.example.hello.handler.OrderStatusTypeHandler}, #{extendedDuration}, #{discount}, #{address})")
+                        "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status, typeHandler=com.example.hello.handler.OrderStatusTypeHandler}, #{extendedDuration}, #{discount}, #{address}, #{createdAt})")
         @Options(useGeneratedKeys = true, keyProperty = "orderId")
         int insertOrder(Order order);
 

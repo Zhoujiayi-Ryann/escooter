@@ -90,6 +90,7 @@ public class OrderServiceImpl implements OrderService {
         order.setExtendedDuration(0.0f);
         order.setDiscount(BigDecimal.ZERO);
         order.setAddress(request.getPickup_address());
+        order.setCreatedAt(LocalDateTime.now());
 
         // 7. 保存订单
         orderMapper.insertOrder(order);

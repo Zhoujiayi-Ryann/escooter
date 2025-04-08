@@ -38,7 +38,7 @@
     </view>
 
     <!-- 保存 -->
-    <van-button class="save-btn" type="primary" block @click="onSave">
+    <van-button class="save-btn" type="primary" block @click="onSave" :loading="isSaving">
       Save
     </van-button>
 
@@ -70,6 +70,8 @@
 <script setup>
 import { ref } from 'vue'
 import { showToast } from 'vant'
+import { creditCardApi } from '@/utils/api/creditCard'
+import { userApi } from '@/utils/api/user'
 
 // 数据
 const cardNumber = ref('')
@@ -78,9 +80,19 @@ const cvv = ref('')
 const showKeyboard = ref(false)
 const showCountryPicker = ref(false)
 const currentField = ref('')
+const isSaving = ref(false)
 
 // 默认国家
 const selectedCountry = ref({ flag: '🇨🇳', code: 'CN' })
+
+// 国家与国家名称映射
+const countryCodeToName = {
+  'CN': '中国',
+  'US': '美国',
+  'JP': '日本',
+  'FR': '法国',
+  'DE': '德国'
+}
 
 // 国家列表
 const countries = ref([
@@ -159,10 +171,18 @@ const onSave = () => {
     return showToast('Please complete all fields');
   }
 
+  // 清除卡号中的空格
+  const cardNumberClean = cardNumber.value.replace(/\s/g, '');
+  
+  // 检查卡号格式 (16位数字)
+  if (cardNumberClean.length !== 16 || !/^\d+$/.test(cardNumberClean)) {
+    return showToast('Invalid card number');
+  }
+
   // 额外检查 expiry
   const expiryRaw = expiry.value.replace('/', '');
   const month = parseInt(expiryRaw.slice(0, 2), 10);
-  const year = parseInt(expiryRaw.slice(2), 10);
+  const year = parseInt('20' + expiryRaw.slice(2), 10);
 
   if (month < 1 || month > 12) {
     return showToast('Expiry month invalid');
@@ -171,13 +191,56 @@ const onSave = () => {
   if (expiryRaw.length !== 4) {
     return showToast('Expiry date incomplete');
   }
+  
+  // 检查CVV (3位数字)
+  if (cvv.value.length !== 3 || !/^\d+$/.test(cvv.value)) {
+    return showToast('Invalid CVV');
+  }
 
-  showToast('Saved successfully');
+  // 构造日期格式 YYYY-MM-DD
+  const expiryDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+  
+  // 使用userApi获取用户ID
+  const userId = userApi.getUserId(1); // 默认值为1用于测试
+  
+  // 准备请求数据
+  const cardData = {
+    user_id: userId,
+    card_number: cardNumberClean,
+    security_code: cvv.value,
+    expiry_date: expiryDate,
+    country: countryCodeToName[selectedCountry.value.code] || '中国'
+  };
+  
+  // 标记为正在保存
+  isSaving.value = true;
+  
+  // 调用API添加银行卡
+  creditCardApi.addCreditCard(cardData)
+    .then(res => {
+      if (res.code === 1) {
+        showToast('Card added successfully');
+        // 添加成功后，重定向到我的银行卡页面
+        setTimeout(() => {
+          uni.navigateBack();
+        }, 1500);
+      } else {
+        showToast(res.msg || 'Failed to add card');
+      }
+    })
+    .catch(err => {
+      console.error('添加银行卡失败:', err);
+      showToast('Network error, please try again');
+    })
+    .finally(() => {
+      isSaving.value = false;
+    });
 }
+
 // 返回
 const onClose = () => {
   uni.navigateTo({
-  	url: '/pages/settings/my_settings/my_settings'
+  	url: '/pages/home/home'
   });
 }
 </script>

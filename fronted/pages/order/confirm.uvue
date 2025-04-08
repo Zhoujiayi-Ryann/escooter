@@ -7,20 +7,20 @@
       <view class="bike-image-container">
         <image class="bike-image" src="/static/bikelogo/withseat.png" mode="aspectFit"></image>
       </view>
-
+    
       <view class="info-item">
         <text class="info-label">Scooter Number：
         <text class="info-value">{{ scooterCode }}</text>
         </text>
         
       </view>
-
+    
       <view class="info-item">
         <text class="info-label">Other Information：
         </text>
       </view>
     </view>
-
+    
     <view class="time-section">
       <text class="section-title">Rental time selection</text>
       
@@ -44,7 +44,7 @@
         </view>
       </view>
     </view>
-
+    
     <!-- 地址 -->
     <view class="address-section">
       <text class="section-label">Address：</text>
@@ -59,11 +59,11 @@
     <view class="address-error" v-if="addressError">
       <text class="error-text">{{ addressError }}</text>
     </view>
-
+    
     <view class="bottom-button">
       <button class="rent-button" @click="goToRent">Go to rent</button>
     </view>
-
+    
     <!-- 日期选择弹出层 - 开始 -->
     <van-popup 
       v-model:show="showStartPicker" 
@@ -72,15 +72,15 @@
     >
       <van-picker-group 
         title="Select Start Time" 
-		    :tabs="['select date', 'select time']"
+    	    :tabs="['select date', 'select time']"
         @confirm="onConfirmStartTime" 
         @cancel="showStartPicker = false"
       >
-		<!-- TODO: :max-date怎么设不知道 -->
+    	<!-- TODO: :max-date怎么设不知道 -->
         <van-date-picker 
           v-model="tempStartDate" 
           :min-date="new Date()"
-		      :max-date="new Date(2026,5,1)"
+    	      :max-date="new Date(2026,5,1)"
         />
         <van-time-picker 
           v-model="tempStartTime" 
@@ -88,7 +88,7 @@
         />
       </van-picker-group>
     </van-popup>
-
+    
     <!-- 日期选择弹出层 - 结束 -->
     <van-popup 
       v-model:show="showEndPicker" 
@@ -116,7 +116,8 @@
 
 <script>
 import { ref, computed } from 'vue';
-import { userApi, scooterApi, orderApi, creditCardApi } from '../../utils/api';  // 导入API工具
+import { scooterApi, orderApi } from '@/utils/api';  // 更新 API 导入
+import { userApi } from '@/utils/api/user';  // 导入userApi
 
 export default {
   data() {
@@ -146,7 +147,8 @@ export default {
       addressError: '',
       
       isLoading: false, // 加载状态
-      apiError: ''      // API错误信息
+      apiError: '',      // API错误信息
+      userId: 1,         // 存储用户ID
     };
   },
   onLoad(options) {
@@ -165,7 +167,7 @@ export default {
       endDay.getDate().toString().padStart(2, '0')
     ];
     
-    // 获取从home页面传递的滑板车ID
+    // 获取从home页面传递的滑板车ID和用户ID
     if (options.scooterId) {
       this.scooterId = Number(options.scooterId);
       this.getScooterInfo(this.scooterId);
@@ -173,6 +175,16 @@ export default {
       // 如果没有传递ID，使用默认值用于测试
       this.scooterCode = 'SC12345';
       this.otherInfo = '电动车型号XYZ，续航100km';
+    }
+    
+    // 获取用户ID - 优先使用URL中的参数，否则使用userApi获取
+    if (options.userId) {
+      this.userId = Number(options.userId);
+      console.log('从URL获取用户ID:', this.userId);
+    } else {
+      // 使用userApi获取用户ID，默认值为1
+      this.userId = userApi.getUserId(1);
+      console.log('使用userApi获取用户ID:', this.userId);
     }
   },
   computed: {
@@ -367,9 +379,9 @@ export default {
     // 获取滑板车详细信息
     getScooterInfo(scooterId) {
       this.isLoading = true;
-      scooterApi.getScooterById(scooterId)
+      scooterApi.getScooterById(scooterId)  // 使用 scooterApi 替代 api
         .then(res => {
-          if (res.code === 0) {
+          if (res.code === 1) {
             // 获取成功，设置滑板车信息
             const scooter = res.data;
             this.scooterCode = `SC${scooter.scooter_id}`;
@@ -426,47 +438,20 @@ export default {
       const endMinutes = Number(this.endTime.split(':')[1]);
       endDateTime.setHours(endHours, endMinutes, 0, 0);
       
-      // 从Storage获取用户ID
-      const userInfoStr = uni.getStorageSync('userInfo');
-      let userId = 0;
-      
-      if (userInfoStr) {
-        try {
-          const userInfo = JSON.parse(userInfoStr);
-          userId = userInfo.user_id;
-        } catch (e) {
-          console.error('解析用户信息失败:', e);
-        }
-      }
-      
-      if (!userId) {
-        uni.showToast({
-          title: '用户未登录，请先登录',
-          icon: 'none'
-        });
-        
-        // 重定向到登录页
-        setTimeout(() => {
-          uni.redirectTo({
-            url: '/pages/login/login'
-          });
-        }, 1500);
-        return;
-      }
-      
       // 构建创建订单请求
       const orderData = {
-        user_id: userId,
+        user_id: this.userId,
         scooter_id: this.scooterId || 1, // 如果没有ID则使用默认值1
         pickup_address: this.address,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString()
       };
       
-      // 调用创建订单API
-      api.createOrder(orderData)
+      // 调用创建订单API，修改为使用 orderApi
+      orderApi.createOrder(orderData)  // 使用 orderApi 替代 api
         .then(res => {
-          if (res.code === 0) {
+          console.log(res);
+          if (res.code === 1) {
             // 订单创建成功
             const order = res.data;
             

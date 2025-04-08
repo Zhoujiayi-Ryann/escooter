@@ -130,6 +130,13 @@ export default {
           // 保存 token
           setToken(res.data.token);
           
+          // 保存用户信息到本地存储
+          userApi.saveUserInfo({
+            user_id: res.data.user_id,
+            username: res.data.username,
+            token: res.data.token
+          });
+          
           uni.showToast({
             title: res.msg || '登录成功',
             icon: 'success'
@@ -138,7 +145,7 @@ export default {
           // 登录成功后跳转到首页
           setTimeout(() => {
             uni.reLaunch({
-              url: '/pages/index/index'
+              url: '/pages/home/home'
             });
           }, 1500);
         } else {
