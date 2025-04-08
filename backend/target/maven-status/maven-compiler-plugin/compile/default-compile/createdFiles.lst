@@ -5,6 +5,7 @@ com/example/hello/config/WebConfig.class
 com/example/hello/common/Result.class
 com/example/hello/entity/Order.class
 com/example/hello/dto/OrderResponse.class
+com/example/hello/mapper/DiscountMapper.class
 com/example/hello/scheduler/OrderTimeoutScheduler.class
 com/example/hello/utils/JwtUtil.class
 com/example/hello/handler/OrderStatusTypeHandler.class

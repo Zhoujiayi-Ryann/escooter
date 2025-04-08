@@ -455,9 +455,9 @@ export default {
             // 订单创建成功
             const order = res.data;
             
-            // 计算租赁天数和总费用
-            const days = this.rentalDays;
-            const cost = order.cost || (days * 12.00); // 如果API没返回价格，使用默认价格
+            // 使用后端返回的价格和折扣信息
+            const cost = order.cost || 0;
+            const discountAmount = order.discount_amount || 0;
             
             // 订单对象
             const orderInfo = {
@@ -467,9 +467,10 @@ export default {
               startTime: this.startTime,
               endDate: this.formatDate(this.endDate),
               endTime: this.endTime,
-              days: days,
+              days: this.rentalDays,
               address: this.address,
-              cost: cost
+              cost: cost,
+              discountAmount: discountAmount
             };
             
             // 跳转到支付页面并传递订单信息
