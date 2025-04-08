@@ -39,10 +39,10 @@
       <view class="page-section">
 		  <!-- Order Section -->
 		  <van-grid :column-num="4" border>
-		    <van-grid-item icon="orders-o" :text="'All Orders'" />
-		    <van-grid-item icon="clock-o" :text="'Unused'" :badge="orderStatus.unused" />
-		    <van-grid-item icon="pending-payment" :text="'In Progress'" />
-		    <van-grid-item icon="passed" :text="'Completed'" />
+			<van-grid-item icon="orders-o" text="All Orders" @click="navigateToOrder(0)" />
+			<van-grid-item icon="clock-o" text="Unused" :badge="orderStatus.unused" @click="navigateToOrder(1)" />
+			<van-grid-item icon="pending-payment" text="In Progress" @click="navigateToOrder(2)" />
+			<van-grid-item icon="passed" text="Completed" @click="navigateToOrder(3)" />
 		  </van-grid>
 
 
@@ -79,7 +79,7 @@ export default {
         avatar: '/static/settings/userp.jpg'
       },
       orderStatus: {
-        unused: 3
+        unused: 1
       },
       mileage: {
         km: 256.8,
@@ -92,7 +92,33 @@ export default {
       uni.navigateTo({
         url: '/pages/settings/card/card'
       });
-    }
+    },
+	navigateTo(page, status = null) {
+		this.showSidebar = false;
+
+		const pageMapping = {
+			wallet: '/pages/wallet/wallet',
+			orders: '/pages/settings/orders/orders',
+			help: '/pages/help/help',
+			card: '/pages/settings/card/card'
+		};
+
+		if (pageMapping[page]) {
+			let url = pageMapping[page];
+
+			// 如果需要传 status 参数，比如跳转 orders 并指定 tab 分类
+			if (status !== null) {
+				url += `?status=${status}`;
+			}
+
+			uni.navigateTo({ url });
+		}
+	},
+	navigateToOrder(status) {
+	  uni.navigateTo({
+	    url: `/pages/settings/orders/orders?status=${status}`
+	  });
+	}
   }
   
 }

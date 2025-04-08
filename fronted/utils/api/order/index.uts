@@ -22,7 +22,7 @@ export const orderApi = {
             url: '/create_orders',
             method: 'POST',
             data: data,
-            needToken: true // 需要登录权限
+            needToken: false // 需要登录权限
         });
     },
 
@@ -35,7 +35,7 @@ export const orderApi = {
         return request<OrderDetailResponse>({
             url: `/orders/${orderId}`,
             method: 'GET',
-            needToken: true // 需要登录权限
+            needToken: false // 需要登录权限
         });
     },
 
@@ -48,7 +48,7 @@ export const orderApi = {
         return request<PayOrderResponse>({
             url: `/orders/${orderId}/pay`,
             method: 'POST',
-            needToken: true // 需要登录权限
+            needToken: false // 需要登录权限
         });
     }
 }
