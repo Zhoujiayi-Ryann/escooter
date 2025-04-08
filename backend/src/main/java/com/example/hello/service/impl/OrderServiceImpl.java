@@ -7,6 +7,7 @@ import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
 import com.example.hello.dto.ChangeOrderStatusResponse;
 import com.example.hello.dto.ExtendOrderRequest;
+import com.example.hello.dto.AvailableTimeSlotsResponse;
 import com.example.hello.entity.Order;
 import com.example.hello.entity.Scooter;
 import com.example.hello.exception.OrderException;
@@ -39,7 +40,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private ScooterMapper scooterMapper;
-    
+
     @Autowired
     private DiscountMapper discountMapper;
 
@@ -54,7 +55,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Optional<OrderResponse> createOrder(CreateOrderRequest request) {
         log.info("开始创建订单: userId={}, scooterId={}", request.getUser_id(), request.getScooter_id());
-        
+
         // 1. 检查滑板车是否存在
         Scooter scooter = scooterMapper.findById(request.getScooter_id());
         if (scooter == null) {
@@ -74,7 +75,7 @@ public class OrderServiceImpl implements OrderService {
                 request.getStart_time(),
                 request.getEnd_time());
         if (!overlappingOrders.isEmpty()) {
-            log.error("该时间段内滑板车已被预订: scooterId={}, startTime={}, endTime={}", 
+            log.error("该时间段内滑板车已被预订: scooterId={}, startTime={}, endTime={}",
                     request.getScooter_id(), request.getStart_time(), request.getEnd_time());
             throw new RuntimeException("该时间段内滑板车已被预订");
         }
@@ -96,7 +97,7 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal baseCost = hourlyRate.multiply(BigDecimal.valueOf(durationHours));
         BigDecimal discountAmount = baseCost.multiply(BigDecimal.ONE.subtract(discountRate));
         BigDecimal finalCost = baseCost.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
-        
+
         log.info("基础费用: {} = {} × {}", baseCost, hourlyRate, durationHours);
         log.info("折扣金额: {}", discountAmount);
         log.info("最终费用: {}", finalCost);
@@ -520,6 +521,37 @@ public class OrderServiceImpl implements OrderService {
         response.setCost(newCost);
         response.setPickup_address(updatedOrder.getAddress());
         response.setStatus(updatedOrder.getStatus().getValue());
+
+        return Optional.of(response);
+    }
+
+    @Override
+    public Optional<AvailableTimeSlotsResponse> getAvailableTimeSlots(Integer orderId) {
+        // 1. 查询当前订单
+        final Order order = orderMapper.findById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+
+        // 2. 查询下一个订单的开始时间
+        LocalDateTime nextStartTime = orderMapper.findNextOrderStartTime(
+                order.getScooterId(),
+                order.getEndTime());
+
+        // 3. 构建响应
+        AvailableTimeSlotsResponse response = new AvailableTimeSlotsResponse();
+        response.setCurrent_end_time(order.getEndTime());
+        response.setNext_start_time(nextStartTime);
+
+        // 4. 计算最大可延长时间
+        if (nextStartTime != null) {
+            Duration duration = Duration.between(order.getEndTime(), nextStartTime);
+            float maxExtendedHours = duration.toMinutes() / 60.0f;
+            response.setMax_extended_hours(maxExtendedHours);
+        } else {
+            // 如果没有下一个订单，可以延长到任意时间
+            response.setMax_extended_hours(Float.MAX_VALUE);
+        }
 
         return Optional.of(response);
     }

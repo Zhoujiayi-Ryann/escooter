@@ -193,4 +193,20 @@ public interface OrderMapper {
                         @Param("newEndTime") LocalDateTime newEndTime,
                         @Param("extendedDuration") Float extendedDuration,
                         @Param("newCost") BigDecimal newCost);
+
+        /**
+         * 查询指定滑板车在指定时间之后的下一个订单
+         *
+         * @param scooterId   滑板车ID
+         * @param currentTime 当前时间
+         * @return 下一个订单的开始时间，如果没有则返回null
+         */
+        @Select("SELECT start_time FROM Orders " +
+                        "WHERE scooter_id = #{scooterId} " +
+                        "AND status IN ('pending', 'paid', 'active') " +
+                        "AND start_time > #{currentTime} " +
+                        "ORDER BY start_time ASC " +
+                        "LIMIT 1")
+        LocalDateTime findNextOrderStartTime(@Param("scooterId") Integer scooterId,
+                        @Param("currentTime") LocalDateTime currentTime);
 }
