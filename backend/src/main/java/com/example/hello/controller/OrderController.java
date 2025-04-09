@@ -7,6 +7,7 @@ import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
 import com.example.hello.dto.ChangeOrderStatusResponse;
 import com.example.hello.dto.ExtendOrderRequest;
+import com.example.hello.dto.AvailableTimeSlotsResponse;
 import com.example.hello.exception.OrderException;
 import com.example.hello.service.OrderService;
 import jakarta.validation.Valid;
@@ -241,6 +242,23 @@ public class OrderController {
             Optional<OrderResponse> response = orderService.extendOrder(request);
             return response.map(Result::success)
                     .orElseGet(() -> Result.error("延长订单失败"));
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取订单可延长的时间段
+     * 
+     * @param orderId 订单ID
+     * @return 可用时间段信息
+     */
+    @GetMapping("/orders/{order_id}/available-slots")
+    public Result<AvailableTimeSlotsResponse> getAvailableTimeSlots(@PathVariable("order_id") Integer orderId) {
+        try {
+            Optional<AvailableTimeSlotsResponse> response = orderService.getAvailableTimeSlots(orderId);
+            return response.map(Result::success)
+                    .orElseGet(() -> Result.error("获取可用时间段失败"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }

@@ -27,6 +27,21 @@
 		</van-cell-group>
 
 		<van-cell-group inset class="amount-card">
+			<van-cell title="Base Amount" v-if="orderInfo.discountAmount > 0" class="base-amount">
+				<template #value>
+					<text class="currency base-price">¥{{ calculateBaseTotalAmount() }}</text>
+				</template>
+			</van-cell>
+			<van-cell title="Discount" v-if="orderInfo.discountAmount > 0" class="discount-amount">
+				<template #value>
+					<text class="currency discount-price">-¥{{ orderInfo.discountAmount }}</text>
+				</template>
+			</van-cell>
+			<van-cell title="Coupon Discount" v-if="calculateCouponDiscount() > 0" class="coupon-discount">
+				<template #value>
+					<text class="currency discount-price">-¥{{ calculateCouponDiscount() }}</text>
+				</template>
+			</van-cell>
 			<van-cell title="Payment Amount" class="amount">
 				<template #value>
 					<text class="currency">$</text>
@@ -112,7 +127,7 @@
 			return {
 				orderId: 'OD' + Date.now(),
 				orderInfo: {},
-				totalAmount: 99.00, 
+				totalAmount: 0, 
 				unitPrice: 12.00,
 				paymentMethod: 'bankcard',
 				showPassword: false,
@@ -165,14 +180,13 @@
 					}
 				],
 				bankCardSelected: false,
-				//12.00: 12.00  // API(B->F)
 			}
 		},
 		onLoad(options) {
 			if (options.orderInfo) {
 				this.orderInfo = JSON.parse(decodeURIComponent(options.orderInfo));
-				// 根据天数计算实际金额
-				this.totalAmount = this.orderInfo.days * this.unitPrice;
+				// 使用后端返回的价格信息
+				this.totalAmount = this.orderInfo.cost;
 				// 初始加载时刷新
 				this.calculateTotal();
 				// 更新优惠券可用状态
@@ -265,7 +279,6 @@
 				this.showList = false;
 				this.calculateTotal();
 			},
-			// ds-start
 			onExchange(code) {
 				if (code === '123456') {
 					// 假设兑换成功，添加新优惠券
@@ -293,17 +306,35 @@
 					});
 				}
 			},
-			// ds-end
-			calculateTotal() {
-				let basePrice = this.orderInfo.days * this.unitPrice;
+			// 计算订单基础金额（不含任何折扣）
+			calculateBaseTotalAmount() {
+				// 基础价格 = 天数 * 单价
+				return (this.orderInfo.days * this.unitPrice).toFixed(2);
+			},
+			// 计算优惠券折扣金额
+			calculateCouponDiscount() {
+				let couponDiscount = 0;
 				
 				// 优惠券折扣
 				if (this.chosenCoupon !== -1 && this.coupons.length > this.chosenCoupon) {
 					const coupon = this.coupons[this.chosenCoupon];
 					// 检查是否满足优惠券使用条件
-					if (basePrice * 100 >= coupon.originCondition) {
-						basePrice = Math.max(0, basePrice - coupon.denominations / 100);
+					const baseAmount = parseFloat(this.orderInfo.cost);
+					if (baseAmount * 100 >= coupon.originCondition) {
+						couponDiscount = coupon.denominations / 100;
 					}
+				}
+				
+				return couponDiscount.toFixed(2);
+			},
+			calculateTotal() {
+				// 基础价格（已包含后端返回的折扣）
+				let basePrice = parseFloat(this.orderInfo.cost);
+				
+				// 减去优惠券折扣
+				const couponDiscount = this.calculateCouponDiscount();
+				if (couponDiscount > 0) {
+					basePrice = Math.max(0, basePrice - couponDiscount);
 				}
 				
 				this.totalAmount = basePrice.toFixed(2);
@@ -314,12 +345,11 @@
 				this.updateCouponsAvailability();
 			},
 			updateCouponsAvailability() {
-				// 获取当前订单基础金额（不含优惠券折扣）
-				const baseAmount = this.orderInfo.days * this.unitPrice;
+				// 获取当前订单价格（已包含后端折扣）
+				const baseAmount = parseFloat(this.orderInfo.cost);
 				const baseAmountInCents = Math.floor(baseAmount * 100);
 				
-				// 所有可用优惠券（API(B->F)）
-				// 原始所有可用优惠券
+				// 所有可用优惠券
 				const allCoupons = [
 					{
 						id: 1,
@@ -436,6 +466,17 @@
 		font-size: 36rpx;
 		font-weight: bold;
 		color: #007aff;  /* 蓝色替代红色 */
+	}
+	
+	.base-price {
+		font-size: 28rpx;
+		color: #666;
+		text-decoration: line-through;
+	}
+	
+	.discount-price {
+		font-size: 28rpx;
+		color: #4cd964;  /* 绿色表示折扣 */
 	}
 
 	.payment-icon {

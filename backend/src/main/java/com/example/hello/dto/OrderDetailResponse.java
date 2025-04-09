@@ -46,6 +46,11 @@ public class OrderDetailResponse {
     private BigDecimal cost;
 
     /**
+     * 折扣金额
+     */
+    private BigDecimal discount_amount;
+
+    /**
      * 取车地址
      */
     private String pickup_address;

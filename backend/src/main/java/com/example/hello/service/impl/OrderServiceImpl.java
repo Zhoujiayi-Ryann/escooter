@@ -7,11 +7,13 @@ import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
 import com.example.hello.dto.ChangeOrderStatusResponse;
 import com.example.hello.dto.ExtendOrderRequest;
+import com.example.hello.dto.AvailableTimeSlotsResponse;
 import com.example.hello.entity.Order;
 import com.example.hello.entity.Scooter;
 import com.example.hello.exception.OrderException;
 import com.example.hello.mapper.OrderMapper;
 import com.example.hello.mapper.ScooterMapper;
+import com.example.hello.mapper.DiscountMapper;
 import com.example.hello.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,9 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private ScooterMapper scooterMapper;
 
+    @Autowired
+    private DiscountMapper discountMapper;
+
     /**
      * 创建订单
      * 使用事务确保数据一致性
@@ -49,14 +54,18 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Optional<OrderResponse> createOrder(CreateOrderRequest request) {
+        log.info("开始创建订单: userId={}, scooterId={}", request.getUser_id(), request.getScooter_id());
+
         // 1. 检查滑板车是否存在
         Scooter scooter = scooterMapper.findById(request.getScooter_id());
         if (scooter == null) {
+            log.error("滑板车不存在: scooterId={}", request.getScooter_id());
             throw new RuntimeException("滑板车不存在");
         }
 
         // 2. 验证开始时间和结束时间
         if (request.getEnd_time().isBefore(request.getStart_time())) {
+            log.error("结束时间不能早于开始时间: startTime={}, endTime={}", request.getStart_time(), request.getEnd_time());
             throw new RuntimeException("结束时间不能早于开始时间");
         }
 
@@ -66,36 +75,52 @@ public class OrderServiceImpl implements OrderService {
                 request.getStart_time(),
                 request.getEnd_time());
         if (!overlappingOrders.isEmpty()) {
+            log.error("该时间段内滑板车已被预订: scooterId={}, startTime={}, endTime={}",
+                    request.getScooter_id(), request.getStart_time(), request.getEnd_time());
             throw new RuntimeException("该时间段内滑板车已被预订");
         }
 
         // 4. 计算使用时长（小时）
         Duration duration = Duration.between(request.getStart_time(), request.getEnd_time());
         float durationHours = duration.toMinutes() / 60.0f;
+        log.info("租用时长: {} 小时", durationHours);
 
-        // 5. 计算费用
+        // 5. 获取用户折扣率（如果有）
+        BigDecimal discountRate = discountMapper.getUserDiscountRate(request.getUser_id());
+        if (discountRate == null) {
+            discountRate = BigDecimal.ONE; // 无折扣
+        }
+        log.info("用户折扣率: {}", discountRate);
+
+        // 6. 计算费用
         BigDecimal hourlyRate = scooter.getPrice();
-        BigDecimal cost = hourlyRate.multiply(BigDecimal.valueOf(durationHours))
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal baseCost = hourlyRate.multiply(BigDecimal.valueOf(durationHours));
+        BigDecimal discountAmount = baseCost.multiply(BigDecimal.ONE.subtract(discountRate));
+        BigDecimal finalCost = baseCost.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
 
-        // 6. 创建订单
+        log.info("基础费用: {} = {} × {}", baseCost, hourlyRate, durationHours);
+        log.info("折扣金额: {}", discountAmount);
+        log.info("最终费用: {}", finalCost);
+
+        // 7. 创建订单
         Order order = new Order();
         order.setUserId(request.getUser_id());
         order.setScooterId(request.getScooter_id());
         order.setStartTime(request.getStart_time());
         order.setEndTime(request.getEnd_time());
         order.setDuration(durationHours);
-        order.setCost(cost);
+        order.setCost(finalCost);
         order.setStatus(OrderStatus.PENDING);
         order.setExtendedDuration(0.0f);
-        order.setDiscount(BigDecimal.ZERO);
+        order.setDiscount(discountAmount);
         order.setAddress(request.getPickup_address());
         order.setCreatedAt(LocalDateTime.now());
 
-        // 7. 保存订单
+        // 8. 保存订单
         orderMapper.insertOrder(order);
+        log.info("订单创建成功: orderId={}", order.getOrderId());
 
-        // 8. 构建响应
+        // 9. 构建响应
         OrderResponse response = new OrderResponse();
         response.setOrder_id(order.getOrderId());
         response.setUser_id(order.getUserId());
@@ -103,6 +128,7 @@ public class OrderServiceImpl implements OrderService {
         response.setStart_time(order.getStartTime());
         response.setEnd_time(order.getEndTime());
         response.setCost(order.getCost());
+        response.setDiscount_amount(order.getDiscount());
         response.setPickup_address(order.getAddress());
         response.setStatus(order.getStatus().getValue());
 
@@ -137,6 +163,7 @@ public class OrderServiceImpl implements OrderService {
         response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
         response.setExtended_duration((Float) detailMap.get("extended_duration"));
         response.setCost((BigDecimal) detailMap.get("cost"));
+        response.setDiscount_amount((BigDecimal) detailMap.get("discount"));
         response.setStatus((String) detailMap.get("status"));
         response.setPickup_address((String) detailMap.get("address"));
 
@@ -494,6 +521,37 @@ public class OrderServiceImpl implements OrderService {
         response.setCost(newCost);
         response.setPickup_address(updatedOrder.getAddress());
         response.setStatus(updatedOrder.getStatus().getValue());
+
+        return Optional.of(response);
+    }
+
+    @Override
+    public Optional<AvailableTimeSlotsResponse> getAvailableTimeSlots(Integer orderId) {
+        // 1. 查询当前订单
+        final Order order = orderMapper.findById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+
+        // 2. 查询下一个订单的开始时间
+        LocalDateTime nextStartTime = orderMapper.findNextOrderStartTime(
+                order.getScooterId(),
+                order.getEndTime());
+
+        // 3. 构建响应
+        AvailableTimeSlotsResponse response = new AvailableTimeSlotsResponse();
+        response.setCurrent_end_time(order.getEndTime());
+        response.setNext_start_time(nextStartTime);
+
+        // 4. 计算最大可延长时间
+        if (nextStartTime != null) {
+            Duration duration = Duration.between(order.getEndTime(), nextStartTime);
+            float maxExtendedHours = duration.toMinutes() / 60.0f;
+            response.setMax_extended_hours(maxExtendedHours);
+        } else {
+            // 如果没有下一个订单，可以延长到任意时间
+            response.setMax_extended_hours(Float.MAX_VALUE);
+        }
 
         return Optional.of(response);
     }

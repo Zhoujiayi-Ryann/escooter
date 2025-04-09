@@ -38,6 +38,11 @@ public class OrderResponse {
      * 订单费用
      */
     private BigDecimal cost;
+    
+    /**
+     * 折扣金额
+     */
+    private BigDecimal discount_amount;
 
     /**
      * 取车地址

@@ -6,6 +6,7 @@ import com.example.hello.dto.OrderResponse;
 import com.example.hello.dto.PayOrderResponse;
 import com.example.hello.dto.ChangeOrderStatusResponse;
 import com.example.hello.dto.ExtendOrderRequest;
+import com.example.hello.dto.AvailableTimeSlotsResponse;
 import java.util.Optional;
 
 /**
@@ -81,4 +82,12 @@ public interface OrderService {
      * @return 更新后的订单信息
      */
     Optional<OrderResponse> extendOrder(ExtendOrderRequest request);
+
+    /**
+     * 获取订单可延长的时间段
+     * 
+     * @param orderId 订单ID
+     * @return 可用时间段信息
+     */
+    Optional<AvailableTimeSlotsResponse> getAvailableTimeSlots(Integer orderId);
 }
