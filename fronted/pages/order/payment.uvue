@@ -102,6 +102,10 @@
 
 <script>
 	import { orderApi } from '@/utils/api';
+	import { Locale } from 'vant';
+	import enUS from 'vant/es/locale/lang/en-US';
+
+	Locale.use('en-US', enUS);
 
 	export default {
 		data() {

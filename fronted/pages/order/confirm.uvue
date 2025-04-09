@@ -118,6 +118,10 @@
 import { ref, computed } from 'vue';
 import { scooterApi, orderApi } from '@/utils/api';  // 更新 API 导入
 import { userApi } from '@/utils/api/user';  // 导入userApi
+import { Locale } from 'vant';
+import enUS from 'vant/es/locale/lang/en-US';
+
+Locale.use('en-US', enUS);
 
 export default {
   data() {
@@ -384,8 +388,8 @@ export default {
           if (res.code === 1) {
             // 获取成功，设置滑板车信息
             const scooter = res.data;
-            this.scooterCode = `SC${scooter.scooter_id}`;
-            this.otherInfo = `Electric Scooter, Battery: ${scooter.battery_level}%, Price: ¥${scooter.price}/day`;
+            this.scooterCode = `SC${scooter.scooterId}`;
+            this.otherInfo = `Electric Scooter, Battery: ${scooter.batteryLevel}%, Price: ¥${scooter.price}/day`;
           } else {
             // 获取失败
             this.apiError = res.msg || 'Failed to get scooter information';
