@@ -1,18 +1,32 @@
 <template>
 	<view class="payment-page">
 		<!-- 订单信息 -->
+		<view class="header">
+			<view class="back-btn" @click="navitohome">
+			  <van-icon name="arrow-left" class="back-icon"/>
+			</view>
+			<text class="header-title"> Payment Confirm</text>
+		</view>
 		<van-cell-group inset class="order-card">
-			<van-cell title="Order Number" :value="orderId" />
 			<van-cell title="Scooter Number" :value="orderInfo.scooterCode" />
-			<van-cell title="Rental Period">
-				<template #value>
-					<view class="time-value">
-						<text class="small-text">{{ orderInfo.startDate }} {{ orderInfo.startTime }}</text>
-						<text class="to-text small-text">to</text>
-						<text class="small-text">{{ orderInfo.endDate }} {{ orderInfo.endTime }}</text>
-					</view>
-				</template>
-			</van-cell>
+			  <van-cell center title="Scooter Style">
+			    <template #value>
+			      <image
+			        class="scooter-preview"
+			        src="/static/bikelogo/escooter_car2.png"
+			        mode="aspectFit"
+			      />
+			    </template>
+			  </van-cell>
+			<van-cell title="Order Number" :value="orderId" />
+			
+<van-cell title="Rental Period">
+  <template #value>
+    <scroll-view scroll-x="true" class="scroll-time-line">
+      <text>{{ orderInfo.startDate }} {{ orderInfo.startTime }} to {{ orderInfo.endDate }} {{ orderInfo.endTime }}</text>
+    </scroll-view>
+  </template>
+</van-cell>
 			<van-cell title="Rental Days" :value="`${orderInfo.days} days`" />
 			<van-cell title="Pickup address" :value="orderInfo.address" />
 		</van-cell-group>
@@ -23,23 +37,31 @@
 			  :coupons="coupons"
 			  :chosen-coupon="chosenCoupon"
 			  @click="showList = true"
-			/>
+			  currency="$"
+			>
+			  <template #value>
+				<text v-if="chosenCoupon !== -1">
+				  -${{ (coupons[chosenCoupon].denominations / 100).toFixed(2) }}
+				</text>
+				<text v-else>None</text>
+			  </template>
+			</van-coupon-cell>
 		</van-cell-group>
 
 		<van-cell-group inset class="amount-card">
 			<van-cell title="Base Amount" v-if="orderInfo.discountAmount > 0" class="base-amount">
 				<template #value>
-					<text class="currency base-price">¥{{ calculateBaseTotalAmount() }}</text>
+					<text class="currency base-price">${{ calculateBaseTotalAmount() }}</text>
 				</template>
 			</van-cell>
 			<van-cell title="Discount" v-if="orderInfo.discountAmount > 0" class="discount-amount">
 				<template #value>
-					<text class="currency discount-price">-¥{{ orderInfo.discountAmount }}</text>
+					<text class="currency discount-price">-${{ orderInfo.discountAmount }}</text>
 				</template>
 			</van-cell>
 			<van-cell title="Coupon Discount" v-if="calculateCouponDiscount() > 0" class="coupon-discount">
 				<template #value>
-					<text class="currency discount-price">-¥{{ calculateCouponDiscount() }}</text>
+					<text class="currency discount-price">-${{ calculateCouponDiscount() }}</text>
 				</template>
 			</van-cell>
 			<van-cell title="Payment Amount" class="amount">
@@ -73,7 +95,7 @@
 		<van-popup v-model:show="showPassword" position="bottom" round :style="{ padding: '24px' }">
 			<view class="password-popup">
 				<text class="popup-title">Enter Payment Password</text>
-				<text class="popup-amount">¥{{ totalAmount }}</text>
+				<text class="popup-amount">${{ totalAmount }}</text>
 
 				<van-password-input 
 					:value="password" 
@@ -194,6 +216,11 @@
 			}
 		},
 		methods: {
+			navitohome(){
+				uni.navigateTo({
+				  url: '/pages/order/confirm'
+				});
+			},
 			togglePayment(method) {
 				this.paymentMethod = method;
 			},
@@ -426,141 +453,275 @@
 </script>
 
 <style>
-	.payment-page {
-		background: linear-gradient(to bottom right, #c4dbff, #f2f6fc);
-		min-height: 100vh;
-		padding: 20rpx;
-	}
+.payment-page {
+  background: linear-gradient(to bottom, #f0faff, #ffffff);
+  min-height: 100vh;
+  padding: 30rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 25rpx;
+}
+.back-btn{
+  position: absolute;
+  top: 25rpx;
+  left: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #f4f8ff;
+  border-radius: 25rpx;
+  width: 80rpx;
+  height: 80rpx;
+}
 
-	.order-card, .coupon-card, .amount-card, .payment-method {
-		background: rgba(255, 255, 255, 0.2) !important;
-		backdrop-filter: blur(15px);
-		border-radius: 20rpx !important;
-		box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-		margin-bottom: 20rpx;
-		overflow: hidden;
-	}
+.back-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
+}
+.header {
+  background-color: #ffffff;
+  padding: 40rpx 0;
+  text-align: center;
+  border-radius: 20rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
 
-	.time-value {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: 8rpx;
-		font-size: 16rpx;
-	}
+.header-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #007aff;
+  text-align: center;
+}
 
-	.to-text {
-		margin: 0 4rpx;
-	}
+.page-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #007aff;
+}
 
-	.amount {
-		font-size: 32rpx;
-	}
+/* 卡片通用样式 */
+.order-card,
+.coupon-card,
+.amount-card,
+.payment-method {
+  background: #ffffff;
+  border-radius: 24rpx !important;
+  padding: 20rpx 30rpx !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+  margin-left: 0;
+  margin-right: 0;
+  font-size: 32rpx;
+}
+.scooter-preview {
+  width: 180rpx;
+  height: 100rpx;
+  border-radius: 12rpx;
+  object-fit: contain;
+}
+/* 时间值展示 */
+.scroll-time-line {
+  display: block;
+  white-space: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  font-size: 28rpx;
+}
 
-	.currency {
-		font-size: 24rpx;
-		margin-right: 8rpx;
-	}
+.to-text {
+  margin: 0 8rpx;
+  font-weight: 500;
+}
 
-	.price {
-		font-size: 36rpx;
-		font-weight: bold;
-		color: #007aff;  /* 蓝色替代红色 */
-	}
-	
-	.base-price {
-		font-size: 28rpx;
-		color: #666;
-		text-decoration: line-through;
-	}
-	
-	.discount-price {
-		font-size: 28rpx;
-		color: #4cd964;  /* 绿色表示折扣 */
-	}
+/* 金额区域 */
+.amount {
+  font-size: 36rpx !important;
+}
 
-	.payment-icon {
-		width: 48rpx;
-		height: 48rpx;
-		margin-right: 16rpx;
-	}
+.currency {
+  font-size: 30rpx;
+  margin-right: 10rpx;
+  color: #007aff;
+}
 
-	.bottom-button {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		padding: 20rpx;
-		background: rgba(255, 255, 255, 0.2);
-		backdrop-filter: blur(15px);
-		box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.05);
-	}
+.price {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #007aff;
+}
 
-	/* 自定义按钮样式，覆盖vant按钮 */
-	.van-button--primary {
-		background: linear-gradient(to right, #82b1ff, #007aff) !important;
-		border: none !important;
-		color: #fff !important;
-		box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3) !important;
-		transition: all 0.3s !important;
-		height: 90rpx !important;
-		line-height: 90rpx !important;
-	}
 
-	.van-button--primary:active {
-		transform: scale(0.96);
-	}
+.payment-icon {
+  width: 48rpx;
+  height: 48rpx;
+  margin-right: 24rpx; /* 让图标和文字拉开 */
+  object-fit: contain;
+}
 
-	.password-popup {
-		padding: 32rpx;
-		padding-bottom: 380rpx;
-	}
+/* 底部确认按钮 */
+.bottom-button {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 30rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
+  z-index: 999;
+}
 
-	.popup-title {
-		display: block;
-		text-align: center;
-		font-size: 32rpx;
-		margin-bottom: 16rpx;
-		color: #333;
-	}
+.van-button--primary {
+  background: linear-gradient(to right, #82b1ff, #007aff) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.3) !important;
+  transition: all 0.3s !important;
+  font-size: 34rpx !important;
+  height: 96rpx !important;
+  line-height: 96rpx !important;
+}
 
-	.popup-amount {
-		display: block;
-		text-align: center;
-		font-size: 48rpx;
-		font-weight: bold;
-		margin-bottom: 32rpx;
-		color: #007aff;
-	}
+.van-button--primary:active {
+  transform: scale(0.96);
+}
 
-	.password-input {
-		margin-bottom: 48rpx;
-	}
+.password-popup {
+  padding: 40rpx;
+  padding-bottom: 380rpx;
+}
 
-	/* 为全局的van-cell添加透明背景 */
-	:deep(.van-cell) {
-		background-color: transparent !important;
-	}
+.popup-title {
+  font-size: 34rpx;
+  text-align: center;
+  color: #222;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
 
-	/* 自定义优惠券颜色 */
-	:deep(.van-coupon-cell), :deep(.van-coupon-list) {
-		background: rgba(255, 255, 255, 0.2) !important;
-	}
+.popup-amount {
+  font-size: 48rpx;
+  text-align: center;
+  color: #007aff;
+  font-weight: bold;
+  margin-bottom: 40rpx;
+}
 
-	:deep(.van-coupon) {
-		background: rgba(255, 255, 255, 0.6) !important;
-	}
+.password-input {
+  margin-bottom: 48rpx;
+}
 
-	:deep(.van-coupon__content) {
-		background: rgba(255, 255, 255, 0.4) !important;
-	}
+:deep(.van-popup) {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.96) !important;
+}
 
-	:deep(.van-coupon__corner) {
-		background: linear-gradient(to right, #82b1ff, #007aff) !important;
-	}
+:deep(.van-cell) {
+  background-color: transparent !important;
+  font-size: 32rpx !important;
+  color: #333;
+}
 
-	/* 弹出层背景 */
-	:deep(.van-popup) {
-		backdrop-filter: blur(15px);
-	}
+:deep(.van-coupon-cell),
+:deep(.van-coupon-list) {
+  background: transparent !important;
+}
+
+:deep(.van-coupon) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 18rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20rpx;
+}
+
+:deep(.van-coupon__content) {
+  background: transparent !important;
+}
+
+
+:deep(.van-checkbox__icon) {
+  transform: scale(1.2);
+}
+:deep(.van-coupon__head) {
+  font-size: 36rpx !important;
+}
+
+:deep(.van-coupon__value) {
+  font-size: 40rpx !important;
+  font-weight: bold;
+}
+
+:deep(.van-coupon__name),
+:deep(.van-coupon__condition){
+  font-size: 30rpx !important;
+}
+:deep(.van-coupon-list__exchange) {
+  font-size: 30rpx !important;
+}
+:deep(.van-field__control) {
+  font-size: 32rpx !important;
+}
+
+/* 关闭按钮（右上角关闭 icon） */
+:deep(.van-popup__close-icon) {
+  font-size: 40rpx !important;
+  color: #333;
+}
+:deep(.van-popup__close-icon):hover {
+  opacity: 0.8;
+}
+:deep(.van-tab) {
+  font-size: 25rpx !important;
+  font-weight: normal !important;
+}
+
+:deep(.van-tab--active) {
+  font-size: 32rpx !important;
+  font-weight: bold !important;
+  color: #007aff !important;
+}
+:deep(.van-coupon-list__bottom .van-button) {
+  font-size: 34rpx !important;
+  font-weight: bold !important;
+  height: 96rpx !important;
+  line-height: 96rpx !important;
+  border-radius: 48rpx !important;
+  background: linear-gradient(to right, #82b1ff, #007aff) !important;
+  box-shadow: 0 6px 14px rgba(0, 122, 255, 0.25) !important;
+  margin-bottom: 30rpx;
+}
+
+/* 调整 van-coupon 内部容器样式 */
+:deep(.van-coupon) {
+  position: relative;
+  padding-right: 30rpx !important; 
+  overflow: visible !important; 
+}
+
+/* 修正右上角勾选图标的位置与大小 */
+:deep(.van-coupon__corner) {
+  right: 20rpx !important;    
+  top: 50% !important;
+  transform: translateY(-50%);
+  width: 48rpx !important;    
+  height: 48rpx !important;
+  overflow: visible !important;
+}
+
+
+
+
+:deep(.van-checkbox) {
+  padding-right: 10rpx !important; 
+  overflow: visible !important; 
+}
+
+:deep(.van-checkbox__icon) {
+  width: 48rpx !important;    
+  height: 48rpx !important;
+}
+
+
 </style>

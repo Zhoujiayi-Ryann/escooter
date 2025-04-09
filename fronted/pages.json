@@ -31,14 +31,16 @@
 			"path": "pages/order/confirm",
 			"style": {
 				"navigationBarTitleText": "Order confirmation",
-				"navigationBarBackgroundColor": "#cccccc"
+				"navigationBarBackgroundColor": "#cccccc",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/order/payment",
 			"style": {
 				"navigationBarTitleText": "Confirm payment",
-				"navigationBarBackgroundColor": "#cccccc"
+				"navigationBarBackgroundColor": "#cccccc",
+				"navigationStyle": "custom"
 			}
 		},
 		{

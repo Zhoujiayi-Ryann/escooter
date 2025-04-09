@@ -1,22 +1,30 @@
 <template>
   <view class="order-confirm-page">
+	  
+	      <view class="header">
+			  <view class="back-btn" @click="navitohome">
+			    <van-icon name="arrow-left" class="back-icon"/>
+			  </view>
+	        <text class="header-title">Order Details</text>
+	      </view>
 
     <!-- 订单信息 -->
     <view class="info-card">
       <!-- 添加自行车图片 -->
       <view class="bike-image-container">
-        <image class="bike-image" src="/static/bikelogo/withseat.png" mode="aspectFit"></image>
+        <image class="scooter-image" src="/static/bikelogo/escooter_car2.png" mode="aspectFit"></image>
       </view>
     
       <view class="info-item">
-        <text class="info-label">Scooter Number：
-        <text class="info-value">{{ scooterCode }}</text>
+        <text class="info-value">Scooter Number：
+        <text class="info-label">{{ scooterCode }}</text>
         </text>
         
       </view>
     
       <view class="info-item">
-        <text class="info-label">Other Information：
+        <text class="info-value">Other Information：
+		<text class="info-label">{{ otherInfo }}</text>
         </text>
       </view>
     </view>
@@ -231,6 +239,11 @@ export default {
     }
   },
   methods: {
+	navitohome(){
+		uni.navigateTo({
+		  url: '/pages/home/home'
+		});
+	},
     // 格式化日期为 MM/DD 格式
     formatDate(date) {
       const month = date.getMonth() + 1;
@@ -506,176 +519,196 @@ export default {
 
 <style>
 .order-confirm-page {
-  background: linear-gradient(to bottom right, #c4dbff, #f2f6fc);
-  min-height: 100vh;
+  background: linear-gradient(to bottom, #f0faff, #ffffff);
+  min-height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 20rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+.back-btn{
+  position: absolute;
+  top: 25rpx;
+  left: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #f4f8ff;
+  border-radius: 25rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
 
-/* 标题栏 */
+.back-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
+}
 .header {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
-  padding: 30rpx 0;
+  background-color: #ffffff;
+  padding: 40rpx 0;
   text-align: center;
-  border-bottom-left-radius: 30rpx;
-  border-bottom-right-radius: 30rpx;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 20rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 50rpx;
 }
 
 .header-title {
-  font-size: 36rpx;
+  font-size: 40rpx;
   font-weight: bold;
-  color: #333;
+  color: #007aff;
+  text-align: center;
+  margin-bottom: 20rpx;
 }
 
+.scooter-image {
+  width: 100%;
+  max-height: 300rpx;
+  object-fit: contain;
+  margin-bottom: 20rpx;
+  border-radius: 20rpx;
+  margin:auto auto;
+}
+
+
+
 .info-card {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
-  margin: 20rpx;
+	
+  background: #ffffff;
   padding: 30rpx;
   border-radius: 20rpx;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .info-item {
   margin-bottom: 20rpx;
+  display: flex;
+  justify-content: space-between;
 }
 
 .info-label {
   font-size: 28rpx;
   color: #333;
+  font-weight: 200;
 }
 
 .info-value {
-  font-size: 28rpx;
-  color: #666;
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #555;
 }
 
 .time-section {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
-  margin: 20rpx;
+  background: #ffffff;
   padding: 30rpx;
   border-radius: 20rpx;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .section-title {
-  font-size: 30rpx;
-  color: #333;
-  margin-bottom: 30rpx;
+  font-size: 34rpx;
+  color: #007aff;
+  font-weight: 500;
+  margin-bottom: 20rpx;
+  font-weight: bold;
 }
 
 .date-time-picker {
   display: flex;
-  flex-direction: row;
+  
   justify-content: space-between;
   align-items: center;
-  margin-top: 20rpx;
+  margin-top: 10rpx;
+  gap: 20rpx;
 }
 
 .date-item {
-  background-color: rgba(255, 255, 255, 0.6);
-  padding: 20rpx 30rpx;
-  border-radius: 10rpx;
+  background: #f4f8ff;
+  padding: 20rpx;
+  border-radius: 12rpx;
   flex: 1;
+  width: 100%;
   text-align: center;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .date-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
+  font-weight: 700;
   color: #333;
-  display: block;
+  text-align: center;
 }
 
 .time-text {
-  font-size: 24rpx;
-  color: #666;
-  display: block;
+  font-size: 26rpx;
+  color: #999;
   margin-top: 10rpx;
+  text-align: center;
 }
 
 .days-display {
+  flex: 0 0 auto;
   padding: 0 20rpx;
 }
 
 .days-text {
   font-size: 28rpx;
-  color: #333;
+  color:#007aff;
+  font-weight: 500;
+  font-weight: 700;
 }
 
 .address-section {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
-  margin: 20rpx;
+  background: #ffffff;
   padding: 30rpx;
   border-radius: 20rpx;
   display: flex;
   flex-direction: row;
   align-items: center;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .section-label {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #333;
   margin-right: 20rpx;
 }
 
 .address-input {
   flex: 1;
-  height: 80rpx;
-  font-size: 28rpx;
+  font-size: 30rpx;
   border: none;
-  background-color: rgba(255, 255, 255, 0.6);
-  border-radius: 40rpx;
-  padding: 0 20rpx;
+  outline: none;
+  color: #333;
+  background: transparent;
 }
 
 .address-error {
-  margin: 0 20rpx;
+  margin: 10rpx 20rpx 0;
   padding: 0 30rpx;
 }
 
 .error-text {
-  color: #0073f1;
-  font-size: 24rpx;
+  color: #ff4d4f;
+  font-size: 26rpx;
 }
 
-/* 底部按钮 */
 .bottom-button {
-  margin: 40rpx 20rpx;
-  padding: 0 20rpx;
+  margin: 40rpx 0;
+  padding: 0 30rpx;
 }
 
 .rent-button {
-  background: linear-gradient(to right, #82b1ff, #007aff);
-  color: #fff;
-  font-size: 32rpx;
-  height: 90rpx;
-  line-height: 90rpx;
-  border-radius: 45rpx;
+  background: linear-gradient(to right, #007aff, #00c3ff);
+  color: #ffffff;
+  font-size: 34rpx;
+  height: 96rpx;
+  line-height: 96rpx;
+  border-radius: 48rpx;
+  font-weight: bold;
+  box-shadow: 0 6px 14px rgba(0, 122, 255, 0.2);
   text-align: center;
-  box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3);
-  transition: all 0.3s;
-}
-
-.rent-button:active {
-  transform: scale(0.96);
-}
-
-.bike-image-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 30rpx;
-}
-
-.bike-image {
-  width: 320rpx;
-  height: 320rpx;
-  object-fit: contain;
 }
 </style> 
