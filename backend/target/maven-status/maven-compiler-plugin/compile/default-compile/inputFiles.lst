@@ -40,11 +40,11 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/DiscountMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/common/OrderStatus.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/OrderDetailResponse.java
-/home/devbox/project/backend/src/main/java/com/example/hello/filter/SimpleCorsFilter.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/OrderService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/ScooterServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/CreditCardServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/AddCreditCardResponse.java
+/home/devbox/project/backend/src/main/java/com/example/hello/dto/AvailableTimeSlotsResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/UserController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/PayOrderResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/OrderServiceImpl.java

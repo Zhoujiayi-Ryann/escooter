@@ -17,6 +17,7 @@ com/example/hello/service/ScooterService.class
 com/example/hello/service/impl/OrderServiceImpl.class
 com/example/hello/HelloApplication.class
 com/example/hello/dto/UpdateUserRequest.class
+com/example/hello/dto/AvailableTimeSlotsResponse.class
 com/example/hello/entity/Scooter.class
 com/example/hello/service/CreditCardService.class
 com/example/hello/dto/LoginResponse.class
@@ -32,7 +33,6 @@ com/example/hello/dto/CreateOrderRequest.class
 com/example/hello/config/SchedulingConfig.class
 com/example/hello/config/MyBatisConfig.class
 com/example/hello/dto/ChangeOrderStatusResponse.class
-com/example/hello/filter/SimpleCorsFilter.class
 com/example/hello/dto/AddCreditCardRequest.class
 com/example/hello/utils/CreditCardUtils.class
 com/example/hello/service/impl/CreditCardServiceImpl.class
