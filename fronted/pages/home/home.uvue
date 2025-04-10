@@ -283,11 +283,21 @@ export default {
 						return;
 					}
 
+					// 获取选中的滑板车信息
+					const selectedScooter = this.scooters.find(s => s.scooterId === this.selected);
+					if (!selectedScooter) {
+						uni.showToast({
+							title: '未找到滑板车信息',
+							icon: 'none'
+						});
+						return;
+					}
+
 					// 获取用户ID，默认值为1
 					const userId = userApi.getUserId(1);
 					
 					uni.navigateTo({
-						url: `${pageMapping[page]}?scooterId=${this.selected}&userId=${userId}`
+						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}`
 					});
 				} else {
 					uni.navigateTo({

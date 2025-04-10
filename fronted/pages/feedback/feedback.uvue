@@ -1,6 +1,42 @@
 <template>
-	<view>
+	<view class="feedback-container">
+		<view class="section">
+			<text class="label">Feedback Type</text>
+			<picker @change="onTypeChange" :value="typeIndex" :range="typeArray">
+				<view class="picker">
+					{{typeArray[typeIndex]}}
+					<text class="picker-arrow">▼</text>
+				</view>
+			</picker>
+		</view>
 		
+		<view class="section">
+			<text class="label">Description</text>
+			<textarea v-model="description" placeholder="Please explain your problems" class="textarea"></textarea>
+			<view class="image-upload">
+				<image v-for="(item, index) in images" :key="index" :src="item" class="preview-image" @click="previewImage(index)"></image>
+				<view class="upload-btn" @click="chooseImage" v-if="images.length < 3">
+					<text class="upload-icon">+</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="section">
+			<text class="label">Happening Time (optimal)</text>
+			<picker mode="date" :value="date" @change="onDateChange">
+				<view class="picker">
+					{{date || 'Please select time'}}
+					<text class="picker-arrow">▼</text>
+				</view>
+			</picker>
+		</view>
+		
+		<view class="section">
+			<text class="label">Relevant Bill (optimal)</text>
+			<input type="text" v-model="orderNumber" placeholder="Please input bill number" class="input" />
+		</view>
+		
+		<button class="submit-btn" @click="submitFeedback">Submit Feedback</button>
 	</view>
 </template>
 
@@ -8,15 +44,154 @@
 	export default {
 		data() {
 			return {
-				
+				typeArray: ['Using Problems', 'Experience Feedback'],
+				typeIndex: 0,
+				description: '',
+				images: [],
+				date: '',
+				orderNumber: ''
 			}
 		},
 		methods: {
-			
+			onTypeChange(e) {
+				this.typeIndex = e.detail.value
+			},
+			onDateChange(e) {
+				this.date = e.detail.value
+			},
+			async chooseImage() {
+				try {
+					const res = await uni.chooseImage({
+						count: 3 - this.images.length,
+						sizeType: ['compressed'],
+						sourceType: ['album', 'camera']
+					})
+					this.images = [...this.images, ...res.tempFilePaths]
+				} catch (err) {
+					console.error('Fail to load the picture', err)
+				}
+			},
+			previewImage(index) {
+				uni.previewImage({
+					urls: this.images,
+					current: index
+				})
+			},
+			async submitFeedback() {
+				if (!this.description) {
+					uni.showToast({
+						title: 'Please explain your problems',
+						icon: 'none'
+					})
+					return
+				}
+				
+				// 这里添加提交到服务器的逻辑
+				uni.showLoading({
+					title: 'Trying to submit...'
+				})
+				
+				try {
+					await new Promise(resolve => setTimeout(resolve, 1000))
+					uni.showToast({
+						title: 'Submit successfully!',
+						icon: 'success'
+					})
+					this.description = ''
+					this.images = []
+					this.date = ''
+					this.orderNumber = ''
+				} catch (err) {
+					uni.showToast({
+						title: 'Fail to submit!',
+						icon: 'none'
+					})
+				} finally {
+					uni.hideLoading()
+				}
+			}
 		}
 	}
 </script>
 
 <style>
-
+	.feedback-container {
+		padding: 20px;
+	}
+	
+	.section {
+		margin-bottom: 20px;
+	}
+	
+	.label {
+		display: block;
+		font-size: 14px;
+		color: #333;
+		margin-bottom: 8px;
+	}
+	
+	.picker {
+		height: 40px;
+		line-height: 40px;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		padding: 0 10px;
+		position: relative;
+	}
+	
+	.picker-arrow {
+		position: absolute;
+		right: 10px;
+		color: #999;
+	}
+	
+	.textarea {
+		width: 100%;
+		height: 120px;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		padding: 10px;
+		box-sizing: border-box;
+	}
+	
+	.image-upload {
+		display: flex;
+		flex-wrap: wrap;
+		margin-top: 10px;
+	}
+	
+	.preview-image {
+		width: 80px;
+		height: 80px;
+		margin-right: 10px;
+		margin-bottom: 10px;
+	}
+	
+	.upload-btn {
+		width: 80px;
+		height: 80px;
+		border: 1px dashed #ddd;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.upload-icon {
+		font-size: 24px;
+		color: #999;
+	}
+	
+	.input {
+		height: 40px;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		padding: 0 10px;
+	}
+	
+	.submit-btn {
+		margin-top: 30px;
+		background-color: #007AFF;
+		color: #fff;
+		border-radius: 4px;
+	}
 </style>

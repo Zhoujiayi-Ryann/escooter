@@ -86,7 +86,7 @@
 					'daily': '/pages/help/daily-issues',
 					'start': '/pages/help/start-issues',
 					'return': '/pages/help/damaged-vehicle',
-					'feedback': '/pages/help/feedback',
+					'feedback': '/pages/feedback/feedback',
 					'faq': '/pages/help/faq'
 				};
 				
