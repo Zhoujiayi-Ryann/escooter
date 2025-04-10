@@ -52,7 +52,7 @@
           <van-cell title="Feedback" is-link size="large" />
 		  <van-cell title="Add Card" is-link size="large" @click="goCard" />
           <van-cell title="Settings" is-link size="large" />
-          <van-cell title="Log Out" is-link size="large" />
+          <van-cell title="Log Out" is-link size="large" @click="handleLogout" />
 		  
         </van-cell-group>
 
@@ -70,12 +70,14 @@
 </template>
 
 <script>
+import { userApi } from '../../../utils/api/user/index.uts';
+
 export default {
   data() {
     return {
       user: {
-        name: 'Cindy',
-        id: '20202002',
+        name: '游客',
+        id: '0',
         avatar: '/static/settings/userp.jpg'
       },
       orderStatus: {
@@ -87,7 +89,46 @@ export default {
       }
     }
   },
+  onLoad() {
+    this.getUserInformation();
+  },
+  onShow() {
+    // 每次页面显示时更新用户信息，确保数据最新
+    this.getUserInformation();
+  },
   methods: {
+    getUserInformation() {
+      // 使用userApi获取真实的用户信息
+      const username = userApi.getUsername('游客');
+      const userId = userApi.getUserId(0);
+      
+      // 更新页面上的用户信息
+      this.user.name = username;
+      this.user.id = userId.toString();
+      
+      console.log('已加载用户信息:', username, userId);
+    },
+    handleLogout() {
+      // 调用API退出登录
+      userApi.logout();
+      
+      // 显示提示信息
+      uni.showToast({
+        title: '已退出登录',
+        icon: 'success'
+      });
+      
+      // 更新本地用户信息为游客状态
+      this.user.name = '游客';
+      this.user.id = '0';
+      
+      // 延迟后跳转到登录页面
+      setTimeout(() => {
+        uni.navigateTo({
+          url: '/pages/login/login'
+        });
+      }, 1500);
+    },
     goCard() {
       uni.navigateTo({
         url: '/pages/settings/card/card'
