@@ -1,5 +1,12 @@
 <template>
 	<view class="feedback-container">
+		<van-nav-bar
+			title="提交反馈"
+			left-text="返回"
+			left-arrow
+			@click-left="goBack"
+		/>
+		
 		<view class="section">
 			<text class="label">Feedback Type</text>
 			<picker @change="onTypeChange" :value="typeIndex" :range="typeArray">
@@ -14,11 +21,17 @@
 			<text class="label">Description</text>
 			<textarea v-model="description" placeholder="Please explain your problems" class="textarea"></textarea>
 			<view class="image-upload">
-				<image v-for="(item, index) in images" :key="index" :src="item" class="preview-image" @click="previewImage(index)"></image>
-				<view class="upload-btn" @click="chooseImage" v-if="images.length < 3">
+				<view v-for="(item, index) in images" :key="index" class="image-item">
+					<image :src="item" class="preview-image" @click="previewImage(index)"></image>
+					<view class="delete-icon" @click="deleteImage(index)">×</view>
+					<view class="image-mask" v-if="isSubmitting"></view>
+				</view>
+				<view class="upload-btn" @click="chooseImage" v-if="images.length < 3 && !isSubmitting">
 					<text class="upload-icon">+</text>
+					<text class="upload-text">上传图片</text>
 				</view>
 			</view>
+			<text class="image-tip">点击图片可查看大图，最多上传3张，每张不超过5MB</text>
 		</view>
 		
 		<view class="section">
@@ -36,11 +49,27 @@
 			<input type="text" v-model="orderNumber" placeholder="Please input bill number" class="input" />
 		</view>
 		
-		<button class="submit-btn" @click="submitFeedback">Submit Feedback</button>
+		<button class="submit-btn" @click="submitFeedback" :disabled="isSubmitting">
+			{{ isSubmitting ? 'Submitting...' : 'Submit Feedback' }}
+		</button>
+		
+		<!-- 上传进度条 -->
+		<view class="progress-container" v-if="showProgress">
+			<text class="progress-text">正在上传图片 ({{uploadProgress}}%)</text>
+			<view class="progress-bar">
+				<view class="progress-inner" :style="{width: uploadProgress + '%'}"></view>
+			</view>
+			<text class="progress-status">{{ uploadedCount }}/{{ totalCount }}</text>
+		</view>
 	</view>
 </template>
 
 <script>
+	import { feedbackApi } from '../../utils/api/feedback/index.uts';
+	import { FeedbackType } from '../../utils/api/types';
+	import { userApi } from '../../utils/api/user/index.uts';
+	import { uploadApi } from '../../utils/api/upload/index.uts';
+	
 	export default {
 		data() {
 			return {
@@ -49,65 +78,193 @@
 				description: '',
 				images: [],
 				date: '',
-				orderNumber: ''
+				orderNumber: '',
+				isSubmitting: false,
+				showProgress: false,
+				uploadProgress: 0,
+				uploadedCount: 0,
+				totalCount: 0
 			}
 		},
 		methods: {
+			goBack() {
+				// 如果正在提交，阻止返回
+				if (this.isSubmitting) {
+					uni.showToast({
+						title: '正在提交，请稍候...',
+						icon: 'none'
+					});
+					return;
+				}
+				uni.navigateBack();
+			},
 			onTypeChange(e) {
-				this.typeIndex = e.detail.value
+				this.typeIndex = e.detail.value;
 			},
 			onDateChange(e) {
-				this.date = e.detail.value
+				this.date = e.detail.value;
 			},
 			async chooseImage() {
+				// 防止重复操作
+				if (this.isSubmitting) return;
+				
 				try {
 					const res = await uni.chooseImage({
 						count: 3 - this.images.length,
 						sizeType: ['compressed'],
 						sourceType: ['album', 'camera']
-					})
-					this.images = [...this.images, ...res.tempFilePaths]
+					});
+					
+					// 限制大小不超过5MB
+					const filteredImages = [];
+					for (let i = 0; i < res.tempFilePaths.length; i++) {
+						const path = res.tempFilePaths[i];
+						const fileInfo = res.tempFiles[i];
+						
+						if (fileInfo.size > 5 * 1024 * 1024) {
+							uni.showToast({
+								title: '图片不能超过5MB',
+								icon: 'none'
+							});
+						} else {
+							filteredImages.push(path);
+						}
+					}
+					
+					// 添加到图片列表
+					if (filteredImages.length > 0) {
+						this.images = [...this.images, ...filteredImages];
+					}
 				} catch (err) {
-					console.error('Fail to load the picture', err)
+					console.error('选择图片失败', err);
 				}
 			},
+			deleteImage(index) {
+				// 防止重复操作
+				if (this.isSubmitting) return;
+				
+				this.images.splice(index, 1);
+			},
 			previewImage(index) {
+				// 防止重复操作
+				if (this.isSubmitting) return;
+				
 				uni.previewImage({
 					urls: this.images,
 					current: index
-				})
+				});
 			},
 			async submitFeedback() {
+				// 表单验证
 				if (!this.description) {
 					uni.showToast({
 						title: 'Please explain your problems',
 						icon: 'none'
-					})
-					return
+					});
+					return;
 				}
 				
-				// 这里添加提交到服务器的逻辑
+				// 防止重复提交
+				if (this.isSubmitting) {
+					return;
+				}
+				this.isSubmitting = true;
+				
 				uni.showLoading({
-					title: 'Trying to submit...'
-				})
+					title: 'Preparing submission...'
+				});
 				
 				try {
-					await new Promise(resolve => setTimeout(resolve, 1000))
-					uni.showToast({
-						title: 'Submit successfully!',
-						icon: 'success'
-					})
-					this.description = ''
-					this.images = []
-					this.date = ''
-					this.orderNumber = ''
+					// 1. 如果有图片，先上传图片
+					let imageUrls: string[] = [];
+					if (this.images.length > 0) {
+						this.totalCount = this.images.length;
+						this.uploadedCount = 0;
+						
+						uni.hideLoading();
+						this.showProgress = true;
+						this.uploadProgress = 0;
+						
+						// 上传图片并显示进度
+						imageUrls = await uploadApi.uploadImages(
+							this.images,
+							'feedback',
+							(current, total) => {
+								this.uploadProgress = Math.floor((current / total) * 100);
+								this.uploadedCount = current;
+							}
+						);
+						
+						this.showProgress = false;
+						uni.showLoading({
+							title: 'Submitting feedback...'
+						});
+					}
+					
+					// 2. 准备反馈数据
+					const userId = userApi.getUserId();
+					if (!userId) {
+						throw new Error('User ID not found, please login first');
+					}
+					
+					// 将日期转换为ISO格式
+					let happeningTime = null;
+					if (this.date) {
+						// 使用当前时间作为时分秒
+						const now = new Date();
+						const dateObj = new Date(this.date);
+						dateObj.setHours(now.getHours());
+						dateObj.setMinutes(now.getMinutes());
+						dateObj.setSeconds(now.getSeconds());
+						happeningTime = dateObj.toISOString();
+					}
+					
+					// 3. 调用API提交反馈
+					const feedbackData = {
+						user_id: userId,
+						feedback_type: this.typeIndex === 0 ? FeedbackType.USING_PROBLEM : FeedbackType.EXPERIENCE_FEEDBACK,
+						description: this.description,
+						happening_time: happeningTime,
+						bill_number: this.orderNumber || undefined,
+						image_urls: imageUrls.length > 0 ? imageUrls : undefined
+					};
+					
+					console.log('提交反馈数据:', feedbackData);
+					
+					const response = await feedbackApi.submitFeedback(feedbackData);
+					
+					if (response.code === 1) {
+						uni.hideLoading();
+						uni.showToast({
+							title: 'Submit successfully!',
+							icon: 'success',
+							duration: 2000
+						});
+						
+						// 重置表单
+						this.description = '';
+						this.images = [];
+						this.date = '';
+						this.orderNumber = '';
+						
+						// 1.5秒后返回上一页
+						setTimeout(() => {
+							uni.navigateBack();
+						}, 2000);
+					} else {
+						throw new Error(response.msg || 'Submit failed');
+					}
 				} catch (err) {
+					console.error('提交反馈失败:', err);
 					uni.showToast({
-						title: 'Fail to submit!',
-						icon: 'none'
-					})
+						title: err.message || 'Fail to submit!',
+						icon: 'none',
+						duration: 3000
+					});
 				} finally {
-					uni.hideLoading()
+					uni.hideLoading();
+					this.isSubmitting = false;
+					this.showProgress = false;
 				}
 			}
 		}
@@ -116,82 +273,182 @@
 
 <style>
 	.feedback-container {
-		padding: 20px;
+		padding-bottom: 40rpx;
+		min-height: 100vh;
+		background-color: #f8f8f8;
 	}
 	
 	.section {
-		margin-bottom: 20px;
+		margin: 20rpx;
+		padding: 30rpx;
+		background-color: #fff;
+		border-radius: 12rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 	}
 	
 	.label {
 		display: block;
-		font-size: 14px;
+		font-size: 28rpx;
 		color: #333;
-		margin-bottom: 8px;
+		margin-bottom: 16rpx;
+		font-weight: bold;
 	}
 	
 	.picker {
-		height: 40px;
-		line-height: 40px;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		padding: 0 10px;
+		height: 80rpx;
+		line-height: 80rpx;
+		border: 1px solid #eee;
+		border-radius: 8rpx;
+		padding: 0 20rpx;
 		position: relative;
+		background-color: #fafafa;
 	}
 	
 	.picker-arrow {
 		position: absolute;
-		right: 10px;
+		right: 20rpx;
 		color: #999;
 	}
 	
 	.textarea {
 		width: 100%;
-		height: 120px;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		padding: 10px;
+		height: 240rpx;
+		border: 1px solid #eee;
+		border-radius: 8rpx;
+		padding: 20rpx;
 		box-sizing: border-box;
+		font-size: 28rpx;
+		background-color: #fafafa;
 	}
 	
 	.image-upload {
 		display: flex;
 		flex-wrap: wrap;
-		margin-top: 10px;
+		margin-top: 20rpx;
+	}
+	
+	.image-item {
+		position: relative;
+		margin-right: 20rpx;
+		margin-bottom: 20rpx;
 	}
 	
 	.preview-image {
-		width: 80px;
-		height: 80px;
-		margin-right: 10px;
-		margin-bottom: 10px;
+		width: 160rpx;
+		height: 160rpx;
+		border-radius: 8rpx;
+		border: 1px solid #eee;
+	}
+	
+	.delete-icon {
+		position: absolute;
+		top: -16rpx;
+		right: -16rpx;
+		width: 44rpx;
+		height: 44rpx;
+		line-height: 40rpx;
+		text-align: center;
+		background-color: rgba(0, 0, 0, 0.6);
+		color: #fff;
+		border-radius: 50%;
+		font-size: 32rpx;
+		z-index: 2;
+	}
+	
+	.image-mask {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.2);
+		border-radius: 8rpx;
 	}
 	
 	.upload-btn {
-		width: 80px;
-		height: 80px;
+		width: 160rpx;
+		height: 160rpx;
 		border: 1px dashed #ddd;
+		border-radius: 8rpx;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		background-color: #fafafa;
 	}
 	
 	.upload-icon {
-		font-size: 24px;
+		font-size: 48rpx;
+		color: #999;
+		margin-bottom: 10rpx;
+	}
+	
+	.upload-text {
+		font-size: 24rpx;
 		color: #999;
 	}
 	
+	.image-tip {
+		font-size: 24rpx;
+		color: #999;
+		margin-top: 10rpx;
+	}
+	
 	.input {
-		height: 40px;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		padding: 0 10px;
+		height: 80rpx;
+		border: 1px solid #eee;
+		border-radius: 8rpx;
+		padding: 0 20rpx;
+		font-size: 28rpx;
+		background-color: #fafafa;
 	}
 	
 	.submit-btn {
-		margin-top: 30px;
+		margin: 60rpx 20rpx;
+		height: 90rpx;
+		line-height: 90rpx;
 		background-color: #007AFF;
 		color: #fff;
-		border-radius: 4px;
+		border-radius: 45rpx;
+		font-size: 32rpx;
+	}
+	
+	.submit-btn[disabled] {
+		background-color: #ccc;
+		color: #fff;
+	}
+	
+	.progress-container {
+		margin: 20rpx;
+		padding: 30rpx;
+		background-color: #fff;
+		border-radius: 12rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.progress-text {
+		font-size: 28rpx;
+		color: #333;
+		margin-bottom: 10rpx;
+	}
+	
+	.progress-bar {
+		height: 12rpx;
+		background-color: #eee;
+		border-radius: 6rpx;
+		overflow: hidden;
+	}
+	
+	.progress-inner {
+		height: 100%;
+		background-color: #007AFF;
+		transition: width 0.3s;
+	}
+	
+	.progress-status {
+		font-size: 24rpx;
+		color: #999;
+		margin-top: 10rpx;
+		text-align: right;
 	}
 </style>

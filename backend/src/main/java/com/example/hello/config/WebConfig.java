@@ -9,6 +9,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
@@ -62,6 +63,16 @@ public class WebConfig implements WebMvcConfigurer {
         return new CorsFilter(source);
     }
 
+    /**
+     * 添加静态资源映射
+     * 将 /uploads/** 请求映射到 classpath:/static/uploads/
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("classpath:/static/uploads/");
+    }
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // 开发阶段临时禁用JWT拦截器
@@ -72,6 +83,17 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/users/register",
                         "/api/users/login"
+                );
+        */
+        
+        // 当启用JWT拦截器时，确保文件上传API不被拦截
+        /*
+        registry.addInterceptor(jwtInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(
+                        "/api/users/register",
+                        "/api/users/login",
+                        "/api/upload/**"  // 添加上传API到排除列表
                 );
         */
     }

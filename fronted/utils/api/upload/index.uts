@@ -1,0 +1,112 @@
+// 图片上传相关API
+import { request } from '../request';
+import { ApiResponse } from '../types';
+
+/**
+ * 图片上传模块
+ */
+export const uploadApi = {
+    /**
+     * 上传单张图片
+     * @param filePath 本地文件路径
+     * @param module 模块名称，如'feedback', 'order'等
+     * @returns 上传结果，包含图片URL
+     */
+    uploadImage(filePath: string, module: string = 'feedback'): Promise<string> {
+        return new Promise((resolve, reject) => {
+            uni.uploadFile({
+                url: 'https://aadujkrrrwxp.sealoshzh.site/api/upload/image',
+                filePath: filePath,
+                name: 'file',
+                formData: {
+                    'module': module
+                },
+                success: (res) => {
+                    try {
+                        // 解析响应数据
+                        const responseData = JSON.parse(res.data) as ApiResponse<{ url: string }>;
+                        if (responseData.code === 1 && responseData.data && responseData.data.url) {
+                            resolve(responseData.data.url);
+                        } else {
+                            reject(new Error(responseData.msg || '上传失败'));
+                        }
+                    } catch (e) {
+                        reject(new Error('解析上传响应失败'));
+                    }
+                },
+                fail: (err) => {
+                    console.error('图片上传失败:', err);
+                    reject(err);
+                }
+            });
+        });
+    },
+    
+    /**
+     * 上传多张图片
+     * @param filePaths 本地文件路径数组
+     * @param module 模块名称，如'feedback', 'order'等
+     * @param onProgress 上传进度回调函数
+     * @returns 上传成功的图片URL数组
+     */
+    async uploadImages(
+        filePaths: string[], 
+        module: string = 'feedback',
+        onProgress?: (current: number, total: number) => void
+    ): Promise<string[]> {
+        const urls: string[] = [];
+        const total = filePaths.length;
+        
+        // 一张一张上传，并显示进度
+        for (let i = 0; i < filePaths.length; i++) {
+            try {
+                // 调用进度回调
+                if (onProgress) {
+                    onProgress(i, total);
+                }
+                
+                const url = await this.uploadImage(filePaths[i], module);
+                urls.push(url);
+            } catch (error) {
+                console.error(`第${i+1}张图片上传失败:`, error);
+                // 继续上传其他图片，不中断
+            }
+        }
+        
+        // 最后一次进度回调
+        if (onProgress) {
+            onProgress(total, total);
+        }
+        
+        return urls;
+    }
+}
+
+/**
+ * 使用示例：
+ * 
+ * import { uploadApi } from '../utils/api/upload';
+ * 
+ * // 上传单张图片
+ * try {
+ *     const imageUrl = await uploadApi.uploadImage('/path/to/image.jpg');
+ *     console.log('图片上传成功:', imageUrl);
+ * } catch (err) {
+ *     console.error('图片上传失败:', err);
+ * }
+ * 
+ * // 上传多张图片并显示进度
+ * try {
+ *     const imageUrls = await uploadApi.uploadImages(
+ *         ['/path/to/image1.jpg', '/path/to/image2.jpg'],
+ *         'feedback',
+ *         (current, total) => {
+ *             const progress = Math.floor((current / total) * 100);
+ *             console.log(`上传进度: ${progress}%`);
+ *         }
+ *     );
+ *     console.log('所有图片上传成功:', imageUrls);
+ * } catch (err) {
+ *     console.error('图片上传过程中出现错误:', err);
+ * }
+ */ 
