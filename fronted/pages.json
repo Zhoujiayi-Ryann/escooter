@@ -77,6 +77,12 @@
 			}
 		},
 		{
+			"path": "pages/settings/coupons/coupon",
+			"style": {
+				"navigationBarTitleText": "My coupons"
+			}
+		},
+		{
 			"path" : "pages/settings/my_settings/my_settings",
 			"style" : 
 			{
