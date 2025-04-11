@@ -73,13 +73,15 @@
 		{
 			"path": "pages/settings/orders/orders",
 			"style": {
-				"navigationBarTitleText": "My orders"
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/settings/coupons/coupon",
 			"style": {
-				"navigationBarTitleText": "My coupons"
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
 			}
 		},
 		{
