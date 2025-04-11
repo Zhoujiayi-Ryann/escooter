@@ -2,6 +2,7 @@ package com.example.hello.config;
 
 import com.example.hello.interceptor.JwtInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -19,6 +20,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Autowired
     private JwtInterceptor jwtInterceptor;
+    
+    @Value("${app.upload.dir:${user.dir}/src/main/resources/feedback}")
+    private String uploadDir;
 
     /**
      * 配置CORS映射
@@ -62,15 +66,14 @@ public class WebConfig implements WebMvcConfigurer {
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
-
+    
     /**
-     * 添加静态资源映射
-     * 将 /uploads/** 请求映射到 classpath:/static/uploads/
+     * 添加静态资源处理器，映射上传文件访问路径
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("classpath:/static/uploads/");
+        registry.addResourceHandler("/api/feedback/images/**")
+                .addResourceLocations("file:" + uploadDir + "/images/");
     }
 
     @Override
@@ -83,17 +86,6 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/users/register",
                         "/api/users/login"
-                );
-        */
-        
-        // 当启用JWT拦截器时，确保文件上传API不被拦截
-        /*
-        registry.addInterceptor(jwtInterceptor)
-                .addPathPatterns("/api/**")
-                .excludePathPatterns(
-                        "/api/users/register",
-                        "/api/users/login",
-                        "/api/upload/**"  // 添加上传API到排除列表
                 );
         */
     }

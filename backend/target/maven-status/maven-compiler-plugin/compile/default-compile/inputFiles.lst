@@ -46,6 +46,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/Scooter.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/ExtendOrderRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/DiscountMapper.java
+/home/devbox/project/backend/src/main/java/com/example/hello/controller/FileUploadController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/common/OrderStatus.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/OrderDetailResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/FeedbackService.java

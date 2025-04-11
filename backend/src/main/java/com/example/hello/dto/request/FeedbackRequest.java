@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -24,9 +24,9 @@ public class FeedbackRequest {
     @NotBlank(message = "反馈描述不能为空")
     private String description;
     
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     @JsonProperty("happening_time")
-    private LocalDateTime happeningTime;
+    private LocalDate happeningTime;
     
     @JsonProperty("bill_number")
     private String billNumber;
@@ -59,11 +59,11 @@ public class FeedbackRequest {
         this.description = description;
     }
     
-    public LocalDateTime getHappeningTime() {
+    public LocalDate getHappeningTime() {
         return happeningTime;
     }
     
-    public void setHappeningTime(LocalDateTime happeningTime) {
+    public void setHappeningTime(LocalDate happeningTime) {
         this.happeningTime = happeningTime;
     }
     

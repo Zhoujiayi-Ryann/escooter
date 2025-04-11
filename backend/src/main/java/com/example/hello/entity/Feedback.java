@@ -1,5 +1,6 @@
 package com.example.hello.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -52,7 +53,7 @@ public class Feedback {
     private String description;
     private Status status;
     private Priority priority;
-    private LocalDateTime happeningTime;
+    private LocalDate happeningTime;
     private String billNumber;
     private LocalDateTime createdAt;
     
@@ -108,11 +109,11 @@ public class Feedback {
         this.priority = priority;
     }
     
-    public LocalDateTime getHappeningTime() {
+    public LocalDate getHappeningTime() {
         return happeningTime;
     }
     
-    public void setHappeningTime(LocalDateTime happeningTime) {
+    public void setHappeningTime(LocalDate happeningTime) {
         this.happeningTime = happeningTime;
     }
     
