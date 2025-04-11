@@ -1,0 +1,81 @@
+@import '@/style/variables.less';
+
+.detail-base {
+  /deep/ .t-card {
+    padding: 8px;
+  }
+
+  /deep/ .t-card__title {
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  &-info-steps {
+    padding-top: 12px;
+  }
+}
+
+.info-block {
+  span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-left: 24px;
+  }
+
+  i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--td-radius-circle);
+    background: var(--td-success-color-5);
+  }
+
+  .inProgress {
+    color: var(--td-success-color-5);
+  }
+
+  .pdf {
+    color: var(--td-brand-color);
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
+}
+
+.dialog-info-block {
+  .info-item {
+    padding: 12px 0;
+    display: flex;
+
+    h1 {
+      width: 84px;
+      font-family: PingFangSC-Regular;
+      font-size: 14px;
+      color: var(--td-text-color-secondary);
+      text-align: left;
+      line-height: 22px;
+    }
+
+    span {
+      margin-left: 24px;
+    }
+
+    i {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: var(--td-radius-circle);
+      background: var(--td-success-color-5);
+    }
+
+    .green {
+      color: var(--td-success-color-5);
+    }
+
+    .blue {
+      color: var(--td-brand-color);
+    }
+  }
+}

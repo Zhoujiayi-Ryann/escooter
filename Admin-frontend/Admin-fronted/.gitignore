@@ -1,0 +1,15 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.vscode
+.history
+README.html
+
+.stylelintcache
+.idea
+
+# lock文件 请根据自身项目或团队需求选择具体的包管理工具 并移除具体的ignore的lock文件
+yarn.lock
+pnpm-lock.yaml
