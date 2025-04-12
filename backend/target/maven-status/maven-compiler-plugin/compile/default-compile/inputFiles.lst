@@ -10,6 +10,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/utils/JwtUtil.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/FeedbackServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/Order.java
+/home/devbox/project/backend/src/main/java/com/example/hello/service/EmailService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/config/MyBatisConfig.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/User.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/CreditCardService.java
@@ -29,6 +30,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/config/MyBatisExceptionHandler.java
 /home/devbox/project/backend/src/main/java/com/example/hello/HelloApplication.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/FeedbackController.java
+/home/devbox/project/backend/src/main/java/com/example/hello/service/impl/EmailServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/exception/OrderException.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/LoginResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/UserMapper.java

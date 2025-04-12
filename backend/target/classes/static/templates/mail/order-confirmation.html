@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Payment Successful Notification</title>
+</head>
+
+<body>
+  <div
+    style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+    <h2 style="color: #007AFF;">Your E-Scooter Rental Order has been Successfully Paid!</h2>
+    <p>Dear User,</p>
+    <p>Thank you for using our e-scooter rental service. Here are your order details:</p>
+
+    <!-- Order Information Table -->
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+      <tr style="background-color: #f2f2f2;">
+        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;" colspan="2">Order Information</th>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Order ID</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="${orderId}">10001</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Rental Start Time</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="${startTime}">2023-09-01 14:00
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Rental End Time</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="${endTime}">2023-09-01 16:00</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Rental Duration</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="${duration} + ' hours'">2 hours
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Pickup Location</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="${address}">No.1 main
+          Street, Haidian District, London</td>
+      </tr>
+
+      <!-- Scooter Information -->
+      <tr style="background-color: #f2f2f2;">
+        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;" colspan="2">Scooter Information</th>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Scooter ID</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="${scooterId}">S1001</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Battery Level</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="${batteryLevel} + '%'">95%</td>
+      </tr>
+
+      <!-- Cost Information -->
+      <tr style="background-color: #f2f2f2;">
+        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;" colspan="2">Cost Information</th>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Original Price</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="'¥' + ${originalCost}">¥50.00</td>
+      </tr>
+      <tr th:if="${discount > 0}">
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">Discount Amount</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd;" th:text="'¥' + ${discount}">¥10.00</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd; font-weight: bold;">Amount Paid</td>
+        <td style="padding: 10px; text-align: left; border: 1px solid #ddd; font-weight: bold; color: #f44336;"
+          th:text="'¥' + ${finalCost}">¥40.00</td>
+      </tr>
+    </table>
+
+    <!-- Instructions -->
+    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px;">
+      <h3 style="color: #333; margin-top: 0;">Usage Instructions</h3>
+      <p>1. Please go to the pickup location at the rental start time</p>
+      <p>2. Verify the scooter is in good condition when picking up</p>
+      <p>3. Follow traffic rules and pay attention to safety during use</p>
+      <p>4. Please return the scooter before the rental end time</p>
+    </div>
+
+    <!-- Contact Information -->
+    <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+      <p>If you have any questions, please contact our customer service:</p>
+      <p>Phone: 400-123-4567</p>
+      <p>Email: support@escooter.com</p>
+    </div>
+  </div>
+</body>
+
+</html>

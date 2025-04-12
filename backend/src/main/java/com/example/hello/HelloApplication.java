@@ -22,11 +22,11 @@ public class HelloApplication {
     public CommandLineRunner testDatabaseConnection(JdbcTemplate jdbcTemplate) {
         return args -> {
             try {
-                logger.info("测试数据库连接...");
+                logger.info("Test database connection...");
                 String result = jdbcTemplate.queryForObject("SELECT 'Connection successful'", String.class);
-                logger.info("数据库连接测试结果: {}", result);
+                logger.info("Test database connection successful: {}", result);
             } catch (Exception e) {
-                logger.error("数据库连接测试失败", e);
+                logger.error("Test database connection failed: {}", e.getMessage(), e);
                 // 不终止应用程序，让它继续尝试运行
                 // 在某些环境中，初始连接可能失败，但随后的连接可能成功
             }

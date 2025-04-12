@@ -30,7 +30,7 @@ public class FileUploadController {
     private static final Logger logger = LoggerFactory.getLogger(FileUploadController.class);
     
     // 图片存储根目录
-    @Value("${app.upload.dir:${user.dir}/src/main/resources/feedback}")
+    @Value("${app.upload.dir:${user.dir}/src/main/resources/static/feedback}")
     private String uploadDir;
     
     /**
@@ -41,7 +41,7 @@ public class FileUploadController {
      */
     @PostMapping("/feedback/images")
     public Result<List<String>> uploadFeedbackImages(@RequestParam("files") MultipartFile[] files) {
-        logger.info("接收到图片上传请求，文件数量: {}", files.length);
+        logger.info("Received image upload request, file count: {}", files.length);
         
         if (files.length == 0) {
             return Result.error("没有选择文件");
@@ -57,7 +57,7 @@ public class FileUploadController {
             Path uploadPath = Paths.get(uploadDir, "images", datePath);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
-                logger.info("创建目录: {}", uploadPath);
+                logger.info("Created directory: {}", uploadPath);
             }
             
             // 处理每个文件
@@ -69,7 +69,7 @@ public class FileUploadController {
                 // 检查文件类型
                 String contentType = file.getContentType();
                 if (contentType == null || !contentType.startsWith("image/")) {
-                    logger.warn("文件不是图片类型: {}", file.getOriginalFilename());
+                    logger.warn("File is not an image type: {}", file.getOriginalFilename());
                     continue;
                 }
                 
@@ -82,18 +82,18 @@ public class FileUploadController {
                 // 存储文件
                 Path filePath = uploadPath.resolve(filename);
                 Files.copy(file.getInputStream(), filePath);
-                logger.info("保存文件: {}", filePath);
+                logger.info("Saved file: {}", filePath);
                 
                 // 构建图片URL
                 String imageUrl = "/api/feedback/images/" + datePath + "/" + filename;
                 uploadedUrls.add(imageUrl);
             }
             
-            logger.info("图片上传成功，URL列表: {}", uploadedUrls);
+            logger.info("Image upload successful, URL list: {}", uploadedUrls);
             return Result.success(uploadedUrls, "图片上传成功");
             
         } catch (IOException e) {
-            logger.error("图片上传失败", e);
+            logger.error("Image upload failed", e);
             return Result.error("图片上传失败: " + e.getMessage());
         }
     }

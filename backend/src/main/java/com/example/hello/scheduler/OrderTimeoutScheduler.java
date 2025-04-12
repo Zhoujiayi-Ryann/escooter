@@ -21,11 +21,11 @@ public class OrderTimeoutScheduler {
      */
     @Scheduled(fixedRate = 60000)
     public void checkTimeoutOrders() {
-        log.info("开始执行订单超时检查任务");
+        log.info("Start checking order overtime check mission");
         try {
             orderService.handleTimeoutPendingOrders();
         } catch (Exception e) {
-            log.error("订单超时检查任务执行失败: {}", e.getMessage(), e);
+            log.error("Order overtime check mission failed: {}", e.getMessage(), e);
         }
     }
 }

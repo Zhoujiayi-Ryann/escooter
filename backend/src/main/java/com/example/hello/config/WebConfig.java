@@ -21,7 +21,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private JwtInterceptor jwtInterceptor;
     
-    @Value("${app.upload.dir:${user.dir}/src/main/resources/feedback}")
+    @Value("${app.upload.dir:${user.dir}/src/main/resources/static/feedback}")
     private String uploadDir;
 
     /**
@@ -72,8 +72,13 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 配置反馈图片访问路径
         registry.addResourceHandler("/api/feedback/images/**")
                 .addResourceLocations("file:" + uploadDir + "/images/");
+                
+        // 配置静态资源访问路径
+        registry.addResourceHandler("/static/**")
+                .addResourceLocations("classpath:/static/");
     }
 
     @Override

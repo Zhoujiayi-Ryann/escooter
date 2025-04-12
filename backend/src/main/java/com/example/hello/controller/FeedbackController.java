@@ -28,18 +28,18 @@ public class FeedbackController {
      * 提交反馈
      * 
      * @param request 反馈请求
-     * @return 操作结果
+     * @return 反馈响应
      */
-    @PostMapping
+    @PostMapping("/submit")
     public Result<FeedbackResponse> submitFeedback(@RequestBody @Validated FeedbackRequest request) {
-        logger.info("接收到反馈提交请求: {}", request);
+        logger.info("Received feedback submission request: {}", request);
         
         try {
             FeedbackResponse response = feedbackService.submitFeedback(request);
-            return Result.success(response, "反馈提交成功");
+            return Result.success(response);
         } catch (Exception e) {
-            logger.error("提交反馈失败", e);
-            return Result.error("提交反馈失败: " + e.getMessage());
+            logger.error("Failed to submit feedback", e);
+            return Result.error(e.getMessage());
         }
     }
 } 
