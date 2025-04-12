@@ -99,4 +99,27 @@ export interface CreditCardResponse {
     card_number: string; // 掩码处理后的卡号
     expiry_date: string; // 格式为: YYYY-MM-DD
     country: string;
+}
+
+// 定义反馈类型枚举
+export enum FeedbackType {
+    USING_PROBLEM = "USING_PROBLEM",
+    EXPERIENCE_FEEDBACK = "EXPERIENCE_FEEDBACK"
+}
+
+// 定义提交反馈请求类型
+export interface FeedbackRequest {
+    user_id: number;
+    feedback_type: FeedbackType;
+    description: string;
+    happening_time?: string; // ISO 格式的日期时间字符串，可选
+    bill_number?: string;    // 可选
+    image_urls?: string[];   // 图片URL数组，可选
+}
+
+// 定义反馈响应类型
+export interface FeedbackResponse {
+    feedback_id: number;
+    order_id?: number;
+    image_urls: string[];
 } 

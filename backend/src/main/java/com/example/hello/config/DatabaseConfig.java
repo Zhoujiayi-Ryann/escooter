@@ -38,7 +38,7 @@ public class DatabaseConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        logger.info("初始化数据源，URL: {}", url);
+        logger.info("Initializing datasource,URL: {}", url);
         
         HikariDataSource dataSource = new HikariDataSource();
         dataSource.setJdbcUrl(url);
@@ -65,7 +65,7 @@ public class DatabaseConfig {
         // 最大生命周期，避免连接太久不刷新
         dataSource.setMaxLifetime(1800000); // 30分钟
         
-        logger.info("数据源初始化完成");
+        logger.info("Datasource initialization completed");
         return dataSource;
     }
     

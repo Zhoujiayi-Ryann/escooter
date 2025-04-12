@@ -18,7 +18,7 @@
       <button class="see">
         See Details
       </button>
-      <button class="back" @click="goToLogin">
+      <button class="back" @click="goToHome">
         Back Home
       </button>
     </view>
@@ -28,8 +28,8 @@
 <script>
 export default {
 	methods:{
-		goToLogin() {
-		  uni.navigateTo({ url: '/pages/login/login' });
+		goToHome() {
+		  uni.navigateTo({ url: '/pages/home/home' });
 		}
 	}
 };

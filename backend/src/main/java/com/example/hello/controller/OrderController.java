@@ -75,25 +75,25 @@ public class OrderController {
     @PostMapping("/orders/{order_id}/pay")
     public Result<PayOrderResponse> payOrder(@PathVariable("order_id") Integer orderId) {
         try {
-            log.info("接收到订单支付请求: orderId={}", orderId);
+            log.info("Received order payment request: orderId={}", orderId);
 
             // 调用服务进行支付处理，使用Java 8 Optional处理
             return orderService.payOrder(orderId)
                     .map(response -> {
-                        log.info("订单{}支付处理完成", orderId);
+                        log.info("Order {} payment processing completed", orderId);
                         return Result.success(response, "支付成功");
                     })
                     .orElseGet(() -> {
-                        log.warn("订单{}支付失败: 未返回有效结果", orderId);
+                        log.warn("Order {} payment failed: no valid result", orderId);
                         return Result.error("支付失败: 系统错误");
                     });
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
-            log.warn("订单{}支付失败: {}", orderId, e.getMessage());
+            log.warn("Order {} payment failed: {}", orderId, e.getMessage());
             return Result.error(e.getMessage());
         } catch (Exception e) {
             // 处理其他未预期的错误
-            log.error("订单{}支付失败: 系统异常", orderId, e);
+            log.error("Order {} payment failed: {}", orderId, e);
             return Result.error("支付失败: 系统异常，请稍后重试");
         }
     }
@@ -108,25 +108,25 @@ public class OrderController {
     @PostMapping("/orders/{order_id}/activate")
     public Result<ChangeOrderStatusResponse> activateOrder(@PathVariable("order_id") Integer orderId) {
         try {
-            log.info("接收到订单激活请求: orderId={}", orderId);
+            log.info("Received order activation request: orderId={}", orderId);
 
             // 调用服务进行激活处理
             return orderService.activateOrder(orderId)
                     .map(response -> {
-                        log.info("订单{}激活处理完成", orderId);
+                        log.info("Order {} activation processing completed", orderId);
                         return Result.success(response, "激活成功");
                     })
                     .orElseGet(() -> {
-                        log.warn("订单{}激活失败: 未返回有效结果", orderId);
+                        log.warn("Order {} activation failed: no valid result", orderId);
                         return Result.error("激活失败: 系统错误");
                     });
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
-            log.warn("订单{}激活失败: {}", orderId, e.getMessage());
+            log.warn("Order {} activation failed:{}", orderId, e.getMessage());
             return Result.error(e.getMessage());
         } catch (Exception e) {
             // 处理其他未预期的错误
-            log.error("订单{}激活失败: 系统异常", orderId, e);
+            log.error("Order {} activation failed: {}", orderId, e);
             return Result.error("激活失败: 系统异常，请稍后重试");
         }
     }
@@ -141,25 +141,25 @@ public class OrderController {
     @PostMapping("/orders/{order_id}/complete")
     public Result<ChangeOrderStatusResponse> completeOrder(@PathVariable("order_id") Integer orderId) {
         try {
-            log.info("接收到订单完成请求: orderId={}", orderId);
+            log.info("Received order completion request: orderId={}", orderId);
 
             // 调用服务进行完成处理
             return orderService.completeOrder(orderId)
                     .map(response -> {
-                        log.info("订单{}完成处理完成", orderId);
+                        log.info("Order {} completion processing completed", orderId);
                         return Result.success(response, "完成成功");
                     })
                     .orElseGet(() -> {
-                        log.warn("订单{}完成失败: 未返回有效结果", orderId);
+                        log.warn("Order {} completion failed: no valid result", orderId);
                         return Result.error("完成失败: 系统错误");
                     });
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
-            log.warn("订单{}完成失败: {}", orderId, e.getMessage());
+            log.warn("Order {} completion failed: {}", orderId, e.getMessage());
             return Result.error(e.getMessage());
         } catch (Exception e) {
             // 处理其他未预期的错误
-            log.error("订单{}完成失败: 系统异常", orderId, e);
+            log.error("Order {} completion failed: {}", orderId, e);
             return Result.error("完成失败: 系统异常，请稍后重试");
         }
     }
@@ -174,24 +174,24 @@ public class OrderController {
     @DeleteMapping("/orders/{order_id}")
     public Result<Void> deleteOrder(@PathVariable("order_id") Integer orderId) {
         try {
-            log.info("接收到订单删除请求: orderId={}", orderId);
+            log.info("Received order deletion request: orderId={}", orderId);
 
             // 调用服务进行删除处理
             boolean deleted = orderService.deleteOrder(orderId);
             if (deleted) {
-                log.info("订单{}删除成功", orderId);
+                log.info("Order {} delete successfully", orderId);
                 return Result.success(null, "删除成功");
             } else {
-                log.warn("订单{}删除失败", orderId);
+                log.warn("Order {} delete failed", orderId);
                 return Result.error("删除失败");
             }
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
-            log.warn("订单{}删除失败: {}", orderId, e.getMessage());
+            log.warn("Order {} delete failed: {}", orderId, e.getMessage());
             return Result.error(e.getMessage());
         } catch (Exception e) {
             // 处理其他未预期的错误
-            log.error("订单{}删除失败: 系统异常", orderId, e);
+            log.error("Order {} delete failed: system error", orderId, e);
             return Result.error("删除失败: 系统异常，请稍后重试");
         }
     }
@@ -206,24 +206,24 @@ public class OrderController {
     @DeleteMapping("/orders/{order_id}/soft")
     public Result<Void> softDeleteOrder(@PathVariable("order_id") Integer orderId) {
         try {
-            log.info("接收到订单软删除请求: orderId={}", orderId);
+            log.info("Received order soft delete request: orderId={}", orderId);
 
             // 调用服务进行软删除处理
             boolean deleted = orderService.softDeleteOrder(orderId);
             if (deleted) {
-                log.info("订单{}软删除成功", orderId);
+                log.info("Order {} soft delete successfully", orderId);
                 return Result.success(null, "软删除成功");
             } else {
-                log.warn("订单{}软删除失败", orderId);
+                log.warn("Order {} soft delete failed", orderId);
                 return Result.error("软删除失败");
             }
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
-            log.warn("订单{}软删除失败: {}", orderId, e.getMessage());
+            log.warn("Order {} soft delete failed: {}", orderId, e.getMessage());
             return Result.error(e.getMessage());
         } catch (Exception e) {
             // 处理其他未预期的错误
-            log.error("订单{}软删除失败: 系统异常", orderId, e);
+            log.error("Order {} soft delete failed: system failed", orderId, e);
             return Result.error("软删除失败: 系统异常，请稍后重试");
         }
     }

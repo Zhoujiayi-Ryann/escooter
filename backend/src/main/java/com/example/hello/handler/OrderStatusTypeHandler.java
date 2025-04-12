@@ -57,7 +57,7 @@ public class OrderStatusTypeHandler extends BaseTypeHandler<OrderStatus> {
         
         OrderStatus status = OrderStatus.fromValue(value);
         if (status == null) {
-            logger.warn("找不到与'{}'匹配的OrderStatus枚举值，使用PENDING作为默认值", value);
+            logger.warn("Cannot find matching OrderStatus enum value for '{}', using PENDING as default", value);
             return OrderStatus.PENDING;
         }
         
