@@ -1,8 +1,8 @@
 package com.example.hello.service.impl;
 
-import com.example.hello.dto.AddCreditCardRequest;
-import com.example.hello.dto.AddCreditCardResponse;
-import com.example.hello.dto.CreditCardResponse;
+import com.example.hello.dto.request.AddCreditCardRequest;
+import com.example.hello.dto.response.AddCreditCardResponse;
+import com.example.hello.dto.response.CreditCardResponse;
 import com.example.hello.entity.CreditCard;
 import com.example.hello.entity.User;
 import com.example.hello.mapper.CreditCardMapper;

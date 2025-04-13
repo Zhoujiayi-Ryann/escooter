@@ -1,9 +1,9 @@
 package com.example.hello.service;
 
-import com.example.hello.dto.LoginRequest;
-import com.example.hello.dto.LoginResponse;
-import com.example.hello.dto.RegisterRequest;
-import com.example.hello.dto.UpdateUserRequest;
+import com.example.hello.dto.request.LoginRequest;
+import com.example.hello.dto.response.LoginResponse;
+import com.example.hello.dto.request.RegisterRequest;
+import com.example.hello.dto.request.UpdateUserRequest;
 import com.example.hello.entity.User;
 
 public interface UserService {

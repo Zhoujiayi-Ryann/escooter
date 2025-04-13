@@ -1,9 +1,9 @@
 package com.example.hello.controller;
 
 import com.example.hello.common.Result;
-import com.example.hello.dto.AddCreditCardRequest;
-import com.example.hello.dto.AddCreditCardResponse;
-import com.example.hello.dto.CreditCardResponse;
+import com.example.hello.dto.request.AddCreditCardRequest;
+import com.example.hello.dto.response.AddCreditCardResponse;
+import com.example.hello.dto.response.CreditCardResponse;
 import com.example.hello.service.CreditCardService;
 import com.example.hello.utils.CreditCardUtils;
 import lombok.extern.slf4j.Slf4j;

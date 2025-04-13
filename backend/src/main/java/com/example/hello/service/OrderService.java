@@ -1,12 +1,12 @@
 package com.example.hello.service;
 
-import com.example.hello.dto.CreateOrderRequest;
-import com.example.hello.dto.OrderDetailResponse;
-import com.example.hello.dto.OrderResponse;
-import com.example.hello.dto.PayOrderResponse;
-import com.example.hello.dto.ChangeOrderStatusResponse;
-import com.example.hello.dto.ExtendOrderRequest;
-import com.example.hello.dto.AvailableTimeSlotsResponse;
+import com.example.hello.dto.request.CreateOrderRequest;
+import com.example.hello.dto.response.OrderDetailResponse;
+import com.example.hello.dto.response.OrderResponse;
+import com.example.hello.dto.response.PayOrderResponse;
+import com.example.hello.dto.response.ChangeOrderStatusResponse;
+import com.example.hello.dto.request.ExtendOrderRequest;
+import com.example.hello.dto.response.AvailableTimeSlotsResponse;
 import java.util.Optional;
 
 /**

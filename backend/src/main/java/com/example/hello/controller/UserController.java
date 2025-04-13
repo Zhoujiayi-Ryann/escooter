@@ -1,10 +1,10 @@
 package com.example.hello.controller;
 
 import com.example.hello.common.Result;
-import com.example.hello.dto.LoginRequest;
-import com.example.hello.dto.LoginResponse;
-import com.example.hello.dto.RegisterRequest;
-import com.example.hello.dto.UpdateUserRequest;
+import com.example.hello.dto.request.LoginRequest;
+import com.example.hello.dto.response.LoginResponse;
+import com.example.hello.dto.request.RegisterRequest;
+import com.example.hello.dto.request.UpdateUserRequest;
 import com.example.hello.entity.User;
 import com.example.hello.service.UserService;
 import com.example.hello.utils.JwtUtil;

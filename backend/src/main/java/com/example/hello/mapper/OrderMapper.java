@@ -3,7 +3,7 @@ package com.example.hello.mapper;
 import com.example.hello.common.OrderStatus;
 import com.example.hello.entity.Order;
 import com.example.hello.handler.OrderStatusTypeHandler;
-import com.example.hello.dto.OrderDetailResponse;
+import com.example.hello.dto.response.OrderDetailResponse;
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.type.EnumTypeHandler;
 import org.apache.ibatis.type.JdbcType;

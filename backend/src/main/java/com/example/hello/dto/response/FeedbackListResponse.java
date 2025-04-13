@@ -69,6 +69,7 @@ public class FeedbackListResponse {
     /**
      * 关联图片列表
      */
+    @Builder.Default
     private List<FeedbackImageDto> images = new ArrayList<>();
     
     /**
