@@ -1,3 +1,4 @@
+import { CartIcon } from 'tdesign-icons-vue';
 import Layout from '@/layouts/index.vue';
 
 export default [
@@ -27,6 +28,21 @@ export default [
         redirect: '/login',
         component: () => import('@/layouts/blank.vue'),
         meta: { title: '登录中心' },
+      },
+    ],
+  },
+  {
+    path: '/vehicle',
+    name: 'vehicle',
+    component: Layout,
+    redirect: '/vehicle/manage',
+    meta: { title: '车辆管理', icon: CartIcon },
+    children: [
+      {
+        path: 'manage',
+        name: 'VehicleManage',
+        component: () => import('@/pages/vehicle/manage/index.vue'),
+        meta: { title: '车辆列表' },
       },
     ],
   },
