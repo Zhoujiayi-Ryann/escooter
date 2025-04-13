@@ -2,6 +2,9 @@ package com.example.hello.mapper;
 
 import com.example.hello.entity.Feedback;
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.type.EnumOrdinalTypeHandler;
+
+import java.util.List;
 
 /**
  * 反馈Mapper接口
@@ -50,4 +53,23 @@ public interface FeedbackMapper {
      */
     @Select("SELECT id FROM feedback WHERE bill_number = #{billNumber} LIMIT 1")
     Long getFeedbackIdByBillNumber(String billNumber);
+    
+    /**
+     * 查询所有反馈记录，按创建时间降序排列
+     * 
+     * @return 反馈记录列表
+     */
+    @Select("SELECT * FROM feedback ORDER BY created_at DESC")
+    @Results({
+        @Result(property = "id", column = "id"),
+        @Result(property = "userId", column = "user_id"),
+        @Result(property = "feedbackType", column = "feedback_type"),
+        @Result(property = "description", column = "description"),
+        @Result(property = "status", column = "status"),
+        @Result(property = "priority", column = "priority"),
+        @Result(property = "happeningTime", column = "happening_time"),
+        @Result(property = "billNumber", column = "bill_number"),
+        @Result(property = "createdAt", column = "created_at")
+    })
+    List<Feedback> findAllFeedback();
 } 

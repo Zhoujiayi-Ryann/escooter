@@ -35,4 +35,19 @@ public interface FeedbackImageMapper {
      */
     @Select("SELECT image_url FROM feedback_images WHERE feedback_id = #{feedbackId}")
     List<String> getImageUrlsByFeedbackId(Long feedbackId);
+    
+    /**
+     * 根据反馈ID查询完整的图片信息
+     * 
+     * @param feedbackId 反馈ID
+     * @return 图片实体列表
+     */
+    @Select("SELECT * FROM feedback_images WHERE feedback_id = #{feedbackId} ORDER BY upload_time ASC")
+    @Results({
+        @Result(property = "id", column = "id"),
+        @Result(property = "feedbackId", column = "feedback_id"),
+        @Result(property = "imageUrl", column = "image_url"),
+        @Result(property = "uploadTime", column = "upload_time")
+    })
+    List<FeedbackImage> getFeedbackImagesById(Long feedbackId);
 } 

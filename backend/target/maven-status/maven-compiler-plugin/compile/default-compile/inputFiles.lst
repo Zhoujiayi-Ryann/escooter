@@ -37,6 +37,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/BankCardController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/config/WebConfig.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/RegisterRequest.java
+/home/devbox/project/backend/src/main/java/com/example/hello/dto/response/FeedbackListResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/utils/CreditCardUtils.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/ScooterService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/common/Result.java
