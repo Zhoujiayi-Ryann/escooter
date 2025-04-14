@@ -389,17 +389,14 @@ export default {
 		fetchScooters() {
 			scooterApi.getScooters().then(res => {
 				if (res.code === 1) {
-					this.scooters = res.data.map(scooter => {
-						const parsed = JSON.parse(JSON.stringify(scooter));
-						return {
-							scooterId: parsed?.scooterId || 0,
-							locationLat: parsed?.locationLat || 0,
-							locationLng: parsed?.locationLng || 0,
-							status: parsed?.status || 'unknown',
-							batteryLevel: parsed?.batteryLevel || 0,
-							price: parsed?.price || 0
-						};
-					});
+					this.scooters = res.data.map(scooter => ({
+						scooterId: scooter.scooter_id,
+						locationLat: scooter.location_lat,
+						locationLng: scooter.location_lng,
+						status: scooter.status,
+						batteryLevel: scooter.battery_level,
+						price: scooter.price
+					}));
 					this.updateMarkers();
 				} else {
 					console.error('获取滑板车失败:', res.msg);
@@ -410,7 +407,11 @@ export default {
 					});
 				}
 			}).catch(err => {
-				console.error('请求异常:', err);
+				uni.showToast({
+					title: '网络请求异常',
+					icon: 'none',
+					duration: 2000
+				});
 			});
 		},
 		toggleSidebar() {
