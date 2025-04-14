@@ -1,22 +1,166 @@
 <template>
-	<view>
+	<view class="cards-container">
+		<view class="card-list">
+			<view v-for="(card, index) in cards" :key="index" class="card-item">
+				<view class="card-info">
+					<text class="card-country">{{ card.country }}</text>
+					<view class="card-number-container">
+						<text class="card-number">
+							{{ card.card_number }}
+						</text>
+					</view>
+				</view>
+			</view>
+		</view>
 		
+		<view class="add-card" @click="addNewCard">
+			<text class="add-icon">+</text>
+			<text class="add-text">Add Bank Card</text>
+		</view>
 	</view>
 </template>
 
 <script>
+	import { creditCardApi } from '../../utils/api/creditCard';
+	import { userApi } from '../../utils/api/user';
+	
 	export default {
 		data() {
 			return {
-				
+				cards: []
 			}
 		},
+		onShow() {
+			this.fetchCards();
+		},
 		methods: {
-			
+			fetchCards() {
+				const userId = userApi.getUserId(1);
+				creditCardApi.getUserCreditCards(userId).then(res => {
+					if (res.code === 1) {
+						this.cards = res.data;
+					} else {
+						uni.showToast({
+							title: 'Failed to get cards',
+							icon: 'none'
+						});
+					}
+				}).catch(err => {
+					uni.showToast({
+						title: 'Network error',
+						icon: 'none'
+					});
+				});
+			},
+			addNewCard() {
+				uni.navigateTo({
+					url: '/pages/settings/card/card'
+				});
+			}
 		}
 	}
 </script>
 
 <style>
+.cards-container {
+	padding: 20rpx;
+	background-color: #f8f9fa;
+	min-height: 100vh;
+}
 
+.card-list {
+	margin: 20rpx 0;
+}
+
+.card-item {
+	margin-bottom: 30rpx;
+	padding: 40rpx;
+	border-radius: 25rpx;
+	background: linear-gradient(135deg, #0396FF, #0D47A1);
+	box-shadow: 0 10rpx 20rpx rgba(3, 150, 255, 0.2);
+	position: relative;
+	overflow: hidden;
+}
+
+.card-info {
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+	position: relative;
+	z-index: 1;
+}
+
+.card-country {
+	font-size: 28rpx;
+	color: rgba(255, 255, 255, 0.8);
+	text-transform: uppercase;
+	letter-spacing: 2rpx;
+}
+
+.card-number-container {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.card-number {
+	font-size: 36rpx;
+	letter-spacing: 4rpx;
+	color: #ffffff;
+	font-family: monospace;
+	text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+}
+
+/* 添加装饰性圆圈 */
+.card-item::before {
+	content: '';
+	position: absolute;
+	top: -100rpx;
+	right: -100rpx;
+	width: 300rpx;
+	height: 300rpx;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 50%;
+}
+
+.card-item::after {
+	content: '';
+	position: absolute;
+	bottom: -150rpx;
+	left: -150rpx;
+	width: 400rpx;
+	height: 400rpx;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 50%;
+}
+
+.add-card {
+	display: flex;
+	align-items: center;
+	padding: 40rpx;
+	background-color: #ffffff;
+	border-radius: 25rpx;
+	margin-top: 40rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+	border: 2rpx solid rgba(0, 0, 0, 0.05);
+	transition: all 0.3s ease;
+}
+
+.add-card:active {
+	transform: scale(0.98);
+	background-color: #f8f9fa;
+}
+
+.add-icon {
+	font-size: 44rpx;
+	margin-right: 20rpx;
+	color: #0396FF;
+}
+
+.add-text {
+	font-size: 32rpx;
+	flex: 1;
+	color: #333;
+	font-weight: 500;
+}
 </style>

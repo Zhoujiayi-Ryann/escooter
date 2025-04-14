@@ -33,9 +33,9 @@
 			</view>
 			
 			<view class="sidebar-menu">
-				<view class="menu-item">
+				<view class="menu-item" @click="navigateTo('cards')">
 					<van-icon name="balance-o" size="22px" />
-					<text>Wallet</text>
+					<text>Cards</text>
 				</view>
 				<view class="menu-item" @click="navigateTo('records')">
 					<van-icon name="clock-o" size="22px" />
@@ -43,7 +43,7 @@
 				</view>
 				<view class="menu-item">
 					<van-icon name="coupon-o" size="22px" />
-					<text>Discount</text>
+					<text>Coupons</text>
 				</view>
 				<view class="menu-item" @click="navigateTo('help')">
 					<van-icon name="question-o" size="22px" />
@@ -428,7 +428,7 @@ export default {
 				'discount': '/pages/discount/discount',
 				'help': '/pages/help/help',
 				'settings': '/pages/settings/my_settings/my_settings',
-				'card': '/pages/settings/card/card'
+				'cards': '/pages/cards/cards'
 			};
 			if (pageMapping[page]) {
 				if (page === 'confirm') {
@@ -455,6 +455,20 @@ export default {
 					
 					uni.navigateTo({
 						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}`
+					});
+				} else if (page === 'cards') {
+					// 检查用户是否登录
+					const isLoggedIn = userApi.isLoggedIn();
+					if (!isLoggedIn) {
+						uni.showToast({
+							title: 'Please log in',
+							icon: 'none',
+							duration: 2000
+						});
+						return;
+					}
+					uni.navigateTo({
+						url: pageMapping[page]
 					});
 				} else {
 					uni.navigateTo({
