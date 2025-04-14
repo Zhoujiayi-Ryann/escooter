@@ -132,6 +132,13 @@
 			{
 				"navigationBarTitleText" : "Feedback"
 			}
+		},
+		{
+			"path" : "pages/cards/cards",
+			"style" : 
+			{
+				"navigationBarTitleText" : "Cards"
+			}
 		}
 	],
 	"globalStyle": {
