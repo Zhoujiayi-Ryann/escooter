@@ -1,21 +1,44 @@
 <template>
 	<view class="cards-container">
-		<view class="card-list">
+		<!-- 加载状态 -->
+		<view v-if="loading" class="loading-container">
+			<text class="loading-text">Loading...</text>
+		</view>
+		
+		<!-- 卡片列表 -->
+		<view v-else-if="cards && cards.length > 0" class="card-list">
 			<view v-for="(card, index) in cards" :key="index" class="card-item">
 				<view class="card-info">
 					<text class="card-country">{{ card.country }}</text>
 					<view class="card-number-container">
 						<text class="card-number">
-							{{ card.card_number }}
+							{{ formatCardNumber(card.card_number) }}
 						</text>
 					</view>
+					<view class="card-expires">
+						<text class="expires-label">有效期至:</text>
+						<text class="expires-date">{{ formatExpiryDate(card.expiry_date) }}</text>
+					</view>
+				</view>
+				
+				<!-- 删除按钮 -->
+				<view class="delete-btn" @click.stop="deleteCard(card.card_id)">
+					<text class="delete-icon">×</text>
 				</view>
 			</view>
 		</view>
 		
+		<!-- 无卡片提示 -->
+		<view v-else class="empty-state">
+			<view class="empty-icon">💳</view>
+			<text class="empty-text">您还没有添加银行卡</text>
+			<text class="empty-subtext">添加银行卡以便更快地完成支付</text>
+		</view>
+		
+		<!-- 添加卡片按钮 -->
 		<view class="add-card" @click="addNewCard">
 			<text class="add-icon">+</text>
-			<text class="add-text">Add Bank Card</text>
+			<text class="add-text">添加银行卡</text>
 		</view>
 	</view>
 </template>
@@ -27,35 +50,123 @@
 	export default {
 		data() {
 			return {
-				cards: []
+				cards: [],
+				loading: true,
+				error: null
 			}
 		},
 		onShow() {
 			this.fetchCards();
 		},
 		methods: {
+			// 获取银行卡列表
 			fetchCards() {
-				const userId = userApi.getUserId(1);
+				this.loading = true;
+				this.error = null;
+				
+				// 获取当前用户ID
+				const userId = userApi.getUserId();
+				
+				// 如果未登录，跳转到登录页
+				if (userId === 0) {
+					uni.navigateTo({
+						url: '/pages/login/login'
+					});
+					return;
+				}
+				
+				// 调用API获取银行卡列表
 				creditCardApi.getUserCreditCards(userId).then(res => {
+					this.loading = false;
+					
 					if (res.code === 1) {
 						this.cards = res.data;
+						console.log('获取银行卡成功:', this.cards);
 					} else {
+						this.error = res.message || '获取银行卡失败';
 						uni.showToast({
-							title: 'Failed to get cards',
+							title: this.error,
 							icon: 'none'
 						});
 					}
 				}).catch(err => {
+					this.loading = false;
+					this.error = '网络错误，请稍后再试';
+					
 					uni.showToast({
-						title: 'Network error',
+						title: this.error,
 						icon: 'none'
 					});
+					console.error('获取银行卡错误:', err);
 				});
 			},
+			
+			// 添加新银行卡
 			addNewCard() {
 				uni.navigateTo({
 					url: '/pages/settings/card/card'
 				});
+			},
+			
+			// 删除银行卡
+			deleteCard(cardId) {
+				uni.showModal({
+					title: '确认删除',
+					content: '确定要删除这张银行卡吗？',
+					success: (res) => {
+						if (res.confirm) {
+							const userId = userApi.getUserId();
+							
+							uni.showLoading({
+								title: '删除中...'
+							});
+							
+							creditCardApi.deleteCreditCard(cardId, userId).then(res => {
+								uni.hideLoading();
+								
+								if (res.code === 1) {
+									uni.showToast({
+										title: '删除成功',
+										icon: 'success'
+									});
+									// 重新获取银行卡列表
+									this.fetchCards();
+								} else {
+									uni.showToast({
+										title: res.message || '删除失败',
+										icon: 'none'
+									});
+								}
+							}).catch(err => {
+								uni.hideLoading();
+								uni.showToast({
+									title: '网络错误，请稍后再试',
+									icon: 'none'
+								});
+								console.error('删除银行卡错误:', err);
+							});
+						}
+					}
+				});
+			},
+			
+			// 格式化银行卡号，只显示后四位
+			formatCardNumber(cardNumber) {
+				if (!cardNumber) return '';
+				return '•••• •••• •••• ' + cardNumber.slice(-4);
+			},
+			
+			// 格式化到期日期
+			formatExpiryDate(date) {
+				if (!date) return '';
+				// 预期格式: 2025-12-31，转换为 12/25
+				const parts = date.split('-');
+				if (parts.length >= 2) {
+					const month = parts[1];
+					const year = parts[0].slice(-2);
+					return `${month}/${year}`;
+				}
+				return date;
 			}
 		}
 	}
@@ -66,6 +177,18 @@
 	padding: 20rpx;
 	background-color: #f8f9fa;
 	min-height: 100vh;
+}
+
+.loading-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 400rpx;
+}
+
+.loading-text {
+	font-size: 32rpx;
+	color: #666;
 }
 
 .card-list {
@@ -101,6 +224,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	margin: 20rpx 0;
 }
 
 .card-number {
@@ -111,7 +235,70 @@
 	text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
 }
 
-/* 添加装饰性圆圈 */
+.card-expires {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+}
+
+.expires-label {
+	font-size: 24rpx;
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.expires-date {
+	font-size: 26rpx;
+	color: #ffffff;
+	font-weight: bold;
+}
+
+/* 删除按钮 */
+.delete-btn {
+	position: absolute;
+	top: 20rpx;
+	right: 20rpx;
+	width: 60rpx;
+	height: 60rpx;
+	border-radius: 30rpx;
+	background-color: rgba(255, 255, 255, 0.2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 2;
+}
+
+.delete-icon {
+	font-size: 40rpx;
+	color: #ffffff;
+}
+
+/* 空状态 */
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 100rpx 0;
+}
+
+.empty-icon {
+	font-size: 120rpx;
+	margin-bottom: 30rpx;
+}
+
+.empty-text {
+	font-size: 32rpx;
+	color: #333;
+	font-weight: bold;
+	margin-bottom: 10rpx;
+}
+
+.empty-subtext {
+	font-size: 28rpx;
+	color: #666;
+}
+
+/* 装饰性圆圈 */
 .card-item::before {
 	content: '';
 	position: absolute;

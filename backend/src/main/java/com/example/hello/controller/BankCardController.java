@@ -75,7 +75,7 @@ public class BankCardController {
      */
     @GetMapping
     public ResponseEntity<Result<List<CreditCardResponse>>> getBankCards(@RequestParam Integer userId) {
-        log.info("获取用户银行卡列表: userId={}", userId);
+        log.info("Get Credit Cards By UserId: userId={}", userId);
         
         // 参数校验
         if (userId == null) {
@@ -96,7 +96,7 @@ public class BankCardController {
      */
     @DeleteMapping("/{cardId}")
     public ResponseEntity<Result<String>> deleteBankCard(@PathVariable Integer cardId, @RequestParam Integer userId) {
-        log.info("删除银行卡: cardId={}, userId={}", cardId, userId);
+        log.info("Delete Credit Card: cardId={}, userId={}", cardId, userId);
         
         // 参数校验
         if (cardId == null) {

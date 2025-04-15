@@ -34,26 +34,26 @@ public class CreditCardServiceImpl implements CreditCardService {
     @Override
     @Transactional
     public Optional<AddCreditCardResponse> addCreditCard(AddCreditCardRequest request) {
-        log.info("开始处理添加银行卡请求: userId={}", request.getUser_id());
+        log.info(" Add Credit Card: userId={}", request.getUser_id());
         
         try {
             // 1. 验证用户是否存在
             User user = userMapper.findById(request.getUser_id().longValue());
             if (user == null) {
-                log.warn("添加银行卡失败: 用户{}不存在", request.getUser_id());
+                log.warn("Add Credit Card Failed: UserId{} does not exist", request.getUser_id());
                 return Optional.empty();
             }
             
             // 2. 验证银行卡号是否有效
             if (!CreditCardUtils.isValidCardNumber(request.getCard_number())) {
-                log.warn("添加银行卡失败: 银行卡号无效");
+                log.warn("Add Credit Card Failed: Invalid card number");
                 return Optional.empty();
             }
             
             // 3. 检查银行卡号是否已存在
             int count = creditCardMapper.countByCardNumber(request.getCard_number());
             if (count > 0) {
-                log.warn("添加银行卡失败: 银行卡号已存在");
+                log.warn("Add Credit Card Failed: Card number already exists");
                 return Optional.empty();
             }
             
@@ -68,24 +68,24 @@ public class CreditCardServiceImpl implements CreditCardService {
             // 5. 插入数据库
             int rows = creditCardMapper.addCreditCard(creditCard);
             if (rows > 0) {
-                log.info("银行卡添加成功: cardId={}, 掩码卡号={}", 
+                log.info("Add Credit Card Success: cardId={}, maskedCardNumber={}", 
                         creditCard.getCardId(), 
                         CreditCardUtils.maskCardNumber(creditCard.getCardNumber()));
                 return Optional.of(AddCreditCardResponse.success(creditCard.getCardId()));
             } else {
-                log.error("银行卡添加失败: 数据库插入失败");
+                log.error("Add Credit Card Failed: Database insertion failed");
                 return Optional.empty();
             }
             
         } catch (Exception e) {
-            log.error("添加银行卡异常", e);
+            log.error("Add Credit Card Failed: {}", e.getMessage());
             return Optional.empty();
         }
     }
     
     @Override
     public List<CreditCardResponse> getCreditCardsByUserId(Integer userId) {
-        log.info("查询用户银行卡列表: userId={}", userId);
+        log.info("Get Credit Cards By UserId: userId={}", userId);
         
         try {
             // 获取该用户的所有银行卡
@@ -104,7 +104,7 @@ public class CreditCardServiceImpl implements CreditCardService {
                     })
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            log.error("查询用户银行卡列表异常: userId={}", userId, e);
+            log.error("Get Credit Cards By UserId Failed: userId={}", userId, e);
             return List.of(); // 返回空列表
         }
     }
@@ -112,27 +112,27 @@ public class CreditCardServiceImpl implements CreditCardService {
     @Override
     @Transactional
     public boolean deleteCreditCard(Integer cardId) {
-        log.info("删除银行卡: cardId={}", cardId);
+        log.info("Delete Credit Card: cardId={}", cardId);
         
         try {
             // 1. 验证银行卡是否存在
             CreditCard card = creditCardMapper.findById(cardId);
             if (card == null) {
-                log.warn("删除银行卡失败: 银行卡{}不存在", cardId);
+                log.warn("Delete Credit Card Failed: CardId{} does not exist", cardId);
                 return false;
             }
             
             // 2. 执行删除操作
             int rows = creditCardMapper.deleteById(cardId);
             if (rows > 0) {
-                log.info("银行卡删除成功: cardId={}", cardId);
+                log.info("Delete Credit Card Success: cardId={}", cardId);
                 return true;
             } else {
-                log.error("银行卡删除失败: 数据库操作未影响任何行");
+                log.error("Delete Credit Card Failed: Database operation did not affect any rows");
                 return false;
             }
         } catch (Exception e) {
-            log.error("删除银行卡异常: cardId={}", cardId, e);
+            log.error("Delete Credit Card Failed: cardId={}", cardId, e);
             return false;
         }
     }
@@ -143,7 +143,7 @@ public class CreditCardServiceImpl implements CreditCardService {
             int count = creditCardMapper.checkCardBelongsToUser(cardId, userId);
             return count > 0;
         } catch (Exception e) {
-            log.error("检查银行卡所属关系异常: cardId={}, userId={}", cardId, userId, e);
+            log.error("Check Card Belongs To User Failed: cardId={}, userId={}", cardId, userId, e);
             return false;
         }
     }
