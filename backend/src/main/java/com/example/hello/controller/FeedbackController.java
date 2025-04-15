@@ -34,7 +34,7 @@ public class FeedbackController {
      * @param request 反馈请求
      * @return 反馈响应
      */
-    @PostMapping("/feedback/submit")
+    @PostMapping("/feedback")
     public Result<FeedbackResponse> submitFeedback(@RequestBody @Validated FeedbackRequest request) {
         logger.info("Received feedback submission request: {}", request);
         
