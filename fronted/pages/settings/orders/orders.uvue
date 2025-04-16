@@ -28,14 +28,52 @@
 							:desc="order.orderTime"
 							:title="order.type"
 							:tag="order.status"
-							currency="$"
+							currency="£"
 							thumb="/static/bikelogo/withseat.png"
 							class="order-card"
 						>
 							<template #footer>
 								<view class="card-footer">
-									<!-- 未使用订单显示"修改订单"和"取消订单"按钮 -->
+									<!-- 未支付订单显示"去支付"按钮 -->
 									<template v-if="order.statusCode === 1">
+										<van-button 
+											size="small" 
+											type="danger"
+											plain
+											@click="showCancelOrderConfirm(order)"
+											style="margin-right: auto;"
+										>
+											Cancel
+										</van-button>
+										<van-button 
+											size="small" 
+											type="primary"
+											plain
+											@click="goToPayOrder(order.id)"
+										>
+											Pay Now
+										</van-button>
+									</template>
+									
+									<!-- 未使用订单显示"修改订单"和"取消订单"按钮 -->
+									<template v-else-if="order.statusCode === 2">
+										<van-button
+											size="small" 
+											type="danger"
+											plain
+											@click="showCancelOrderConfirm(order)"
+											style="margin-right: auto;"
+										>
+											Cancel
+										</van-button>
+										<van-button 
+											size="small" 
+											type="primary"
+											plain
+											@click="goToUseOrder(order.id)"
+										>
+											Use Now
+										</van-button>
 										<van-button 
 											size="small" 
 											icon="edit"
@@ -44,21 +82,20 @@
 										>
 											Extend Rental
 										</van-button>
-										<van-button 
-											size="small" 
-											type="danger"
-											plain
-											@click="showCancelOrderConfirm(order)"
-										>
-											Cancel
-										</van-button>
 									</template>
 									
 									<!-- 进行中订单显示"延长租车"按钮 -->
-									<template v-else-if="order.statusCode === 2">
+									<template v-else-if="order.statusCode === 3">
 										<van-button 
 											size="small" 
 											type="primary"
+											plain
+											@click="goToReturnBike(order.id)"
+										>
+											Return Bike
+										</van-button>
+										<van-button 
+											size="small" 
 											plain
 											@click="showExtendRentalDialog(order)"
 										>
@@ -73,6 +110,7 @@
 											icon="delete" 
 											plain
 											@click="deleteOrder(order.id)"
+											style="margin-right: auto;"
 										>
 											Delete
 										</van-button>
@@ -137,7 +175,7 @@
 export default {
 	data() {
 		return {
-			tabs: ['All', 'Unused', 'In Progress', 'Completed'],
+			tabs: ['All', 'Unpaid', 'Unused', 'In Progress', 'Completed'],
 			currentTab: 0, // 默认选中"已完成"标签
 			selectedStatus: 0, // 新增：当前选中的状态码
 			orders: [
@@ -148,7 +186,7 @@ export default {
 					duration: '2 hours 30 minutes',
 					orderTime: '2023-05-20 14:30',
 					price: '12',
-					statusCode: 3 // 0: 全部, 1: 未使用, 2: 进行中, 3: 已完成
+					statusCode: 4 // 0: 全部, 1: 未支付, 2: 未使用, 3: 进行中, 4: 已完成
 				},
 				{
 					id: '20230002',
@@ -157,7 +195,7 @@ export default {
 					duration: 'Est. 3 hours',
 					orderTime: '2023-05-22 09:15',
 					price: '15',
-					statusCode: 1
+					statusCode: 2
 				},
 				{
 					id: '20230003',
@@ -166,7 +204,16 @@ export default {
 					duration: 'Used 1 hour 15 minutes',
 					orderTime: '2023-05-22 13:40',
 					price: '10',
-					statusCode: 2
+					statusCode: 3
+				},
+				{
+					id: '20230004',
+					type: 'Bicycle',
+					status: 'Unpaid',
+					duration: 'Est. 2 hours',
+					orderTime: '2023-05-23 10:00',
+					price: '8',
+					statusCode: 1
 				}
 			],
 			// 添加取消订单的相关数据
@@ -376,6 +423,27 @@ export default {
 					icon: 'success'
 				});
 			}, 1000);
+		},
+		
+		// 添加去使用订单的导航方法
+		goToUseOrder(orderId) {
+			uni.navigateTo({
+				url: '/pages/order_not_used/order_not_used?id=' + orderId
+			});
+		},
+		
+		// 添加去还车的导航方法
+		goToReturnBike(orderId) {
+			uni.navigateTo({
+				url: '/pages/order_in_progress/order_in_progress?id=' + orderId
+			});
+		},
+		
+		// 添加去支付订单的导航方法 TODO
+		goToPayOrder(orderId) {
+			// uni.navigateTo({
+			// 	url: '/pages/order_payment/order_payment?id=' + orderId
+			// });
 		}
 	},
 	// 组件创建时确保默认选中的状态码正确
@@ -418,12 +486,12 @@ export default {
 }
 
 .back-icon {
-	font-size: 55rpx;  
+	font-size: 60rpx;  
 	color: #0084ff;
 }
 
 .header-title {
-	font-size: 40rpx;
+	font-size: 46rpx;
 	font-weight: bold;
 	color: #007aff;
 	text-align: center;
@@ -463,25 +531,25 @@ export default {
 }
 
 .info-label {
-	font-size: 24rpx;
+	font-size: 28rpx;
 	color: #666;
 	text-align: left;
 }
 
 .info-value {
-	font-size: 24rpx;
+	font-size: 28rpx;
 	color: #999;
 	margin-left: 10rpx;
 	text-align: left;
 }
 
 .van-card__price {
-	font-size: 36rpx !important;
+	font-size: 42rpx !important;
 	color: #f44 !important;
 }
 
 .van-card__title {
-	font-size: 32rpx !important;
+	font-size: 38rpx !important;
 	font-weight: bold !important;
 }
 
@@ -490,11 +558,22 @@ export default {
 	background-color: #1989fa !important;
 	color: #fff !important;
 	border-radius: 4rpx !important;
+	font-size: 26rpx !important;
 }
 
 /* 为不同状态设置不同颜色 */
 .van-tab--active {
 	color: #1989fa !important;
 	font-weight: bold !important;
+	font-size: 32rpx !important;
+}
+/* 增大标签字体 */
+.van-tab {
+	font-size: 30rpx !important;
+}
+
+/* 增大按钮字体 */
+.van-button {
+	font-size: 28rpx !important;
 }
 </style>
