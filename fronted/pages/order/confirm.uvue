@@ -9,12 +9,13 @@
 	      </view>
 
     <!-- 订单信息 -->
+	<view class="info-card">
+		<!-- 添加自行车图片 -->
+		<view class="bike-image-container">
+		  <image class="scooter-image" src="/static/bikelogo/escooter_car2.png" mode="aspectFit"></image>
+		</view>
+	</view>
     <view class="info-card">
-      <!-- 添加自行车图片 -->
-      <view class="bike-image-container">
-        <image class="scooter-image" src="/static/bikelogo/escooter_car2.png" mode="aspectFit"></image>
-      </view>
-    
       <view class="info-item">
         <text class="info-value">Scooter Number:
         <text class="info-label">{{ scooterCode }}</text>
