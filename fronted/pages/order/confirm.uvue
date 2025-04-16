@@ -199,17 +199,23 @@ export default {
     createOrder() {
       this.isLoading = true;
       
+      // 将日期和时间转换为ISO格式的日期时间字符串
+      const startDateTime = new Date(`${this.startDate} ${this.startTime}`).toISOString();
+      const endDateTime = new Date(`${this.endDate} ${this.endTime}`).toISOString();
+      
       // 构建创建订单请求
       const orderData = {
         user_id: this.userId,
         scooter_id: this.scooterId || 1, // 如果没有ID则使用默认值1
-        pickup_address: this.address
+        pickup_address: this.address,
+        start_time: startDateTime,
+        end_time: endDateTime
       };
       
-      // 调用创建订单API，修改为使用 orderApi
-      orderApi.createOrder(orderData)  // 使用 orderApi 替代 api
+      
+      // 调用创建订单API
+      orderApi.createOrder(orderData)
         .then(res => {
-          console.log(res);
           if (res.code === 1) {
             // 订单创建成功
             const order = res.data;
@@ -218,13 +224,24 @@ export default {
             const cost = order.cost || 0;
             const discountAmount = order.discount_amount || 0;
             
+            // 计算租用天数
+            const startDate = new Date(startDateTime);
+            const endDate = new Date(endDateTime);
+            const diffTime = Math.abs(endDate - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
             // 订单对象
             const orderInfo = {
               orderId: order.order_id,
               scooterCode: this.scooterCode,
               address: this.address,
               cost: cost,
-              discountAmount: discountAmount
+              discountAmount: discountAmount,
+              startDate: this.startDate,
+              startTime: this.startTime,
+              endDate: this.endDate,
+              endTime: this.endTime,
+              days: diffDays || 1
             };
             
             // 跳转到支付页面并传递订单信息
