@@ -66,6 +66,14 @@ export default {
       scooterCode: '',  // 将从API获取
       scooterId: 0,     // 存储滑板车ID
       otherInfo: '',    // 将从API获取
+      batteryLevel: 0,  // 电池电量
+      price: 0,         // 价格
+      
+      // 租用时间信息
+      startDate: '',    // 开始日期
+      startTime: '',    // 开始时间
+      endDate: '',      // 结束日期
+      endTime: '',      // 结束时间
       
       address: '', // API(F->A)
       addressError: '',
@@ -79,7 +87,17 @@ export default {
     // 获取从home页面传递的滑板车ID和用户ID
     if (options.scooterId) {
       this.scooterId = Number(options.scooterId);
-      this.getScooterInfo(this.scooterId);
+      this.batteryLevel = Number(options.batteryLevel) || 0;
+      this.price = Number(options.price) || 0;
+      
+      // 设置时间信息
+      this.startDate = decodeURIComponent(options.startDate || '');
+      this.startTime = decodeURIComponent(options.startTime || '');
+      this.endDate = decodeURIComponent(options.endDate || '');
+      this.endTime = decodeURIComponent(options.endTime || '');
+      
+      this.scooterCode = `SC${this.scooterId}`;
+      this.otherInfo = `Electric Scooter, Battery: ${this.batteryLevel}%, Price: ¥${this.price}/day\nRental Period: ${this.startDate} ${this.startTime} to ${this.endDate} ${this.endTime}`;
     } else {
       // 如果没有传递ID，使用默认值用于测试
       this.scooterCode = 'SC12345';

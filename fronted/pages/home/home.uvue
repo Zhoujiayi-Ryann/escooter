@@ -439,7 +439,7 @@ export default {
 					const userId = userApi.getUserId(1);
 					
 					uni.navigateTo({
-						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}`
+						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}&startDate=${encodeURIComponent(this.formatFullDate(this.startDate))}&startTime=${encodeURIComponent(this.startTime)}&endDate=${encodeURIComponent(this.formatFullDate(this.endDate))}&endTime=${encodeURIComponent(this.endTime)}`
 					});
 				} else if (page === 'cards') {
 					// 检查用户是否登录
@@ -643,6 +643,12 @@ export default {
 		backToTimeSelector() {
 			this.panelState = 'timeSelector';
 			this.getAnchors();
+		},
+		formatFullDate(date) {
+			const year = date.getFullYear();
+			const month = (date.getMonth() + 1).toString().padStart(2, '0');
+			const day = date.getDate().toString().padStart(2, '0');
+			return `${year}-${month}-${day}`;
 		},
 	}
 };
