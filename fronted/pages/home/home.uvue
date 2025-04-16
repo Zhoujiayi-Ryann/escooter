@@ -10,20 +10,7 @@
 		:class="{ 'sidebar-open': showSidebar }">			
 			<view class="user-info">
 				<text class="greeting">Welcome, {{ username || 'Guest' }}!</text>
-				<view class="user-stats">
-					<view class="stat-item">
-						<van-icon name="circle" color="#4cd964" size="24px" />
-						<text class="stat-value">0</text>
-						<text class="stat-label">km</text>
-					</view>
-					<view class="stat-item">
-						<van-icon name="flag-o" color="#007aff" size="24px" />
-						<text class="stat-value">0</text>
-						<text class="stat-label">bills</text>
-					</view>
-				</view>
 			</view>
-			
 			<view class="payment-section">
 				<view class="payment-hint">
 					<text>Add Payment To Start</text>
@@ -31,7 +18,6 @@
 				</view>
 				<van-button type="primary" block round class="payment-button" @click="navigateTo('card')">Add Cards</van-button>
 			</view>
-			
 			<view class="sidebar-menu">
 				<view class="menu-item" @click="navigateTo('cards')">
 					<van-icon name="balance-o" size="22px" />
@@ -41,7 +27,7 @@
 					<van-icon name="clock-o" size="22px" />
 					<text>Records</text>
 				</view>
-				<view class="menu-item">
+				<view class="menu-item" @click="navigateTo('coupons')">
 					<van-icon name="coupon-o" size="22px" />
 					<text>Coupons</text>
 				</view>
@@ -423,12 +409,11 @@ export default {
 			const pageMapping = {
 				'confirm': '/pages/order/confirm',
 				'notification': '/pages/notification/notification',
-				'wallet': '/pages/wallet/wallet',
-				'records': '/pages/records/records',
-				'discount': '/pages/discount/discount',
+				'cards': '/pages/cards/cards',
+				'records': '/pages/settings/orders/orders',
+				'coupons': '/pages/settings/coupons/coupon',
 				'help': '/pages/help/help',
 				'settings': '/pages/settings/my_settings/my_settings',
-				'cards': '/pages/cards/cards'
 			};
 			if (pageMapping[page]) {
 				if (page === 'confirm') {
@@ -847,7 +832,7 @@ export default {
 	}
 	.sidebar {
 		position: fixed;
-		top: 0;
+		padding-top: 20px;
 		left: -90%;
 		width: 80%;
 		height: 100%;
@@ -887,30 +872,13 @@ export default {
 		margin-bottom: 15px;
 		display: block;
 	}
-	.user-stats {
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		gap: 100px;
-	}
-	.stat-item {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-	.stat-value {
-		font-size: 24px;
-		font-weight: bold;
-		margin: 5px 0;
-	}
-	.stat-label {
-		font-size: 18px;
-		color: #999;
-	}
 	.payment-section {
 		padding: 15px 20px;
 		background-color: #f0f9ff;
 		border-bottom: 1px solid #f5f5f5;
+		height: 150px;
+		display: flex;
+		justify-content: center;
 	}
 	.payment-hint {
 		display: flex;
@@ -931,7 +899,7 @@ export default {
 		overflow-y: auto;
 	}
 	.menu-item {
-		padding: 10px 20px;
+		padding: 20px 20px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
