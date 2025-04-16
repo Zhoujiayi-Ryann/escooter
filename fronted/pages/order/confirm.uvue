@@ -50,13 +50,7 @@
     <!-- 地址 MODIFY-->
     <view class="address-section">
       <text class="section-label">Address:</text>
-      <input 
-        class="address-input" 
-        v-model="address" 
-        placeholder="Please enter pickup address" 
-        maxlength="100"
-        @blur="validateAddress"
-      />
+      <text class="address-text">{{ address || 'Loading location...' }}</text>
     </view>
     <view class="address-error" v-if="addressError">
       <text class="error-text">{{ addressError }}</text>
@@ -100,9 +94,13 @@ export default {
       isLoading: false, // 加载状态
       apiError: '',      // API错误信息
       userId: 1,         // 存储用户ID
+      latitude: 0,       // 存储纬度
+      longitude: 0,      // 存储经度
     };
   },
   onLoad(options) {
+    console.log('接收到的参数：', options);
+    
     // 获取从home页面传递的滑板车ID和用户ID
     if (options.scooterId) {
       this.scooterId = Number(options.scooterId);
@@ -115,9 +113,18 @@ export default {
       this.endDate = decodeURIComponent(options.endDate || '');
       this.endTime = decodeURIComponent(options.endTime || '');
       
+      // 设置位置信息
+      this.latitude = Number(options.latitude) || 0;
+      this.longitude = Number(options.longitude) || 0;
+      
       this.scooterCode = `SC${this.scooterId}`;
       this.otherInfo = `Electric Scooter`;
       this.rentalPeriod = `${this.startDate} ${this.startTime} to ${this.endDate} ${this.endTime}`;
+      
+      // 获取地址信息
+      if (this.latitude && this.longitude) {
+        this.getLocationAddress();
+      }
     } else {
       // 如果没有传递ID，使用默认值用于测试
       this.scooterCode = 'SC12345';
@@ -241,7 +248,68 @@ export default {
         .finally(() => {
           this.isLoading = false;
         });
-    }
+    },
+    
+    // 获取地址信息
+    getLocationAddress() {
+      // 在请求发送前先显示经纬度
+      this.address = `${this.latitude.toFixed(6)}, ${this.longitude.toFixed(6)}`;
+      
+      // #ifdef H5
+      // 创建一个唯一的回调函数名
+      const callbackName = 'jsonp_' + Date.now();
+      
+      // 创建全局回调函数
+      window[callbackName] = (res) => {
+        if (res && res.status === 0) {
+          this.address = res.result.address;
+        } else {
+          console.error('地址解析失败：', res);
+          // 保持经纬度显示
+        }
+        // 清理回调函数
+        delete window[callbackName];
+        // 移除script标签
+        document.body.removeChild(script);
+      };
+      
+      // 创建script标签
+      const script = document.createElement('script');
+      script.src = `https://apis.map.qq.com/ws/geocoder/v1/?location=${this.latitude},${this.longitude}&key=4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ&output=jsonp&callback=${callbackName}`;
+      
+      // 处理加载错误
+      script.onerror = () => {
+        console.error('地址解析请求失败');
+        delete window[callbackName];
+        document.body.removeChild(script);
+      };
+      
+      // 添加到页面
+      document.body.appendChild(script);
+      // #endif
+      
+      // #ifdef APP-PLUS || MP
+      uni.request({
+        url: 'https://apis.map.qq.com/ws/geocoder/v1/',
+        data: {
+          location: `${this.latitude},${this.longitude}`,
+          key: '4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ'
+        },
+        success: (res) => {
+          if (res.data && res.data.status === 0) {
+            this.address = res.data.result.address;
+          } else {
+            console.error('地址解析失败：', res.data);
+            // 保持经纬度显示
+          }
+        },
+        fail: (err) => {
+          console.error('请求失败：', err);
+          // 保持经纬度显示
+        }
+      });
+      // #endif
+    },
   }
 };
 </script>

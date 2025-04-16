@@ -119,7 +119,7 @@
 					@click="selectEscooter(scooter.scooterId)">
 						<template #title>
 							<view class="cell-content">
-								<text class="scooter-id">{{scooter.scooterId}}</text>
+								<text class="scooter-id">SC{{scooter.scooterId}}</text>
 								<text class="battery">{{scooter.batteryLevel}}%</text>
 							</view>
 						</template>
@@ -439,7 +439,7 @@ export default {
 					const userId = userApi.getUserId(1);
 					
 					uni.navigateTo({
-						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}&startDate=${encodeURIComponent(this.formatFullDate(this.startDate))}&startTime=${encodeURIComponent(this.startTime)}&endDate=${encodeURIComponent(this.formatFullDate(this.endDate))}&endTime=${encodeURIComponent(this.endTime)}`
+						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}&startDate=${encodeURIComponent(this.formatFullDate(this.startDate))}&startTime=${encodeURIComponent(this.startTime)}&endDate=${encodeURIComponent(this.formatFullDate(this.endDate))}&endTime=${encodeURIComponent(this.endTime)}&latitude=${selectedScooter.locationLat}&longitude=${selectedScooter.locationLng}`
 					});
 				} else if (page === 'cards') {
 					// 检查用户是否登录
