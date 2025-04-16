@@ -16,22 +16,40 @@
       </view>
     
       <view class="info-item">
-        <text class="info-value">Scooter Number：
+        <text class="info-value">Scooter Number:
         <text class="info-label">{{ scooterCode }}</text>
         </text>
         
       </view>
     
       <view class="info-item">
-        <text class="info-value">Other Information：
+        <text class="info-value">Other Information:
 		<text class="info-label">{{ otherInfo }}</text>
+        </text>
+      </view>
+      
+      <view class="info-item">
+        <text class="info-value">Rental Period:
+		    <text class="info-label">{{ rentalPeriod }}</text>
+        </text>
+      </view>
+      
+      <view class="info-item">
+        <text class="info-value">Battery Level:
+		    <text class="info-label">{{ batteryLevel }}%</text>
+        </text>
+      </view>
+      
+      <view class="info-item">
+        <text class="info-value">Price:
+		    <text class="info-label">£{{ price }}/day</text>
         </text>
       </view>
     </view>
     
     <!-- 地址 MODIFY-->
     <view class="address-section">
-      <text class="section-label">Address：</text>
+      <text class="section-label">Address:</text>
       <input 
         class="address-input" 
         v-model="address" 
@@ -45,7 +63,7 @@
     </view>
     
     <view class="bottom-button">
-      <button class="rent-button" @click="goToRent">Go to rent</button>
+      <button class="rent-button" @click="goToRent">Go to Rent</button>
     </view>
   </view>
 </template>
@@ -74,6 +92,7 @@ export default {
       startTime: '',    // 开始时间
       endDate: '',      // 结束日期
       endTime: '',      // 结束时间
+      rentalPeriod: '', // 租用时间段
       
       address: '', // API(F->A)
       addressError: '',
@@ -97,11 +116,13 @@ export default {
       this.endTime = decodeURIComponent(options.endTime || '');
       
       this.scooterCode = `SC${this.scooterId}`;
-      this.otherInfo = `Electric Scooter, Battery: ${this.batteryLevel}%, Price: ¥${this.price}/day\nRental Period: ${this.startDate} ${this.startTime} to ${this.endDate} ${this.endTime}`;
+      this.otherInfo = `Electric Scooter`;
+      this.rentalPeriod = `${this.startDate} ${this.startTime} to ${this.endDate} ${this.endTime}`;
     } else {
       // 如果没有传递ID，使用默认值用于测试
       this.scooterCode = 'SC12345';
       this.otherInfo = 'Electric Scooter Model XYZ, Range 100km';
+      this.rentalPeriod = 'Not specified';
     }
     
     // 获取用户ID - 优先使用URL中的参数，否则使用userApi获取
