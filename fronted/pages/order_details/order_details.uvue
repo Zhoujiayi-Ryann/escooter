@@ -1,9 +1,9 @@
 <template>
   <view class="container">
-	  <view class="back-btn">
-	    <van-icon name="arrow-left" class="back-icon"/>
-	  </view>
-	  <view class="person-btn">
+	<view class="back-btn" @click="handleBack">
+	  <van-icon name="arrow-left" class="back-icon"/>
+	</view>
+	  <view class="person-btn" @click="goToSettings" >
 	    <van-icon name="manager" class="person-icon" />
 	  </view>
 
@@ -24,40 +24,44 @@
     <van-floating-panel v-model:height="panelHeight" :anchors="anchors" class="floating-panel">
       <view class="order-details">
         <!-- 订单标题 -->
-        <view class="order-info">
-          <text class="order-price">Order cost: ${{ order.price }}</text>
-          <van-icon name="chat-o" class="feedback-icon" @click="goToFeedback" />
-        </view>
+    <view class="order-info">
+      <text class="order-price">Completed</text>
+      <view class="order-tags">
+        <view class="badge">Order ID: {{ order.scooterId }}</view>
+        <view class="status-tag">Completed</view>
+      </view>
+    </view>
 
         <!-- 订单信息 -->
         <view class="info-box">
-          <view class="info-item">
-            <text class="label">Order time:</text>
-            <text class="value">{{ order.orderTime }}</text>
-          </view>
-          <view class="info-item">
-            <text class="label">Scooter number:</text>
-            <text class="value">{{ order.scooterId }}</text>
-          </view>
-          <view class="info-item">
-            <text class="label">Rental Time:</text>
-            <text class="value">{{ order.rentStart }}</text>
-          </view>
-          <view class="info-item">
-            <text class="label">Usage duration:</text>
-            <text class="value">{{ order.actualDuration }}</text>
-          </view>
-		  <view class="divider"></view>
-          <view class="info-item" v-if="order.extraCost > 0">
-            <text class="label">Overtime fee:</text>
-            <text class="value">{{ order.extraCost }}$</text>
-          </view>
+				<view class="info-item">
+				  <text class="label">Scooter ID:</text>
+				  <text class="value">{{ order.scooterId }}</text>
+				</view>
+				<view class="info-item">
+				  <text class="label">Start Time:</text>
+				  <text class="value">{{ order.startTime }}</text>
+				</view>
+				<view class="info-item">
+				  <text class="label">End Time:</text>
+				  <text class="value">{{ order.endTime }}</text>
+				</view>
+				<view class="info-item">
+				  <text class="label">Duration:</text>
+				  <text class="value">{{ order.duration }}</text>
+				</view>
+				<view class="divider"></view>
+				<view class="info-item">
+				  <text class="label">Cost:</text>
+				  <text class="value">${{ order.cost }}</text>
+				</view>
+
 		  
         </view>
 
         <!-- 反馈按钮 -->
         <van-button class="feedback-btn" type="primary" @click="goToFeedback">
-          Feedback information
+          Give Some Feedback
         </van-button>
       </view>
     </van-floating-panel>
@@ -67,155 +71,172 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { orderApi } from '@/utils/api/order'; // ✅ 记得路径按你项目结构确认
 
 const router = useRouter();
 
-// 订单详情
+// 订单数据
 const order = ref({
-  price: 12,
-  orderTime: "2025-02-05 11:15",
-  scooterId: "111111",
-  rentStart: "2025-02-05 11:15",
-  actualDuration: "10 min",
-  extraCost: 10,
+  orderId: '',              // order_id
+  scooterId: '',            // scooter_id
+  startTime: '',            // start_time
+  endTime: '',              // end_time
+  duration: '',             // duration (展示为分钟或者时长)
+  cost: 0,                  // cost
+  address: '',              // address
+  status: '',               // status
+  createdAt: '',            // create_at
 });
 
-// 订单地图信息
-const location = ref({ lng: 104.0668, lat: 30.5728 }); // 成都
 
+const location = ref({ lng: 0, lat: 0 });
 const markers = ref([]);
 
-// 自定义浮动面板锚点
 const anchors = [
-  100, // 最小高度
-  Math.round(0.5 * window.innerHeight), 
-  Math.round(0.6 * window.innerHeight), 
+  120,
+  Math.round(0.4 * window.innerHeight),
+  Math.round(0.55 * window.innerHeight),
 ];
 const panelHeight = ref(anchors[0]);
 
-// 获取用户 GPS 定位
-const getLocation = () => {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        location.value = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        markers.value = [
-          {
-            id: 1,
-            latitude: location.value.lat,
-            longitude: location.value.lng,
-            iconPath: "/static/order_details/marker.png",
-            width: 30,
-            height: 30,
-          },
-        ];
-        console.log("GPS 定位成功：", location.value);
-      },
-      (error) => {
-        console.error("获取 GPS 位置失败:", error);
-        getLocationFromAPI(); // 如果 GPS 失败，使用 IP 定位
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  } else {
-    console.error("浏览器不支持 GPS 定位");
-    getLocationFromAPI();
-  }
+const tencentKey = "4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ";
+
+// 格式化时间为 yyyy-MM-dd HH:mm
+const formatTime = (isoString) => {
+  const date = new Date(isoString);
+  return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
-// 使用腾讯 Web API 获取 IP 定位
-const getLocationFromAPI = async () => {
-  const tencentKey = "JG2BZ-CWQKQ-VXT56-4MFNY-5R3S5-QSF34"; 
-  const url = `https://apis.map.qq.com/ws/location/v1/ip?key=${tencentKey}`;
-
-  try {
-    const res = await fetch(url, { mode: "cors" });
-    const data = await res.json();
-    if (data.status === 0) {
-      location.value = {
-        lat: data.result.location.lat,
-        lng: data.result.location.lng,
-      };
-      markers.value = [
-        {
-          id: 1,
-          latitude: location.value.lat,
-          longitude: location.value.lng,
-          iconPath: "/static/order_details/marker.png",
-        },
-      ];
-      console.log("IP 定位成功", location.value);
-    } else {
-      console.error("IP 定位失败", data);
-    }
-  } catch (error) {
-    console.error("腾讯 Web API 获取定位失败", error);
-  }
+// 格式化分钟为“xx min”
+const formatDuration = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  return `${mins} min`;
 };
 
-// 动态加载腾讯地图 SDK
+// 加载地图 + 请求订单数据
 onMounted(() => {
-  const tencentKey = "JG2BZ-CWQKQ-VXT56-4MFNY-5R3S5-QSF34"; 
+  const rawId = router.currentRoute.value.query.orderId;
+  const orderId = Number(rawId);
+
+  if (!orderId) {
+    uni.showToast({ title: '订单 ID 无效', icon: 'none' });
+    return;
+  }
+
   if (typeof window !== "undefined") {
     const script = document.createElement("script");
     script.src = `https://map.qq.com/api/gljs?v=1.exp&key=${tencentKey}`;
     script.onload = () => {
       console.log("✅ 腾讯地图 SDK 加载成功");
-      getLocation(); 
+      fetchOrder(orderId);
     };
     document.head.appendChild(script);
   } else {
-    getLocation();
+    fetchOrder(orderId);
   }
 });
 
+const fetchOrder = async (orderId) => {
+  try {
+    const res = await orderApi.getOrderDetail(orderId);
+    if (res.code === 1 && res.data) {
+      const data = res.data;
 
-// 跳转意见反馈
+      order.value = {
+        orderId: data.order_id,
+        scooterId: data.scooter_id,
+        startTime: formatTime(data.start_time),
+        endTime: formatTime(data.end_time),
+        duration: `${data.duration} hour`,  // 或 formatDuration(data.duration * 60)
+        cost: data.cost || 0,
+        address: data.address || 'Unknown',
+        status: data.status,
+        createdAt: formatTime(data.create_at),
+      };
+
+      // 设置地图位置
+      location.value = {
+        lat: data.location_lat || 30.5728,
+        lng: data.location_lng || 104.0668,
+      };
+
+      markers.value = [{
+        id: 1,
+        latitude: location.value.lat,
+        longitude: location.value.lng,
+        iconPath: "/static/order_details/marker.png",
+        width: 30,
+        height: 30
+      }];
+    } else {
+      uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
+    }
+  } catch (err) {
+    console.error('❌ 获取订单出错:', err);
+    uni.showToast({ title: '网络异常', icon: 'none' });
+  }
+};
+
+
+// 返回按钮逻辑
+const handleBack = () => {
+  if (getCurrentPages && getCurrentPages().length > 1) {
+    uni.navigateBack();
+  } else {
+    uni.reLaunch({ url: "/pages/home/home" });
+  }
+};
+const goToSettings = () => {
+  uni.navigateTo({ url: '/pages/settings/my_settings/my_settings' });
+};
+
+// 意见反馈跳转
 const goToFeedback = () => {
   router.push("/pages/feedback/feedback");
 };
 </script>
+
 
 <style scoped>
 
 .back-btn{
   position: absolute;
   top: 50rpx;
-  left: 50rpx;
+  left: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  background-color: #ffffff;
+  background-color: #f4f8ff;
   border-radius: 25rpx;
-  width: 60rpx;
-  height: 60rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
 
-.back-icon,.person-icon {
-  font-size: 40rpx;  
-  color: #1f1f1f;
+.back-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
 }
 .person-btn {
-  position: absolute;
+ position: absolute;
   top: 50rpx;
-  right: 50rpx;
+  right: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  background-color: #ffffff;
+  background-color: #f4f8ff;
   border-radius: 25rpx;
-  width: 60rpx;
-  height: 60rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
 
-
+.person-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
+}
 /* 地图容器 */
 .map-container {
   width: 100%;
@@ -269,6 +290,28 @@ const goToFeedback = () => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+.order-tags {
+  display: flex;
+  /* flex-direction: row; */
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  background-color: #eee;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #444;
+}
+
+.status-tag {
+  background-color: #007aff;
+  color: white;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 12px;
+}
 .order-price {
   font-size: 25px;
   font-weight: bold;
@@ -329,9 +372,9 @@ const goToFeedback = () => {
   margin-top: 20px;
   width: 100%;
   border-radius: 25px;
-  font-size: 16px;
-  font-weight: bold;
-  height: 45px;
+  font-size: 34rpx;
+  /* font-weight: bold; */
+  height: 96rpx;
   background: linear-gradient(to right, #82b1ff, #007aff);
   color: white;
   box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);

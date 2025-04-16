@@ -1,7 +1,10 @@
 <template>
   <view class="container">
-    <view class="back-btn" @click="router.back()">
+    <view class="back-btn" @click="handleBack">
       <van-icon name="arrow-left" class="back-icon"/>
+    </view>
+    <view class="person-btn" @click="goToHelp">
+      <van-icon name="chat" class="person-icon" />
     </view>
 
     <view class="map-container">
@@ -18,18 +21,23 @@
 
     <van-floating-panel v-model:height="panelHeight" :anchors="anchors" class="floating-panel">
       <view class="order-details">
-        <view class="order-info">
-          <text class="order-price">In Progress</text>
-        </view>
+		<view class="order-info">
+		  <text class="order-price">In Progress</text>
+		  <view class="order-tags">
+			<view class="badge">Order ID: {{ order.orderId }}</view>
+			<view class="status-tag">In Progress</view>
+		  </view>
+		</view>
+
 
         <view class="info-box">
           <view class="info-item"><text class="label">Order ID:</text><text class="value">{{ order.orderId }}</text></view>
           <view class="info-item"><text class="label">Scooter ID:</text><text class="value">{{ order.scooterId }}</text></view>
           <view class="info-item"><text class="label">Scooter Location:</text><text class="value">{{ order.scooterLocation }}</text></view>
           <view class="info-item"><text class="label">Battery:</text><text class="value">{{ order.battery }}%</text></view>
-          <view class="info-item"><text class="label">Usage Time:</text><text class="value">{{ order.rideDuration }}</text></view>
+          <view class="info-item"><text class="label">Usage Time:</text><text class="value">{{ order.duration }}</text></view>
           <view class="divider"></view>
-          <view class="info-item"><text class="label">Cost:</text><text class="value">${{ order.cost }}</text></view>
+          <view class="info-item"><text class="label">Price:</text><text class="value">${{ order.cost }}</text></view>
         </view>
 
         <van-button class="feedback-btn" type="primary" @click="goToReturn">
@@ -43,30 +51,75 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { orderApi } from "@/utils/api/order";
+
 const router = useRouter();
 
 const order = ref({
-  orderId: "A-0023",
-  scooterId: "SCT-2048",
-  scooterLocation: "CBD Plaza, East Gate",
-  battery: 52,
-  rideDuration: "00:17:34",
-  cost: 3.6
+  orderId: '',
+  scooterId: '',
+  scooterLocation: '',
+  battery: 0,
+  duration: '',
+  cost: 0
 });
 
-const location = ref({ lng: 104.0668, lat: 30.5728 }); // mock 我的当前位置
+const location = ref({ lng: 0, lat: 0 });
 const markers = ref([]);
 const anchors = [
-  100, // 最小高度
-  Math.round(0.5 * window.innerHeight), 
-  Math.round(0.6 * window.innerHeight), 
+  120,
+  Math.round(0.4 * window.innerHeight), 
+  Math.round(0.55 * window.innerHeight), 
 ];
 const panelHeight = ref(anchors[0]);
 
-const goToReturn = () => {
-  uni.navigateTo({ url: "/pages/return_confirm/return_confirm" });
+// 🔁 加载订单详情
+onMounted(async () => {
+  const rawId = router.currentRoute.value.query.orderId;
+  const orderId = Number(rawId);
+
+  if (!orderId) {
+    uni.showToast({ title: '订单 ID 无效', icon: 'none' });
+    return;
+  }
+
+  try {
+    const res = await orderApi.getOrderDetail(orderId);
+    if (res.code === 1 && res.data) {
+      const data = res.data;
+      order.value = {
+        orderId: data.order_id,
+        scooterId: data.scooter_id,
+        scooterLocation: data.address || 'Unknown', // 原pickup_address统一为address字段
+        battery: data.battery_level || 0,
+        duration: `${data.duration} hour`,  // 后端单位是分钟
+        cost: data.cost || 0
+      };
+
+      location.value = {
+        lat: data.location_lat,
+        lng: data.location_lng
+      };
+
+      loadPositions(); // ✅ 渲染地图
+    } else {
+      uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
+    }
+  } catch (err) {
+    console.error('❌ 获取订单出错:', err);
+    uni.showToast({ title: '网络异常', icon: 'none' });
+  }
+});
+
+// 🕓 格式化骑行时长（秒 -> HH:mm:ss）
+const formatDuration = (seconds) => {
+  const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+  const s = String(seconds % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
 };
 
+// 🗺️ 渲染地图标记
 const loadPositions = () => {
   markers.value = [
     {
@@ -88,43 +141,71 @@ const loadPositions = () => {
   ];
 };
 
-onMounted(loadPositions);
+// 🔙 返回逻辑：如果没有上一个页面就跳首页
+const handleBack = () => {
+  if (getCurrentPages().length > 1) {
+    uni.navigateBack();
+  } else {
+    uni.reLaunch({
+      url: '/pages/home/home'
+    });
+  }
+};
+const goToHelp = () => {
+  uni.navigateTo({ url: '/pages/help/help' });
+};
+// 📦 去还车页面
+const goToReturn = () => {
+  if (!order.value.orderId) {
+    uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/return_confirm/return_confirm?orderId=${order.value.orderId}`
+  });
+};
 </script>
+
 
 <style scoped>
 
 .back-btn{
   position: absolute;
   top: 50rpx;
-  left: 50rpx;
+  left: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  background-color: #ffffff;
+  background-color: #f4f8ff;
   border-radius: 25rpx;
-  width: 60rpx;
-  height: 60rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
 
-.back-icon,.person-icon {
-  font-size: 40rpx;  
-  color: #1f1f1f;
+.back-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
 }
 .person-btn {
-  position: absolute;
+ position: absolute;
   top: 50rpx;
-  right: 50rpx;
+  right: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  background-color: #ffffff;
+  background-color: #f4f8ff;
   border-radius: 25rpx;
-  width: 60rpx;
-  height: 60rpx;
+  width: 80rpx;
+  height: 80rpx;
+}
+
+.person-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
 }
 
 
@@ -179,6 +260,29 @@ onMounted(loadPositions);
   font-weight: bold;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.order-tags {
+  display: flex;
+  /* flex-direction: row; */
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  background-color: #eee;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #444;
+}
+
+.status-tag {
+  background-color: #007aff;
+  color: white;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 12px;
 }
 
 .order-price {
@@ -241,9 +345,9 @@ onMounted(loadPositions);
   margin-top: 20px;
   width: 100%;
   border-radius: 25px;
-  font-size: 16px;
-  font-weight: bold;
-  height: 45px;
+  font-size: 34rpx;
+  /* font-weight: bold; */
+  height: 96rpx;
   background: linear-gradient(to right, #82b1ff, #007aff);
   color: white;
   box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);

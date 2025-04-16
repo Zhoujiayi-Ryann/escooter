@@ -238,11 +238,18 @@ const onSave = () => {
 }
 
 // 返回
+// 返回或跳首页
 const onClose = () => {
-  uni.navigateTo({
-  	url: '/pages/home/home'
-  });
-}
+  const pages = getCurrentPages();
+  if (pages.length > 1) {
+    uni.navigateBack();
+  } else {
+    uni.reLaunch({
+      url: '/pages/home/home'
+    });
+  }
+};
+
 </script>
 
 <style scoped>

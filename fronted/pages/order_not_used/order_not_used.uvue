@@ -1,7 +1,10 @@
 <template>
   <view class="container">
-    <view class="back-btn" @click="router.back()">
-      <van-icon name="arrow-left" class="back-icon"/>
+    <view class="back-btn" @click="handleBack">
+      <van-icon name="arrow-left" class="back-icon" />
+    </view>
+    <view class="person-btn" @click="goToHelp">
+      <van-icon name="chat" class="person-icon" />
     </view>
 
     <view class="map-container">
@@ -20,15 +23,23 @@
       <view class="order-details">
         <view class="order-info">
           <text class="order-price">To be used</text>
+          <view class="order-tags">
+            <view class="badge">Order ID: {{ order.orderId }}</view>
+            <view class="status-tag">Unused</view>
+          </view>
         </view>
 
         <view class="info-box">
           <view class="info-item"><text class="label">Order ID:</text><text class="value">{{ order.orderId }}</text></view>
           <view class="info-item"><text class="label">Scooter ID:</text><text class="value">{{ order.scooterId }}</text></view>
-          <view class="info-item"><text class="label">Location:</text><text class="value">{{ order.scooterLocation }}</text></view>
+          <view class="info-item"><text class="label">Scooter Location:</text><text class="value">{{ order.scooterLocation }}</text></view>
           <view class="info-item"><text class="label">Battery:</text><text class="value">{{ order.battery }}%</text></view>
-          <view class="info-item"><text class="label">Booked Time:</text><text class="value">{{ order.bookTime }}</text></view>
-          <view class="info-item"><text class="label">Ordered At:</text><text class="value">{{ order.orderTime }}</text></view>
+          <view class="info-item"><text class="label">Start Time:</text><text class="value">{{ order.bookTime }}</text></view>
+          <view class="info-item">
+            <text class="label">Duration:</text>
+            <text class="value">{{ order.duration }}</text>
+          </view>
+		  <view class="info-item"><text class="label">Ordered At:</text><text class="value">{{ order.orderTime }}</text></view>
           <view class="divider"></view>
           <view class="info-item"><text class="label">Price:</text><text class="value">${{ order.price }}</text></view>
         </view>
@@ -44,83 +55,154 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { orderApi } from '@/utils/api/order';
+
 const router = useRouter();
 
 const order = ref({
-  orderId: "A-0001",
-  scooterId: "SCT-9821",
-  scooterLocation: "Station A, West Road",
-  battery: 90,
-  bookTime: "2025-05-01 09:00",
-  orderTime: "2025-04-30 21:40",
-  price: 8
+  orderId: '',
+  scooterId: '',
+  scooterLocation: '',
+  battery: 0,
+  bookTime: '',
+  orderTime: '',
+  duration: '',
+  price: 0
 });
 
-const location = ref({ lng: 104.0668, lat: 30.5728 });
+const location = ref({ lng: 0, lat: 0 });
 const markers = ref([]);
 const anchors = [
-  100, // 最小高度
-  Math.round(0.5 * window.innerHeight), 
-  Math.round(0.6 * window.innerHeight), 
+  120,
+  Math.round(0.4 * window.innerHeight),
+  Math.round(0.65 * window.innerHeight)
 ];
 const panelHeight = ref(anchors[0]);
 
-const goToUse = () => {
-  uni.showToast({ title: "Redirecting...", icon: "none" });
-  // 跳转去骑行界面或扫码
+const fetchOrderDetail = async () => {
+  const rawId = router.currentRoute.value.query.orderId;
+  const orderId = Number(rawId);
+  if (!orderId) {
+    uni.showToast({ title: '订单 ID 无效', icon: 'none' });
+    return;
+  }
+
+  try {
+    const res = await orderApi.getOrderDetail(orderId);
+    if (res.code === 1 && res.data) {
+      const data = res.data;
+
+      order.value = {
+        orderId: data.order_id,
+        scooterId: data.scooter_id,
+        scooterLocation: data.pickup_address || 'Unknown',
+        battery: data.battery_level || 0,
+        bookTime: formatTime(data.start_time),
+        orderTime: formatTime(data.created_at || data.order_time),
+		 duration: `${data.duration} hour`,  
+        price: data.cost || 0
+      };
+
+      location.value = {
+        lat: data.location_lat,
+        lng: data.location_lng
+      };
+
+      loadScooterLocation();
+    } else {
+      uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
+    }
+  } catch (err) {
+    console.error('❌ 请求异常:', err);
+    uni.showToast({ title: '网络异常', icon: 'none' });
+  }
+};
+
+const formatTime = (isoString) => {
+  const date = new Date(isoString);
+  return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
 const loadScooterLocation = () => {
-  // mock 定位点
   markers.value = [{
     id: 1,
     latitude: location.value.lat,
     longitude: location.value.lng,
-    iconPath: "/static/order_details/scooter_marker.png",
+    iconPath: "/static/order_details/marker.png",
     width: 30,
     height: 30
   }];
 };
 
-onMounted(loadScooterLocation);
+const goToUse = () => {
+  if (!order.value.orderId) {
+    uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/order/order_in_progress?orderId=${order.value.orderId}`
+  });
+};
+
+const goToHelp = () => {
+  uni.navigateTo({ url: '/pages/help/help' });
+};
+
+const handleBack = () => {
+  if (getCurrentPages().length > 1) {
+    uni.navigateBack();
+  } else {
+    uni.reLaunch({ url: '/pages/home/home' });
+  }
+};
+
+onMounted(() => {
+  fetchOrderDetail();
+});
 </script>
+
+
 
 <style scoped>
 
 .back-btn{
   position: absolute;
   top: 50rpx;
-  left: 50rpx;
+  left: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  background-color: #ffffff;
+  background-color: #f4f8ff;
   border-radius: 25rpx;
-  width: 60rpx;
-  height: 60rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
 
-.back-icon,.person-icon {
-  font-size: 40rpx;  
-  color: #1f1f1f;
+.back-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
 }
 .person-btn {
-  position: absolute;
+ position: absolute;
   top: 50rpx;
-  right: 50rpx;
+  right: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  background-color: #ffffff;
+  background-color: #f4f8ff;
   border-radius: 25rpx;
-  width: 60rpx;
-  height: 60rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
 
+.person-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
+}
 
 /* 地图容器 */
 .map-container {
@@ -174,6 +256,30 @@ onMounted(loadScooterLocation);
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
+
+.order-tags {
+  display: flex;
+  /* flex-direction: row; */
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  background-color: #eee;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #444;
+}
+
+.status-tag {
+  background-color: #007aff;
+  color: white;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 12px;
+}
+
 
 .order-price {
   font-size: 25px;
@@ -235,9 +341,9 @@ onMounted(loadScooterLocation);
   margin-top: 20px;
   width: 100%;
   border-radius: 25px;
-  font-size: 16px;
-  font-weight: bold;
-  height: 45px;
+  font-size: 34rpx;
+  /* font-weight: bold; */
+  height: 96rpx;
   background: linear-gradient(to right, #82b1ff, #007aff);
   color: white;
   box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);

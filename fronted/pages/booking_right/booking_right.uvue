@@ -1,6 +1,6 @@
 <template>
   <view class="container">
-	<view class="close-btn" @click="goToLogin">
+	<view class="floating-btn close-btn" @click="goToHome">
       <van-icon name="close" class="close-icon" />
     </view>
     <view class="content">
@@ -15,7 +15,7 @@
     </view> 
     
     <view class="btn-content">
-      <button class="see">
+      <button class="see" @click="goToOrderDetails">
         See Details
       </button>
       <button class="back" @click="goToHome">
@@ -27,10 +27,13 @@
 
 <script>
 export default {
-	methods:{
-		goToHome() {
-		  uni.navigateTo({ url: '/pages/home/home' });
-		}
+	methods: {
+	  goToHome() {
+	    uni.navigateTo({ url: '/pages/home/home' });
+	  },
+	  goToOrderDetails() {
+	    uni.navigateTo({ url: '/pages/order_not_used/order_not_used' });
+	  }
 	}
 };
 </script>
@@ -45,7 +48,7 @@ export default {
   height: 100vh; 
   padding: 20px;
   text-align: center;
-  background-color: #f6f8fa;
+  background: linear-gradient(to bottom, #f0faff, #ffffff);
 }
 
 .close-btn {
@@ -65,7 +68,25 @@ export default {
   color:#7dafff;       /* 设置颜色 */
 }
 
+.floating-btn {
+  position: fixed;
+  top: 30px;
+  left: 30px;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
 
+.floating-btn .van-icon {
+  font-size: 28px;
+  color: #007aff;
+}
 .content {
   display: flex;
   flex-direction: column;
@@ -81,6 +102,7 @@ export default {
 
 
 h2 {
+	color: #007aff;
   font-size: 60rpx;
   font-weight: bold;
   margin: 20rpx 30rpx;
