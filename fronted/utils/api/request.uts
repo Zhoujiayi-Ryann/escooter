@@ -1,7 +1,7 @@
 // HTTP 请求工具类
 import { ApiResponse } from './types';
 
-export const BASE_URL = 'https://aadujkrrrwxp.sealoshzh.site/api';
+export const BASE_URL = 'http://localhost:8080/api';
 
 // 存储 token 的 key
 const TOKEN_KEY = 'token';

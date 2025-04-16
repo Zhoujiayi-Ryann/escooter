@@ -24,7 +24,7 @@
 			"path": "pages/register/register",
 			"style": {
 				"navigationBarTitleText": "Register",
-				"navigationBarBackgroundColor": "#a9c9fd"
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -138,6 +138,38 @@
 			"style" : 
 			{
 				"navigationBarTitleText" : "Cards"
+			}
+		},
+		{
+			"path" : "pages/forget/forget",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/new_pass/new_pass",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/order_not_used/order_not_used",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/order_in_progress/order_in_progress",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
 			}
 		}
 	],

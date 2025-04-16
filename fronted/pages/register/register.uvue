@@ -231,7 +231,12 @@ export default {
 <style scoped>
 /* 页面背景 */
 .register-page {
-  background: linear-gradient(to bottom right, #a1c4fd, #f2f6fc);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   
+    rgba(0, 123, 255, 0.1) 50%,  
+    rgba(255, 255, 255, 0) 100%  
+  );
   display: flex;
   flex-direction: column;
   height: 100%;

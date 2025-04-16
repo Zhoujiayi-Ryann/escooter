@@ -1,0 +1,306 @@
+<template>
+  <view class="forget-page">
+    <!-- 顶部插画 -->
+    <view class="header-illustration">
+      <image class="illustration-img" src="/static/login/login_illustration.png" mode="widthFix" />
+    </view>
+
+    <view class="glass-container">
+      <view class="form-container">
+        <text class="form-title">Set a new password</text>
+        <text class="form-subtitle">Please enter your new password</text>
+
+        <!-- 密码输入框 -->
+        <view class="input-wrapper" :class="{ focused: focusedInput === 'password' }">
+          <image class="input-icon" src="/static/icons/unlock-solid.svg" mode="aspectFit" />
+          <input 
+            class="uni-input" 
+            v-model="password" 
+            :type="showPassword ? 'text' : 'password'" 
+            placeholder="Enter password"
+            @focus="focusedInput = 'password'"
+            @blur="focusedInput = ''; checkPassword()"
+          />
+          <image 
+            class="eye-icon" 
+            :src="showPassword ? '/static/icons/eye-solid.svg' : '/static/icons/eye-slash-solid.svg'" 
+            mode="aspectFit" 
+            @click="togglePasswordVisibility" 
+          />
+        </view>
+        <text class="error-text" v-if="passwordError">{{ passwordErrorMessage }}</text>
+
+        <!-- 确认密码输入框 -->
+        <view class="input-wrapper" :class="{ focused: focusedInput === 'confirmPassword' }">
+          <image class="input-icon" src="/static/icons/lock-solid.svg" mode="aspectFit" />
+          <input 
+            class="uni-input" 
+            v-model="confirmPassword" 
+            :type="showConfirmPassword ? 'text' : 'password'" 
+            placeholder="Confirm password"
+            @focus="focusedInput = 'confirmPassword'"
+            @blur="focusedInput = ''"
+          />
+          <image 
+            class="eye-icon" 
+            :src="showConfirmPassword ? '/static/icons/eye-solid.svg' : '/static/icons/eye-slash-solid.svg'" 
+            mode="aspectFit" 
+            @click="toggleConfirmPasswordVisibility" 
+          />
+        </view>
+        <text class="error-text" v-if="confirmPasswordError">{{ confirmPasswordErrorMessage }}</text>
+
+        <!-- 提交按钮 -->
+        <button class="login-btn" @click="resetPassword">
+          Confirm
+        </button>
+
+        <view class="tips-wrapper" style="justify-content: center; margin-top: 40rpx;">
+          <text class="tip-link" @click="goBack">← Go to Login</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      password: '',
+      confirmPassword: '',
+      showPassword: false,
+      showConfirmPassword: false,
+      focusedInput: '',
+      passwordError: false,
+      confirmPasswordError: false,
+      passwordErrorMessage: '',
+      confirmPasswordErrorMessage: ''
+    };
+  },
+  methods: {
+    togglePasswordVisibility() {
+      this.showPassword = !this.showPassword;
+    },
+    toggleConfirmPasswordVisibility() {
+      this.showConfirmPassword = !this.showConfirmPassword;
+    },
+    checkPassword() {
+      this.passwordError = this.password.length > 15;
+      this.passwordErrorMessage = this.passwordError ? 'Password cannot exceed 15 characters.' : '';
+    },
+    resetPassword() {
+      this.checkPassword();
+
+      if (this.passwordError) {
+        uni.showToast({ title: 'Please fix input errors', icon: 'none' });
+        return;
+      }
+
+      if (this.password !== this.confirmPassword) {
+        this.confirmPasswordError = true;
+        this.confirmPasswordErrorMessage = 'Passwords do not match.';
+        uni.showToast({ title: 'Passwords do not match', icon: 'none' });
+        return;
+      }
+
+      // 清除错误状态
+      this.confirmPasswordError = false;
+      this.passwordError = false;
+
+      // 重置成功逻辑
+      uni.showToast({ title: 'Password reset!', icon: 'success' });
+      setTimeout(() => uni.redirectTo({ url: '/pages/login/login' }), 1000);
+
+      // TODO: 添加后端接口调用（传参：新密码）
+    },
+    goBack() {
+      uni.navigateTo({ url: '/pages/login/login' });
+    }
+  }
+};
+</script>
+
+<style scoped>
+.forget-page {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   
+    rgba(0, 123, 255, 0.1) 50%,  
+    rgba(255, 255, 255, 0) 100%  
+  );
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 顶部插画区域 */
+.header-illustration {
+
+  margin-top: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.illustration-img {
+  width: 60%;
+}
+
+/* 中间表单容器 */
+.glass-container {
+  margin: auto;
+  margin-top: 60rpx;
+  padding: 0 60rpx;
+  width: 90%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 60rpx;
+  padding: 40rpx;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  text-align: center;
+}
+.form-container {
+  margin-top: 20rpx;
+  padding: 0 20rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 输入框外层容器 */
+.input-wrapper {
+  position: relative;
+  margin-bottom: 25rpx;
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 70rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 50rpx;
+  transition: all 0.3s;
+}
+/* 输入框选中时高亮 */
+.input-wrapper.focused {
+  border: 2rpx solid #007aff;
+  background-color: #eaf5ff;
+}
+/* 左侧图标 */
+.input-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 25rpx;
+}
+
+/* 输入框 */
+.uni-input {
+  flex: 1;
+  height: 90rpx;
+  font-size: 28rpx;
+  border: none;
+  background-color: transparent;
+}
+
+.eye-icon {
+  width: 36rpx;
+  height: 36rpx;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+.eye-icon:hover {
+  transform: scale(1.1);
+}
+
+/* 错误提示文本 */
+.error-text {
+  font-size: 26rpx;
+  color: #0073f1;
+  margin-top: 0rpx;
+  margin-bottom: 30rpx;
+  margin-left: 25rpx;
+}
+
+/* 登录按钮 */
+.login-btn {
+  margin-top: 40rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 30rpx;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3);
+  color: #fff;
+  border-radius: 70rpx;
+  transition: all 0.3s;
+}
+
+.login-btn:active {
+  transform: scale(0.96);
+}
+
+/* 忘记密码、注册等链接区域 */
+.tips-wrapper {
+  margin-left: 50rpx;
+  margin-right: 50rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.tip-link {
+  font-size: 26rpx;
+  color: #666;
+  transition: color 0.2s;
+}
+.tip-link:hover {
+  color: #005bb5;
+}
+
+/* 第三方登录区域 */
+.third-party-section {
+  margin: auto;
+  margin-bottom: 200rpx;
+  text-align: center;
+}
+.third-party-text {
+  font-size: 24rpx;
+  color: #999;
+  margin: auto;
+}
+.third-party-icons {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.third-party-icons {
+  display: flex;
+  justify-content: center;
+  margin-top: 20rpx;
+  gap: 40rpx;
+}
+
+.third-party-icon {
+  width: 60rpx;
+  height: 60rpx;
+  padding: 15rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6); 
+  transition: all 0.3s ease-in-out;
+}
+
+.third-party-icon:hover {
+  transform: scale(1.05);
+}
+
+.form-title {
+  font-size: 45rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  text-align: center;
+}
+.form-subtitle {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 40rpx;
+  text-align: center;
+}
+</style>

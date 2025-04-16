@@ -1,19 +1,19 @@
 {
-  "hash": "77862f26",
-  "configHash": "3ea4903d",
+  "hash": "b0f216b4",
+  "configHash": "403eab69",
   "lockfileHash": "947f5f5a",
-  "browserHash": "d5e70a56",
+  "browserHash": "4ad1d953",
   "optimized": {
     "vant": {
       "src": "../../../../../node_modules/vant/es/index.mjs",
       "file": "vant.js",
-      "fileHash": "722d45cc",
+      "fileHash": "3923abb0",
       "needsInterop": false
     },
     "vant/es/locale/lang/en-US": {
       "src": "../../../../../node_modules/vant/es/locale/lang/en-US.mjs",
       "file": "vant_es_locale_lang_en-US.js",
-      "fileHash": "7019d266",
+      "fileHash": "4fbd9e94",
       "needsInterop": false
     }
   },

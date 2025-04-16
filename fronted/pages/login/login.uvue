@@ -12,8 +12,7 @@
   <!-- 中间表单区域 -->
   <view class="form-container">
     <!-- 用户名输入框 -->
-    <view class="input-wrapper">
-      <!-- 左侧图标 -->
+    <view class="input-wrapper" :class="{ focused: focusedInput === 'username' }">
       <image class="input-icon" src="/static/icons/user-solid.svg" mode="aspectFit" />
       <input 
         class="uni-input" 
@@ -21,26 +20,26 @@
         type="text" 
         placeholder="Enter username" 
         @input="validateUsername"
+        @focus="focusedInput = 'username'" 
+        @blur="focusedInput = ''"
       />
     </view>
+
     <!-- 错误提示 -->
     <text class="error-text" v-if="usernameError">Username cannot exceed 15 characters.</text>
 
     <!-- 密码输入框 -->
-    <view class="input-wrapper">
-      <!-- 左侧图标 -->
+    <view class="input-wrapper" :class="{ focused: focusedInput === 'password' }">
       <image class="input-icon" src="/static/icons/lock-solid.svg" mode="aspectFit" />
-      
-      <!-- 输入框 -->
       <input 
         class="uni-input" 
         v-model="password" 
         :type="showPassword ? 'text' : 'password'" 
         placeholder="Enter password"
         @input="validatePassword"
+        @focus="focusedInput = 'password'" 
+        @blur="focusedInput = ''"
       />
-      
-      <!-- 眼睛图标（点击切换密码可见性） -->
       <image 
         class="eye-icon" 
         :src="showPassword ? '/static/icons/eye-solid.svg' : '/static/icons/eye-slash-solid.svg'" 
@@ -48,6 +47,7 @@
         @click="togglePasswordVisibility"
       />
     </view>
+
     <!-- 错误提示 -->
     <text class="error-text" v-if="passwordError">Password cannot exceed 15 characters.</text>
 
@@ -69,7 +69,7 @@
 	</view>
 
     <!-- 第三方登录 -->
-    <view class="third-party-section">
+<!--    <view class="third-party-section">
       <text class="third-party-text">Or log in with</text>
       <view class="third-party-icons">
         <image 
@@ -90,8 +90,8 @@
           mode="aspectFit" 
           @click="loginWithWeibo"
         />
-      </view>
-    </view>
+      </view> -->
+    <!-- </view> -->
   </view>
 </template>
 
@@ -106,7 +106,8 @@ export default {
       password: '',
       showPassword: false, // 是否显示密码
       usernameError: false, // 用户名长度错误
-      passwordError: false  // 密码长度错误
+      passwordError: false,  // 密码长度错误
+	  focusedInput: ''
     }
   },
   methods: {
@@ -182,21 +183,19 @@ export default {
 	      this.passwordError = this.password.length > 15;
 	},
     forgetPassword() {
-      // TODO: 忘记密码处理或跳转
-      uni.showModal({
-        title: 'Notice',
-        content: 'Password recovery instructions'
+      uni.navigateTo({
+        url: '/pages/forget/forget'  // 根据你 forget 密码页面的路径调整
       });
-    },
-    loginWithWeChat() {
-      uni.showToast({ title: 'Logging in with WeChat', icon: 'none' });
-    },
-    loginWithQQ() {
-      uni.showToast({ title: 'Logging in with QQ', icon: 'none' });
-    },
-    loginWithWeibo() {
-      uni.showToast({ title: 'Logging in with Weibo', icon: 'none' });
     }
+    // loginWithWeChat() {
+    //   uni.showToast({ title: 'Logging in with WeChat', icon: 'none' });
+    // },
+    // loginWithQQ() {
+    //   uni.showToast({ title: 'Logging in with QQ', icon: 'none' });
+    // },
+    // loginWithWeibo() {
+    //   uni.showToast({ title: 'Logging in with Weibo', icon: 'none' });
+    // }
   }
 }
 </script>
@@ -204,7 +203,12 @@ export default {
 <style scoped>
 /* 整体背景浅色 */
 .login-page {
-  background: linear-gradient(to bottom right, #a1c4fd, #f2f6fc);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   
+    rgba(0, 123, 255, 0.1) 50%,  
+    rgba(255, 255, 255, 0) 100%  
+  );
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -253,8 +257,12 @@ export default {
   flex-direction: row;
   align-items: center;
   padding: 0 50rpx;
+  transition: all 0.3s;
 }
-
+.input-wrapper.focused {
+  border: 2rpx solid #007aff;
+  background-color: #eaf5ff;
+}
 /* 左侧图标 */
 .input-icon {
   width: 40rpx;

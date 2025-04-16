@@ -1,0 +1,380 @@
+<template>
+  <view class="forget-page">
+    <!-- 顶部插画 -->
+    <view class="header-illustration">
+      <image class="illustration-img" src="/static/login/login_illustration.png" mode="widthFix" />
+    </view>
+
+    <view class="glass-container">
+      <view class="form-container">
+        <text class="form-title">Reset your password</text>
+        <text class="form-subtitle">Enter your email to receive a reset code</text>
+
+        <!-- 邮箱输入框 -->
+		<view class="input-wrapper" :class="{ focused: focusedInput === 'email' }">
+		  <image class="input-icon" src="/static/icons/envelope-solid.svg" mode="aspectFit" />
+		  <input 
+			class="uni-input" 
+			v-model="email" 
+			type="text" 
+			placeholder="Enter your email"
+			@focus="focusedInput = 'email'"
+			@blur="focusedInput = ''"
+		  />
+		</view>
+
+        <!-- 验证码输入框 -->
+		<view class="input-wrapper" v-if="codeSent" :class="{ focused: focusedInput === 'code' }">
+		  <image class="input-icon" src="/static/icons/key-solid.svg" mode="aspectFit" />
+		  <input 
+			class="uni-input" 
+			v-model="codeInput" 
+			type="text" 
+			placeholder="Enter the code"
+			@focus="focusedInput = 'code'"
+			@blur="focusedInput = ''"
+		  />
+		  <!-- 右侧小按钮 -->
+		  <view class="resend-button" @click="resendCountdown === 0 && sendCode()" :class="{ disabled: resendCountdown > 0 }">
+			{{ resendCountdown > 0 ? `(${resendCountdown}s)` : 'Resend' }}
+		  </view>
+		</view>
+
+        <text class="error-text" v-if="emailError">{{ emailErrorMessage }}</text>
+
+        <!-- 主操作按钮 -->
+		<!-- 第一个按钮：输入邮箱时用 -->
+<!-- 		<button 
+		  v-if="!codeSent" 
+		  class="login-btn" 
+		  @click="sendCode">
+		  Send Code
+		</button> -->
+		<button class="login-btn" @click="handleAction">
+		  {{ verified ? "Set New Password" : (codeSent ? "Verify Code" : "Send Code") }}
+		</button>
+
+		
+		<!-- 第二个按钮：验证码阶段 -->
+<!-- 		<view v-else>
+		  <button class="login-btn" @click="verifyCode">
+		    Verify Code
+		  </button>
+		  <button 
+		    class="login-btn" 
+		    :disabled="resendCountdown > 0" 
+		    style="margin-top: 20rpx;"
+		    @click="sendCode">
+		    {{ resendCountdown > 0 ? `Resend (${resendCountdown}s)` : 'Resend Code' }}
+		  </button>
+		</view> -->
+
+
+        <!-- 返回登录 -->
+        <view class="tips-wrapper" style="justify-content: center; margin-top: 40rpx;">
+          <text class="tip-link" @click="goBack">← Back to Login</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      email: '',
+      codeInput: '',
+      codeSent: false,
+      emailError: false,
+      emailErrorMessage: '',
+      correctCode: '123456', // mock 正确验证码
+	  verified: false,
+	  focusedInput: '' ,
+	  resendCountdown: 0,       // 倒计时秒数（发送按钮用）
+	  codeExpireTimeout: null,  // 记录验证码有效期定时器
+	  codeExpired: false,        // 验证码是否已过期
+	  countdownTimer: null,
+    };
+  },
+  methods: {
+    handleAction() {
+      if (this.verified) {
+        // 验证成功后跳转到设置新密码页
+        uni.navigateTo({ url: '/pages/new_pass/new_pass' });
+        return;
+      }
+  
+      if (!this.codeSent) {
+        this.sendCode();
+      } else {
+        this.verifyCode();
+      }
+    },
+  
+    sendCode() {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+        this.emailError = true;
+        this.emailErrorMessage = 'Please enter a valid email.';
+        return;
+      }
+    
+      this.emailError = false;
+      this.codeSent = true;
+      this.codeExpired = false;
+    
+      uni.showToast({ title: 'Code sent to email!', icon: 'success' });
+    
+      // 清除旧定时器
+      clearInterval(this.countdownTimer);
+      clearTimeout(this.codeExpireTimeout);
+    
+      // 启动验证码有效期（2分钟）
+      this.codeExpireTimeout = setTimeout(() => {
+        this.codeExpired = true;
+        // ⚠️ 不再直接 toast 弹窗
+      }, 60000);
+    
+      // 启动倒计时（1分钟）
+      this.resendCountdown = 60;
+      this.countdownTimer = setInterval(() => {
+        this.resendCountdown--;
+        if (this.resendCountdown <= 0) {
+          clearInterval(this.countdownTimer);
+        }
+      }, 1000);
+    },
+  
+    verifyCode() {
+      if (this.codeExpired) {
+        uni.showToast({ title: 'Code has expired, please resend.', icon: 'none' });
+        return;
+      }
+    
+      if (this.codeInput === this.correctCode) {
+        this.verified = true;
+        uni.showToast({ title: 'Verified!', icon: 'success' });
+    
+        // ✅ 验证成功后，清除定时器
+        clearTimeout(this.codeExpireTimeout);
+        clearInterval(this.countdownTimer);
+    
+      } else {
+        uni.showToast({ title: 'Invalid code', icon: 'none' });
+      }
+    },
+    goBack() {
+      uni.navigateTo({ url: '/pages/login/login' });
+    }
+	
+},
+  onUnload() {
+    clearTimeout(this.codeExpireTimeout);
+    clearInterval(this.countdownTimer);
+  }
+};
+</script>
+
+
+<style scoped>
+.forget-page {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   
+    rgba(0, 123, 255, 0.1) 50%,  
+    rgba(255, 255, 255, 0) 100%  
+  );
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 顶部插画区域 */
+.header-illustration {
+
+  margin-top: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.illustration-img {
+  width: 60%;
+}
+
+/* 中间表单容器 */
+.glass-container {
+  margin: auto;
+  margin-top: 60rpx;
+  padding: 0 60rpx;
+  width: 90%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 60rpx;
+  padding: 40rpx;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  text-align: center;
+}
+.form-container {
+  margin-top: 20rpx;
+  padding: 0 20rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 输入框外层容器 */
+.input-wrapper {
+  position: relative;
+  margin-bottom: 25rpx;
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 70rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 50rpx;
+  transition: all 0.3s;
+}
+.input-wrapper.focused {
+  border: 2rpx solid #007aff;
+  background-color: #eaf5ff;
+}
+/* 左侧图标 */
+.input-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 25rpx;
+}
+
+/* 输入框 */
+.uni-input {
+  flex: 1;
+  height: 90rpx;
+  font-size: 28rpx;
+  border: none;
+  background-color: transparent;
+}
+
+.eye-icon {
+  width: 36rpx;
+  height: 36rpx;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+.eye-icon:hover {
+  transform: scale(1.1);
+}
+
+/* 错误提示文本 */
+.error-text {
+  font-size: 26rpx;
+  color: #0073f1;
+  margin-top: 0rpx;
+  margin-bottom: 30rpx;
+  margin-left: 25rpx;
+}
+
+/* 登录按钮 */
+.login-btn {
+  margin-top: 40rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 30rpx;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  box-shadow: 0px 4px 10px rgba(0, 122, 255, 0.3);
+  color: #fff;
+  border-radius: 70rpx;
+  transition: all 0.3s;
+}
+
+.login-btn:active {
+  transform: scale(0.96);
+}
+
+/* 忘记密码、注册等链接区域 */
+.tips-wrapper {
+  margin-left: 50rpx;
+  margin-right: 50rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.tip-link {
+  font-size: 26rpx;
+  color: #666;
+  transition: color 0.2s;
+}
+.tip-link:hover {
+  color: #005bb5;
+}
+
+/* 第三方登录区域 */
+.third-party-section {
+  margin: auto;
+  margin-bottom: 200rpx;
+  text-align: center;
+}
+.third-party-text {
+  font-size: 24rpx;
+  color: #999;
+  margin: auto;
+}
+.third-party-icons {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.third-party-icons {
+  display: flex;
+  justify-content: center;
+  margin-top: 20rpx;
+  gap: 40rpx;
+}
+
+.third-party-icon {
+  width: 60rpx;
+  height: 60rpx;
+  padding: 15rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6); 
+  transition: all 0.3s ease-in-out;
+}
+
+.third-party-icon:hover {
+  transform: scale(1.05);
+}
+
+.form-title {
+  font-size: 45rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  text-align: center;
+}
+.form-subtitle {
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 10rpx;
+  margin-bottom: 40rpx;
+  text-align: center;
+}
+.resend-button {
+  font-size: 26rpx;
+  color: #007aff;
+  margin-left: 20rpx;
+  flex-shrink: 0;
+  padding: 0 12rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  background-color: #eaf5ff;
+  border-radius: 30rpx;
+  transition: opacity 0.3s;
+}
+
+.resend-button.disabled {
+  color: #aaa;
+  background-color: #f2f2f2;
+  pointer-events: none;
+}
+
+</style>

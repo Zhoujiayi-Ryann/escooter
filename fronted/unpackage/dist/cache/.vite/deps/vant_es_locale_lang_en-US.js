@@ -1,4 +1,4 @@
-// ../../../../../AAA RANCHONGYU/利兹课程/大三下/软件工程项目/本地备份-更改后端版/escooter/fronted/node_modules/vant/es/locale/lang/en-US.mjs
+// ../../../../../AAA RANCHONGYU/利兹课程/大三下/软件工程项目/本地备份-0414-新增页面和管理员/escooter/fronted/node_modules/vant/es/locale/lang/en-US.mjs
 var stdin_default = {
   name: "Name",
   tel: "Phone",

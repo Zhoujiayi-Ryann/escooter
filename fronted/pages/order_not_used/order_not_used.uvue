@@ -1,0 +1,250 @@
+<template>
+  <view class="container">
+    <view class="back-btn" @click="router.back()">
+      <van-icon name="arrow-left" class="back-icon"/>
+    </view>
+
+    <view class="map-container">
+      <map
+        class="map"
+        :longitude="location.lng"
+        :latitude="location.lat"
+        :markers="markers"
+        :scale="16"
+        show-location
+      />
+    </view>
+    <cover-view class="map-overlay" />
+
+    <van-floating-panel v-model:height="panelHeight" :anchors="anchors" class="floating-panel">
+      <view class="order-details">
+        <view class="order-info">
+          <text class="order-price">To be used</text>
+        </view>
+
+        <view class="info-box">
+          <view class="info-item"><text class="label">Order ID:</text><text class="value">{{ order.orderId }}</text></view>
+          <view class="info-item"><text class="label">Scooter ID:</text><text class="value">{{ order.scooterId }}</text></view>
+          <view class="info-item"><text class="label">Location:</text><text class="value">{{ order.scooterLocation }}</text></view>
+          <view class="info-item"><text class="label">Battery:</text><text class="value">{{ order.battery }}%</text></view>
+          <view class="info-item"><text class="label">Booked Time:</text><text class="value">{{ order.bookTime }}</text></view>
+          <view class="info-item"><text class="label">Ordered At:</text><text class="value">{{ order.orderTime }}</text></view>
+          <view class="divider"></view>
+          <view class="info-item"><text class="label">Price:</text><text class="value">${{ order.price }}</text></view>
+        </view>
+
+        <van-button class="feedback-btn" type="primary" @click="goToUse">
+          Go to use vehicle
+        </van-button>
+      </view>
+    </van-floating-panel>
+  </view>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+const router = useRouter();
+
+const order = ref({
+  orderId: "A-0001",
+  scooterId: "SCT-9821",
+  scooterLocation: "Station A, West Road",
+  battery: 90,
+  bookTime: "2025-05-01 09:00",
+  orderTime: "2025-04-30 21:40",
+  price: 8
+});
+
+const location = ref({ lng: 104.0668, lat: 30.5728 });
+const markers = ref([]);
+const anchors = [
+  100, // 最小高度
+  Math.round(0.5 * window.innerHeight), 
+  Math.round(0.6 * window.innerHeight), 
+];
+const panelHeight = ref(anchors[0]);
+
+const goToUse = () => {
+  uni.showToast({ title: "Redirecting...", icon: "none" });
+  // 跳转去骑行界面或扫码
+};
+
+const loadScooterLocation = () => {
+  // mock 定位点
+  markers.value = [{
+    id: 1,
+    latitude: location.value.lat,
+    longitude: location.value.lng,
+    iconPath: "/static/order_details/scooter_marker.png",
+    width: 30,
+    height: 30
+  }];
+};
+
+onMounted(loadScooterLocation);
+</script>
+
+<style scoped>
+
+.back-btn{
+  position: absolute;
+  top: 50rpx;
+  left: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #ffffff;
+  border-radius: 25rpx;
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.back-icon,.person-icon {
+  font-size: 40rpx;  
+  color: #1f1f1f;
+}
+.person-btn {
+  position: absolute;
+  top: 50rpx;
+  right: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #ffffff;
+  border-radius: 25rpx;
+  width: 60rpx;
+  height: 60rpx;
+}
+
+
+/* 地图容器 */
+.map-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+.map-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 123, 255, 0.2) 0%,   /* 顶部浅蓝色 */
+    rgba(0, 123, 255, 0.1) 50%,  /* 中间更透明 */
+    rgba(255, 255, 255, 0) 100%  /* 底部完全透明 */
+  );
+  pointer-events: none; /* 让地图仍可交互 */
+  z-index: 2; /* 确保蒙层在地图上方 */
+}
+
+/* 浮动面板 - 磨砂玻璃风格 */
+.floating-panel {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* 订单详情 */
+.order-details {
+  padding: 20px;
+}
+
+/* 订单信息栏 */
+.order-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+  font-size: 16px;
+  font-weight: bold;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.order-price {
+  font-size: 25px;
+  font-weight: bold;
+  color:#0079fe;
+}
+
+/* 反馈按钮 */
+.feedback-icon {
+  font-size: 24px;
+  color: #007aff;
+  cursor: pointer;
+}
+
+/* 订单信息框 */
+.info-box {
+  background: rgba(229, 231, 245, 0.5);
+  backdrop-filter: blur(25px);
+  padding: 30px;
+  border-radius: 15px;
+  margin-top: 15px;
+  border: 1px solid #82b1ff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 每行信息 */
+.info-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* 信息标签 */
+.label {
+  font-size: 17px;
+  color: #33;
+  
+  font-weight: bold;
+}
+
+/* 信息值 */
+.value {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+/* 分割线 */
+.divider {
+  width: 100%;
+  height: 1px;
+  background-color: #ddd;
+  margin: 25px 0;
+}
+
+
+/* 反馈按钮 */
+.feedback-btn {
+  margin-top: 20px;
+  width: 100%;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  height: 45px;
+  background: linear-gradient(to right, #82b1ff, #007aff);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);
+}
+
+/* 按钮点击动画 */
+.feedback-btn:active {
+  transform: scale(0.98);
+}
+</style>
