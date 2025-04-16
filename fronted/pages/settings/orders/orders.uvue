@@ -1,5 +1,11 @@
 <template>
 	<view class="orders-container">
+		<view class="header">
+			<view class="back-btn" @click="navigateToHome">
+				<van-icon name="arrow-left" class="back-icon"/>
+			</view>
+			<text class="header-title">My Orders</text>
+		</view>
 		
 		<!-- 分类标签 -->
 		<van-tabs v-model="currentTab" sticky @click="onTabChange">
@@ -196,6 +202,11 @@ export default {
 		}
 	},
 	methods: {
+		navigateToHome() {
+			uni.navigateTo({
+				url: '/pages/home/home'
+			});
+		},
 		onTabChange(index) {
 			// zjy的超级超级天才想法：解决莫名奇妙的报错
 			const tabElement = index.target.closest('.van-tab');
@@ -375,6 +386,49 @@ export default {
 </script>
 
 <style>
+.orders-container {
+	background: linear-gradient(to bottom, #f0faff, #ffffff);
+	min-height: 100vh;
+}
+
+/* 添加顶部导航栏样式 */
+.header {
+	background-color: #ffffff;
+	padding: 40rpx 0;
+	text-align: center;
+	border-radius: 20rpx;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+	position: relative;
+	margin-bottom: 30rpx;
+}
+
+.back-btn {
+	position: absolute;
+	top: 25rpx;
+	left: 30rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	z-index: 10;
+	background-color: #f4f8ff;
+	border-radius: 25rpx;
+	width: 80rpx;
+	height: 80rpx;
+}
+
+.back-icon {
+	font-size: 55rpx;  
+	color: #0084ff;
+}
+
+.header-title {
+	font-size: 40rpx;
+	font-weight: bold;
+	color: #007aff;
+	text-align: center;
+}
+
 .orders-container {
 	background-color: #f5f5f5;
 	min-height: 100vh;
