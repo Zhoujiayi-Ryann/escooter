@@ -365,7 +365,7 @@
 							// 支付成功后跳转到booking_right界面
 							setTimeout(() => {
 								uni.reLaunch({
-									url: '/pages/booking_right/booking_right'
+									url: `/pages/booking_right/booking_right?orderId=${orderId}`
 								});
 							}, 2000);
 						} else {

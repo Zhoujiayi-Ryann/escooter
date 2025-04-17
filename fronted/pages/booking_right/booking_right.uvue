@@ -27,15 +27,31 @@
 
 <script>
 export default {
-	methods: {
-	  goToHome() {
-	    uni.navigateTo({ url: '/pages/home/home' });
-	  },
-	  goToOrderDetails() {
-	    uni.navigateTo({ url: '/pages/order_not_used/order_not_used' });
-	  }
-	}
+  data() {
+    return {
+      orderId: null
+    };
+  },
+  onLoad(query) {
+    this.orderId = query.orderId;
+    console.log('✅ 接收到的 orderId:', this.orderId);
+  },
+  methods: {
+    goToHome() {
+      uni.navigateTo({ url: '/pages/home/home' });
+    },
+    goToOrderDetails() {
+      if (!this.orderId) {
+        uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
+        return;
+      }
+      uni.navigateTo({
+        url: `/pages/order_not_used/order_not_used?orderId=${this.orderId}`
+      });
+    }
+  }
 };
+
 </script>
 
 <style>

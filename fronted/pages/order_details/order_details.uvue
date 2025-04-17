@@ -7,19 +7,25 @@
 	    <van-icon name="manager" class="person-icon" />
 	  </view>
 
-    <view class="map-container">
-      <map
-        id="tencentMap"
-        class="map"
-        :longitude="location.lng"
-        :latitude="location.lat"
-        :markers="markers"
-        :scale="16"
-        show-location
-      />
-    </view>
-	 <!-- 蓝色渐变蒙层 -->
-	  <cover-view class="map-overlay"></cover-view>
+<view class="map-container">
+  <!-- 地图先渲染 -->
+  <map
+    id="orderMap"
+    class="map"
+    :latitude="location.lat"
+    :longitude="location.lng"
+    :markers="markers"
+    :scale="16"
+    show-location
+    enable-3D
+    enable-poi
+    enable-overlooking
+  />
+  
+  <!-- 覆盖层后渲染，确保透明，不阻挡交互 -->
+  <cover-view class="map-overlay" />
+</view>
+
     <!-- 订单详情浮动面板 -->
     <van-floating-panel v-model:height="panelHeight" :anchors="anchors" class="floating-panel">
       <view class="order-details">
@@ -27,7 +33,7 @@
     <view class="order-info">
       <text class="order-price">Completed</text>
       <view class="order-tags">
-        <view class="badge">Order ID: {{ order.scooterId }}</view>
+        <view class="badge">Order ID: {{ order.orderId }}</view>
         <view class="status-tag">Completed</view>
       </view>
     </view>
@@ -36,7 +42,7 @@
         <view class="info-box">
 				<view class="info-item">
 				  <text class="label">Scooter ID:</text>
-				  <text class="value">{{ order.scooterId }}</text>
+				  <text class="value">SC{{ order.scooterId }}</text>
 				</view>
 				<view class="info-item">
 				  <text class="label">Start Time:</text>
@@ -60,9 +66,14 @@
         </view>
 
         <!-- 反馈按钮 -->
-        <van-button class="feedback-btn" type="primary" @click="goToFeedback">
-          Give Some Feedback
-        </van-button>
+        <view class="button-group">
+          <van-button class="half-button home-btn" type="default" @click="goHome">
+            Return Home
+          </van-button>
+          <van-button class="half-button feedback-btn" type="primary" @click="goToFeedback">
+            Give Feedback
+          </van-button>
+        </view>
       </view>
     </van-floating-panel>
   </view>
@@ -71,27 +82,27 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { orderApi } from '@/utils/api/order'; // ✅ 记得路径按你项目结构确认
+import { orderApi } from "@/utils/api/order";
 
 const router = useRouter();
 
-// 订单数据
+// 🚲 订单信息
 const order = ref({
-  orderId: '',              // order_id
-  scooterId: '',            // scooter_id
-  startTime: '',            // start_time
-  endTime: '',              // end_time
-  duration: '',             // duration (展示为分钟或者时长)
-  cost: 0,                  // cost
-  address: '',              // address
-  status: '',               // status
-  createdAt: '',            // create_at
+  orderId: '',
+  scooterId: '',
+  startTime: '',
+  endTime: '',
+  duration: '',
+  cost: 0,
+  address: '',
 });
 
-
-const location = ref({ lng: 0, lat: 0 });
+// 📍 地图位置（偏移中心点）
+const location = ref({ lat: 0, lng: 0 });
+// 📌 地图标记
 const markers = ref([]);
 
+// 浮动面板高度锚点
 const anchors = [
   120,
   Math.round(0.4 * window.innerHeight),
@@ -99,102 +110,185 @@ const anchors = [
 ];
 const panelHeight = ref(anchors[0]);
 
-const tencentKey = "4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ";
+// 时间格式化 yyyy-MM-dd HH:mm
+function formatToCST(utcStr) {
+  if (!utcStr) return 'N/A';
+  const date = new Date(utcStr);
+  if (isNaN(date.getTime())) return 'Invalid Date';
 
-// 格式化时间为 yyyy-MM-dd HH:mm
-const formatTime = (isoString) => {
-  const date = new Date(isoString);
-  return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-};
+  // 转为中国时间
+  const offsetMs = 8 * 60 * 60 * 1000;
+  const cstDate = new Date(date.getTime() + offsetMs);
 
-// 格式化分钟为“xx min”
-const formatDuration = (seconds) => {
-  const mins = Math.floor(seconds / 60);
-  return `${mins} min`;
-};
+  return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;
+}
 
-// 加载地图 + 请求订单数据
-onMounted(() => {
+// 计算持续时间（start -> end）
+function formatDuration(startStr, endStr) {
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (isNaN(start) || isNaN(end)) return 'Unknown';
+
+  const diffMs = end - start;
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}min`;
+}
+
+// ✅ 获取订单详情
+// const fetchOrderDetail = async () => {
+//   const rawId = router.currentRoute.value.query.orderId;
+//   const orderId = Number(rawId);
+
+//   try {
+//     const res = await orderApi.getOrderDetail(orderId);
+//     if (res.code === 1 && res.data) {
+//       const data = res.data;
+
+//       order.value = {
+//         orderId: data.order_id,
+//         scooterId: data.scooter_id,
+//         startTime: formatTime(data.start_time),
+//         endTime: formatTime(data.end_time),
+//         duration: formatDuration(data.start_time, data.end_time),
+//         cost: data.cost ?? 0,
+//         address: data.address || 'Unknown',
+//       };
+
+//       const lat = data.location_lat;
+//       const lng = data.location_lng;
+
+//       if (!lat || !lng) {
+//         uni.showToast({ title: '坐标无效', icon: 'none' });
+//         return;
+//       }
+
+//       location.value = { lat, lng };
+
+//       markers.value = [{
+//         id: 1,
+//         latitude: lat,
+//         longitude: lng,
+//         iconPath: "/static/order_details/maker.svg",
+//         width: 32,
+//         height: 32,
+//         callout: {
+//           content: order.value.address || `Scooter SC${order.value.scooterId}`,
+//           display: 'ALWAYS',
+//           fontSize: 15,
+//           borderRadius: 5,
+//           padding: 5,
+//           bgColor: "#ffffff",
+//           color: "#007aff",
+//         }
+//       }];
+//     }
+//   } catch (e) {
+//     uni.showToast({ title: '网络异常', icon: 'none' });
+//   }
+// };
+const fetchOrderDetail = async () => {
   const rawId = router.currentRoute.value.query.orderId;
   const orderId = Number(rawId);
-
-  if (!orderId) {
+  if (!orderId || isNaN(orderId)) {
     uni.showToast({ title: '订单 ID 无效', icon: 'none' });
     return;
   }
 
-  if (typeof window !== "undefined") {
-    const script = document.createElement("script");
-    script.src = `https://map.qq.com/api/gljs?v=1.exp&key=${tencentKey}`;
-    script.onload = () => {
-      console.log("✅ 腾讯地图 SDK 加载成功");
-      fetchOrder(orderId);
-    };
-    document.head.appendChild(script);
-  } else {
-    fetchOrder(orderId);
-  }
-});
-
-const fetchOrder = async (orderId) => {
   try {
     const res = await orderApi.getOrderDetail(orderId);
     if (res.code === 1 && res.data) {
       const data = res.data;
 
+      // 👇 确保后端字段正确
+      const lat = data.scooter_info?.latitude;
+      const lng = data.scooter_info?.longitude;
+
+      // ✅ 如果坐标为空，给出提示
+      if (!lat || !lng) {
+        uni.showToast({ title: '车辆位置信息无效', icon: 'none' });
+        return;
+      }
+
       order.value = {
         orderId: data.order_id,
         scooterId: data.scooter_id,
-        startTime: formatTime(data.start_time),
-        endTime: formatTime(data.end_time),
-        duration: `${data.duration} hour`,  // 或 formatDuration(data.duration * 60)
-        cost: data.cost || 0,
+        startTime: formatToCST(data.start_time),
+        endTime: formatToCST(data.end_time),
+        duration: formatDuration(data.start_time, data.end_time),
+        cost: data.cost ?? 0,
         address: data.address || 'Unknown',
-        status: data.status,
-        createdAt: formatTime(data.create_at),
+		scooterLocation: data.pickup_address || 'Unknown',
       };
 
-      // 设置地图位置
+      // ✅ 正确设置 location
       location.value = {
-        lat: data.location_lat || 30.5728,
-        lng: data.location_lng || 104.0668,
+        lat,
+        lng
       };
 
-      markers.value = [{
-        id: 1,
-        latitude: location.value.lat,
-        longitude: location.value.lng,
-        iconPath: "/static/order_details/marker.png",
-        width: 30,
-        height: 30
-      }];
+      loadScooterLocation();
     } else {
       uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
     }
   } catch (err) {
-    console.error('❌ 获取订单出错:', err);
-    uni.showToast({ title: '网络异常', icon: 'none' });
+    console.error('🚨 网络异常:', err);
+    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
   }
 };
 
 
-// 返回按钮逻辑
+const loadScooterLocation = () => {
+  if (!location.value.lat || !location.value.lng) return;
+
+  markers.value = [{
+    id: 1,
+    latitude: location.value.lat,
+    longitude: location.value.lng,
+    iconPath: '/static/order_details/maker.svg', 
+    width: 32,
+    height: 32,
+    callout: {
+      // ✅ 改这里：使用与页面中一致的地址
+      content: order.value.scooterLocation,
+      display: 'ALWAYS',
+      fontSize: 15,
+      borderRadius: 5,
+      padding: 5,
+      bgColor: "#ffffff",
+      color: "#007aff"
+    }
+  }];
+};
+
+// 🔙 返回按钮
 const handleBack = () => {
-  if (getCurrentPages && getCurrentPages().length > 1) {
+  if (getCurrentPages().length > 1) {
     uni.navigateBack();
   } else {
-    uni.reLaunch({ url: "/pages/home/home" });
+    uni.reLaunch({ url: '/pages/home/home' });
   }
 };
+
+// 👤 设置入口
 const goToSettings = () => {
   uni.navigateTo({ url: '/pages/settings/my_settings/my_settings' });
 };
 
-// 意见反馈跳转
+// 🗣 反馈跳转
 const goToFeedback = () => {
-  router.push("/pages/feedback/feedback");
+  uni.navigateTo({ url: '/pages/feedback/feedback' });
 };
+const goHome = () => {
+  uni.reLaunch({ url: '/pages/home/home' });
+};
+// 挂载时加载数据
+onMounted(() => {
+  fetchOrderDetail();
+});
 </script>
+
 
 
 <style scoped>
@@ -369,8 +463,6 @@ const goToFeedback = () => {
 
 /* 反馈按钮 */
 .feedback-btn {
-  margin-top: 20px;
-  width: 100%;
   border-radius: 25px;
   font-size: 34rpx;
   /* font-weight: bold; */
@@ -381,7 +473,34 @@ const goToFeedback = () => {
 }
 
 /* 按钮点击动画 */
-.feedback-btn:active {
+
+.button-group {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 20px;
+}
+
+.half-button {
+  flex: 1;
+  height: 96rpx;
+  border-radius: 25px;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+.half-button:active {
   transform: scale(0.98);
+}
+
+.home-btn{
+	border-radius: 25px;
+	font-size: 34rpx;
+	/* font-weight: bold; */
+	height: 96rpx;
+	background: #e7edf1;
+	color: #0084ff;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	border: 1px solid #82b1ff;
 }
 </style>

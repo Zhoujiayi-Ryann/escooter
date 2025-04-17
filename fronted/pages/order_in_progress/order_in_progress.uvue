@@ -8,14 +8,19 @@
     </view>
 
     <view class="map-container">
-      <map
-        class="map"
-        :longitude="location.lng"
-        :latitude="location.lat"
-        :markers="markers"
-        :scale="15"
-        show-location
-      />
+<map
+  id="orderMap"
+  class="map"
+  :latitude="location.lat"
+  :longitude="location.lng"
+  :markers="markers"
+  :scale="16"
+  show-location
+  enable-3D
+  enable-poi
+  enable-overlooking
+/>
+
     </view>
     <cover-view class="map-overlay" />
 
@@ -32,8 +37,11 @@
 
         <view class="info-box">
           <view class="info-item"><text class="label">Order ID:</text><text class="value">{{ order.orderId }}</text></view>
-          <view class="info-item"><text class="label">Scooter ID:</text><text class="value">{{ order.scooterId }}</text></view>
-          <view class="info-item"><text class="label">Scooter Location:</text><text class="value">{{ order.scooterLocation }}</text></view>
+          <view class="info-item"><text class="label">Scooter ID:</text><text class="value">SC{{ order.scooterId }}</text></view>
+          <view class="info-item">
+            <text class="label">Scooter Location:</text>
+            <view class="value address">{{ order.scooterLocation }}</view>
+          </view>
           <view class="info-item"><text class="label">Battery:</text><text class="value">{{ order.battery }}%</text></view>
           <view class="info-item"><text class="label">Usage Time:</text><text class="value">{{ order.duration }}</text></view>
           <view class="divider"></view>
@@ -59,26 +67,38 @@ const order = ref({
   orderId: '',
   scooterId: '',
   scooterLocation: '',
-  battery: 0,
+  battery: '',
   duration: '',
   cost: 0
 });
 
-const location = ref({ lng: 0, lat: 0 });
+const location = ref({ lat: 0, lng: 0 });
 const markers = ref([]);
 const anchors = [
   120,
-  Math.round(0.4 * window.innerHeight), 
-  Math.round(0.55 * window.innerHeight), 
+  Math.round(0.45 * window.innerHeight),
+  Math.round(0.6 * window.innerHeight)
 ];
 const panelHeight = ref(anchors[0]);
 
-// 🔁 加载订单详情
-onMounted(async () => {
+function formatDuration(startStr) {
+  const start = new Date(startStr);
+  const now = new Date();
+
+  if (isNaN(start.getTime())) return 'Unknown';
+
+  const diffMs = now.getTime() - start.getTime();
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${hours}h ${minutes}m`;
+}
+
+const fetchOrderDetail = async () => {
   const rawId = router.currentRoute.value.query.orderId;
   const orderId = Number(rawId);
-
-  if (!orderId) {
+  if (!orderId || isNaN(orderId)) {
     uni.showToast({ title: '订单 ID 无效', icon: 'none' });
     return;
   }
@@ -87,83 +107,92 @@ onMounted(async () => {
     const res = await orderApi.getOrderDetail(orderId);
     if (res.code === 1 && res.data) {
       const data = res.data;
+
+      // 👇 确保后端字段正确
+      const lat = data.scooter_info?.latitude;
+      const lng = data.scooter_info?.longitude;
+
+      // ✅ 如果坐标为空，给出提示
+      if (!lat || !lng) {
+        uni.showToast({ title: '车辆位置信息无效', icon: 'none' });
+        return;
+      }
+
       order.value = {
         orderId: data.order_id,
         scooterId: data.scooter_id,
-        scooterLocation: data.address || 'Unknown', // 原pickup_address统一为address字段
-        battery: data.battery_level || 0,
-        duration: `${data.duration} hour`,  // 后端单位是分钟
-        cost: data.cost || 0
+        scooterLocation: data.pickup_address || 'Unknown',
+        battery: data.scooter_info?.battery_level ?? 'N/A',
+        duration: formatDuration(data.start_time),
+        cost: data.cost ?? 0
       };
 
+      // ✅ 正确设置 location
       location.value = {
-        lat: data.location_lat,
-        lng: data.location_lng
+        lat,
+        lng
       };
 
-      loadPositions(); // ✅ 渲染地图
+      loadScooterLocation();
     } else {
       uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
     }
   } catch (err) {
-    console.error('❌ 获取订单出错:', err);
-    uni.showToast({ title: '网络异常', icon: 'none' });
+    console.error('🚨 网络异常:', err);
+    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
   }
-});
-
-// 🕓 格式化骑行时长（秒 -> HH:mm:ss）
-const formatDuration = (seconds) => {
-  const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-  const s = String(seconds % 60).padStart(2, '0');
-  return `${h}:${m}:${s}`;
 };
 
-// 🗺️ 渲染地图标记
-const loadPositions = () => {
-  markers.value = [
-    {
-      id: 1,
-      latitude: location.value.lat,
-      longitude: location.value.lng,
-      iconPath: "/static/order_details/user_marker.png",
-      width: 30,
-      height: 30
-    },
-    {
-      id: 2,
-      latitude: location.value.lat + 0.0008,
-      longitude: location.value.lng + 0.0005,
-      iconPath: "/static/order_details/scooter_marker.png",
-      width: 30,
-      height: 30
+
+const loadScooterLocation = () => {
+  if (!location.value.lat || !location.value.lng) return;
+
+  markers.value = [{
+    id: 1,
+    latitude: location.value.lat,
+    longitude: location.value.lng,
+    iconPath: '/static/order_details/maker.svg', 
+    width: 32,
+    height: 32,
+    callout: {
+      // ✅ 改这里：使用与页面中一致的地址
+      content: order.value.scooterLocation || `Scooter SC${order.value.scooterId}`,
+      display: 'ALWAYS',
+      fontSize: 15,
+      borderRadius: 5,
+      padding: 5,
+      bgColor: "#ffffff",
+      color: "#007aff"
     }
-  ];
+  }];
 };
 
-// 🔙 返回逻辑：如果没有上一个页面就跳首页
 const handleBack = () => {
   if (getCurrentPages().length > 1) {
     uni.navigateBack();
   } else {
-    uni.reLaunch({
-      url: '/pages/home/home'
-    });
+    uni.reLaunch({ url: '/pages/home/home' });
   }
 };
+
 const goToHelp = () => {
   uni.navigateTo({ url: '/pages/help/help' });
 };
-// 📦 去还车页面
+
 const goToReturn = () => {
   if (!order.value.orderId) {
     uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
     return;
   }
   uni.navigateTo({
-    url: `/pages/return_confirm/return_confirm?orderId=${order.value.orderId}`
+    url: `/pages/order_details/order_details?orderId=${order.value.orderId}`
   });
 };
+
+onMounted(() => {
+  fetchOrderDetail();
+});
+
 </script>
 
 
@@ -309,12 +338,14 @@ const goToReturn = () => {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* 每行信息 */
 .info-item {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   margin-bottom: 8px;
+  overflow: visible;
+  white-space: pre-wrap;      /* 保留换行符 */
+  word-break: break-word; 
 }
 
 /* 信息标签 */
@@ -330,6 +361,15 @@ const goToReturn = () => {
   font-size: 14px;
   color: #666;
   font-weight: 500;
+}
+
+.value.address {
+  font-size: 25rpx;
+  color: #666;
+  margin-top: 4rpx;
+  width: 160px;
+  text-align: right;           /* 右对齐文字 */
+  
 }
 /* 分割线 */
 .divider {
