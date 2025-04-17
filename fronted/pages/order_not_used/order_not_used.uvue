@@ -50,7 +50,7 @@
           </view>
 		  <view class="info-item"><text class="label">Ordered At:</text><text class="value">{{ order.orderTime }}</text></view>
           <view class="divider"></view>
-          <view class="info-item"><text class="label">Price:</text><text class="value">${{ order.price }}</text></view>
+          <view class="info-item"><text class="label">Price:</text><text class="value">￡{{ order.price }}</text></view>
         </view>
 
         <van-button class="feedback-btn" type="primary" @click="goToUse">

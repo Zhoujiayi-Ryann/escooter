@@ -59,7 +59,7 @@
 				<view class="divider"></view>
 				<view class="info-item">
 				  <text class="label">Cost:</text>
-				  <text class="value">${{ order.cost }}</text>
+				  <text class="value">￡{{ order.cost }}</text>
 				</view>
 
 		  
