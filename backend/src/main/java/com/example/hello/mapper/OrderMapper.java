@@ -195,6 +195,17 @@ public interface OrderMapper {
                         @Param("newCost") BigDecimal newCost);
 
         /**
+         * 重置延长订单
+         * 将new_end_time设为null，并将status恢复为previous_status
+         *
+         * @param orderId        订单ID
+         * @param previousStatus 之前的状态
+         * @return 影响的行数
+         */
+        @Update("UPDATE Orders SET new_end_time = NULL, status = #{previousStatus} WHERE order_id = #{orderId}")
+        int resetExtendedOrder(@Param("orderId") Integer orderId, @Param("previousStatus") String previousStatus);
+
+        /**
          * 查询指定滑板车在指定时间之后的下一个订单
          *
          * @param scooterId   滑板车ID

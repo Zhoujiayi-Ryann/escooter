@@ -50,8 +50,10 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private UserMapper userMapper;
 
+
     @Autowired
     private EmailService emailService;
+
 
     /**
      * 创建订单
@@ -74,7 +76,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. 验证开始时间和结束时间
         if (request.getEnd_time().isBefore(request.getStart_time())) {
-            log.error("End time cannot be earlier than start time: startTime={}, endTime={}", request.getStart_time(), request.getEnd_time());
+            log.error("End time cannot be earlier than start time: startTime={}, endTime={}", request.getStart_time(),
+                    request.getEnd_time());
             throw new RuntimeException("结束时间不能早于开始时间");
         }
 
@@ -227,24 +230,28 @@ public class OrderServiceImpl implements OrderService {
                 response.setOrder_id(orderId);
                 response.setStatus(OrderStatus.PAID.getValue());
                 log.info("Order {} payment successful", orderId);
-                
+
                 // 6. 发送订单确认邮件
-                try {
-                    // 查询用户信息获取邮箱
+                
+                 try {
+                 // 查询用户信息获取邮箱
                     User user = userMapper.findById(order.getUserId().longValue());
                     if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
-                        // 异步发送邮件，避免阻塞主流程
-                        new Thread(() -> {
-                            emailService.sendOrderConfirmationEmail(order, user.getEmail());
-                        }).start();
-                    } else {
-                        log.warn("Unable to send order confirmation email: User {} does not have a valid email address", order.getUserId());
+                    // 异步发送邮件，避免阻塞主流程
+                     new Thread(() -> {
+                     emailService.sendOrderConfirmationEmail(order, user.getEmail());
+                     }).start();
+                     } else {
+                    log.
+                    warn("Unable to send order confirmation email: User {} does not have a valid email address"
+                    ,
+                    order.getUserId());
                     }
-                } catch (Exception e) {
+                    } catch (Exception e) {
                     // 邮件发送失败不影响主流程
                     log.error("Error sending order confirmation email: {}", e.getMessage(), e);
-                }
-                
+                    }
+
                 return Optional.of(response);
             } else {
                 log.error("Order {} payment failed: Update status failed", orderId);
@@ -271,7 +278,8 @@ public class OrderServiceImpl implements OrderService {
         // 2. 验证订单状态
         String currentStatus = (String) detailMap.get("status");
         if (!OrderStatus.PAID.getValue().equals(currentStatus)) {
-            log.warn("Activation failed: Order {} current status is {}, activation not allowed", orderId, currentStatus);
+            log.warn("Activation failed: Order {} current status is {}, activation not allowed", orderId,
+                    currentStatus);
             throw OrderException.invalidStatus(orderId, currentStatus, OrderStatus.ACTIVE.getValue());
         }
 
@@ -336,7 +344,8 @@ public class OrderServiceImpl implements OrderService {
         // 2. 验证订单状态
         String currentStatus = (String) detailMap.get("status");
         if (!OrderStatus.ACTIVE.getValue().equals(currentStatus)) {
-            log.warn("Completion failed: Order {} current status is {}, completion not allowed", orderId, currentStatus);
+            log.warn("Completion failed: Order {} current status is {}, completion not allowed", orderId,
+                    currentStatus);
             throw OrderException.invalidStatus(orderId, currentStatus, OrderStatus.COMPLETED.getValue());
         }
 
@@ -393,7 +402,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. 验证订单状态
         if (order.getStatus() != OrderStatus.PENDING) {
-            log.warn("Deletion failed: Order {} current status is {}, deletion not allowed", orderId, order.getStatus());
+            log.warn("Deletion failed: Order {} current status is {}, deletion not allowed", orderId,
+                    order.getStatus());
             throw OrderException.invalidStatus(orderId, order.getStatus().getValue(), OrderStatus.PENDING.getValue());
         }
 
@@ -429,7 +439,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. 验证订单状态
         if (order.getStatus() != OrderStatus.COMPLETED) {
-            log.warn("Soft deletion failed: Order {} current status is {}, soft deletion not allowed", orderId, order.getStatus());
+            log.warn("Soft deletion failed: Order {} current status is {}, soft deletion not allowed", orderId,
+                    order.getStatus());
             throw OrderException.invalidStatus(orderId, order.getStatus().getValue(), OrderStatus.COMPLETED.getValue());
         }
 
@@ -467,10 +478,22 @@ public class OrderServiceImpl implements OrderService {
                 return;
             }
 
-            // 删除超时的订单
+            // 处理超时的订单
             for (Order order : timeoutOrders) {
-                log.info("Deleting timeout pending order: orderId={}", order.getOrderId());
-                orderMapper.deleteOrder(order.getOrderId(), OrderStatus.PENDING.getValue());
+                log.info("Processing timeout pending order: orderId={}", order.getOrderId());
+
+                if (order.getNewEndTime() != null) {
+                    // 如果是延长订单（new_end_time不为空）
+                    // 1. 将new_end_time设为null
+                    // 2. 将status恢复为previous_status
+                    log.info("Resetting extended order: orderId={}, previousStatus={}",
+                            order.getOrderId(), order.getPreviousStatus());
+                    orderMapper.resetExtendedOrder(order.getOrderId(), order.getPreviousStatus().getValue());
+                } else {
+                    // 如果是普通订单（new_end_time为空），直接删除
+                    log.info("Deleting timeout pending order: orderId={}", order.getOrderId());
+                    orderMapper.deleteOrder(order.getOrderId(), OrderStatus.PENDING.getValue());
+                }
             }
 
             log.info("Successfully processed {} timeout pending orders", timeoutOrders.size());
