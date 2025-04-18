@@ -62,6 +62,11 @@ public class Order {
     private BigDecimal discount;
 
     /**
+     * 延长订单的额外费用
+     */
+    private BigDecimal extendedCost;
+
+    /**
      * 取车地址
      */
     private String address;

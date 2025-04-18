@@ -50,10 +50,8 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private UserMapper userMapper;
 
-
     @Autowired
     private EmailService emailService;
-
 
     /**
      * 创建订单
@@ -220,37 +218,46 @@ public class OrderServiceImpl implements OrderService {
         }
 
         try {
-            // 4. 更新订单状态为paid
-            log.info("Updating order {} status to paid", orderId);
-            int updated = orderMapper.updateOrderStatus(orderId, OrderStatus.PAID.getValue());
+            // 4. 更新订单状态
+            String newStatus;
+            if (order.getNewEndTime() != null) {
+                // 如果是延长订单，恢复到之前的状态
+                newStatus = order.getPreviousStatus().getValue();
+                log.info("Extended order {} will be restored to previous status: {}", orderId, newStatus);
+            } else {
+                // 如果是新订单，设置为已支付状态
+                newStatus = OrderStatus.PAID.getValue();
+                log.info("New order {} will be set to paid status", orderId);
+            }
 
-            // 5. 如果更新成功，返回支付结果
+            // 5. 更新订单状态
+            log.info("Updating order {} status to {}", orderId, newStatus);
+            int updated = orderMapper.updateOrderStatus(orderId, newStatus);
+
+            // 6. 如果更新成功，返回支付结果
             if (updated > 0) {
                 PayOrderResponse response = new PayOrderResponse();
                 response.setOrder_id(orderId);
-                response.setStatus(OrderStatus.PAID.getValue());
+                response.setStatus(newStatus);
                 log.info("Order {} payment successful", orderId);
 
-                // 6. 发送订单确认邮件
-                
-                 try {
-                 // 查询用户信息获取邮箱
+                // 7. 发送订单确认邮件
+                try {
+                    // 查询用户信息获取邮箱
                     User user = userMapper.findById(order.getUserId().longValue());
                     if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
-                    // 异步发送邮件，避免阻塞主流程
-                     new Thread(() -> {
-                     emailService.sendOrderConfirmationEmail(order, user.getEmail());
-                     }).start();
-                     } else {
-                    log.
-                    warn("Unable to send order confirmation email: User {} does not have a valid email address"
-                    ,
-                    order.getUserId());
+                        // 异步发送邮件，避免阻塞主流程
+                        new Thread(() -> {
+                            emailService.sendOrderConfirmationEmail(order, user.getEmail());
+                        }).start();
+                    } else {
+                        log.warn("Unable to send order confirmation email: User {} does not have a valid email address",
+                                order.getUserId());
                     }
-                    } catch (Exception e) {
+                } catch (Exception e) {
                     // 邮件发送失败不影响主流程
                     log.error("Error sending order confirmation email: {}", e.getMessage(), e);
-                    }
+                }
 
                 return Optional.of(response);
             } else {
@@ -486,9 +493,20 @@ public class OrderServiceImpl implements OrderService {
                     // 如果是延长订单（new_end_time不为空）
                     // 1. 将new_end_time设为null
                     // 2. 将status恢复为previous_status
+                    // 3. 将extended_duration设为0
+                    // 4. 将cost减去extended_cost
+                    // 5. 将extended_cost设为null
                     log.info("Resetting extended order: orderId={}, previousStatus={}",
                             order.getOrderId(), order.getPreviousStatus());
-                    orderMapper.resetExtendedOrder(order.getOrderId(), order.getPreviousStatus().getValue());
+
+                    // 计算新的cost
+                    BigDecimal newCost = order.getCost().subtract(order.getExtendedCost());
+
+                    // 更新订单
+                    orderMapper.resetExtendedOrderWithCost(
+                            order.getOrderId(),
+                            order.getPreviousStatus().getValue(),
+                            newCost);
                 } else {
                     // 如果是普通订单（new_end_time为空），直接删除
                     log.info("Deleting timeout pending order: orderId={}", order.getOrderId());
@@ -506,73 +524,78 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Optional<OrderResponse> extendOrder(ExtendOrderRequest request) {
-        // 1. 检查订单是否存在且状态为active或paid
-        final Order order = orderMapper.findById(request.getOrder_id());
-        if (order == null) {
-            throw new RuntimeException("Order does not exist");
+        try {
+            // 1. 获取订单信息
+            Order order = orderMapper.findById(request.getOrder_id());
+            if (order == null) {
+                throw new OrderException("订单不存在");
+            }
+
+            // 2. 验证订单状态
+            if (order.getStatus() != OrderStatus.ACTIVE && order.getStatus() != OrderStatus.PAID) {
+                throw new OrderException("只有进行中或已支付的订单可以延长");
+            }
+
+            // 3. 验证新的结束时间
+            if (!request.getNew_end_time().isAfter(order.getEndTime())) {
+                throw new OrderException("新的结束时间必须晚于当前结束时间");
+            }
+
+            // 4. 检查时间段是否与其他订单重叠
+            List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
+                    order.getScooterId(),
+                    order.getStartTime(),
+                    request.getNew_end_time());
+            overlappingOrders.removeIf(o -> o.getOrderId().equals(order.getOrderId()));
+            if (!overlappingOrders.isEmpty()) {
+                throw new OrderException("该时间段内滑板车已被预订");
+            }
+
+            // 5. 计算延长时间（小时）
+            Duration duration = Duration.between(order.getEndTime(), request.getNew_end_time());
+            float newExtendedDuration = duration.toMinutes() / 60.0f;
+            float totalExtendedDuration = order.getExtendedDuration() + newExtendedDuration;
+
+            // 6. 计算延长费用
+            BigDecimal currentPrice = orderMapper.getScooterPrice(order.getScooterId());
+            BigDecimal extendedPrice = currentPrice.add(new BigDecimal("2.00")); // 延长部分每小时贵2元
+            BigDecimal extendedCost = extendedPrice.multiply(BigDecimal.valueOf(newExtendedDuration))
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            // 7. 更新订单
+            int result = orderMapper.extendOrder(
+                    order.getOrderId(),
+                    request.getNew_end_time(),
+                    totalExtendedDuration,
+                    extendedCost,
+                    order.getStatus().getValue());
+
+            if (result <= 0) {
+                throw new OrderException("延长订单失败");
+            }
+
+            // 8. 获取更新后的订单信息
+            Order updatedOrder = orderMapper.findById(order.getOrderId());
+
+            // 9. 构建响应
+            OrderResponse response = new OrderResponse();
+            response.setOrder_id(updatedOrder.getOrderId());
+            response.setUser_id(updatedOrder.getUserId());
+            response.setScooter_id(updatedOrder.getScooterId());
+            response.setStart_time(updatedOrder.getStartTime());
+            response.setEnd_time(updatedOrder.getNewEndTime());
+            response.setCost(updatedOrder.getCost());
+            response.setStatus(updatedOrder.getStatus().getValue());
+            response.setPickup_address(updatedOrder.getAddress());
+
+            return Optional.of(response);
+        } catch (OrderException e) {
+            log.error("延长订单失败: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("延长订单失败", e);
+            throw new OrderException("延长订单失败: " + e.getMessage());
         }
-
-        if (order.getStatus() != OrderStatus.ACTIVE && order.getStatus() != OrderStatus.PAID) {
-            throw new RuntimeException("Only active or paid orders can be extended");
-        }
-
-        // 2. 检查新的结束时间是否晚于当前结束时间
-        if (!request.getNew_end_time().isAfter(order.getEndTime())) {
-            throw new RuntimeException("New end time must be later than the current end time");
-        }
-
-        // 3. 检查时间段是否与其他订单重叠（排除completed状态）
-        List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
-                order.getScooterId(),
-                order.getStartTime(),
-                request.getNew_end_time());
-
-        // 过滤掉当前订单
-        overlappingOrders.removeIf(o -> o.getOrderId().equals(order.getOrderId()));
-
-        if (!overlappingOrders.isEmpty()) {
-            throw new RuntimeException("The scooter is already booked during this time period");
-        }
-
-        // 4. 计算延长时间（小时）
-        Duration duration = Duration.between(order.getEndTime(), request.getNew_end_time());
-        float newExtendedDuration = duration.toMinutes() / 60.0f;
-        // 总延长时间 = 原有延长时间 + 新的延长时间
-        float totalExtendedDuration = order.getExtendedDuration() + newExtendedDuration;
-
-        // 5. 计算新的费用
-        // 获取滑板车当前价格
-        BigDecimal currentPrice = orderMapper.getScooterPrice(order.getScooterId());
-        // 延长部分的价格比原来贵2元
-        BigDecimal extendedPrice = currentPrice.add(new BigDecimal("2.00"));
-        // 计算延长部分的费用
-        BigDecimal extendedCost = extendedPrice.multiply(BigDecimal.valueOf(newExtendedDuration))
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
-        // 总费用 = 原费用 + 延长费用
-        BigDecimal newCost = order.getCost().add(extendedCost);
-
-        // 6. 更新订单
-        orderMapper.extendOrder(
-                order.getOrderId(),
-                request.getNew_end_time(),
-                totalExtendedDuration,
-                newCost);
-
-        // 7. 重新查询订单以获取最新数据
-        final Order updatedOrder = orderMapper.findById(order.getOrderId());
-
-        // 8. 构建响应
-        OrderResponse response = new OrderResponse();
-        response.setOrder_id(updatedOrder.getOrderId());
-        response.setUser_id(updatedOrder.getUserId());
-        response.setScooter_id(updatedOrder.getScooterId());
-        response.setStart_time(updatedOrder.getStartTime());
-        response.setEnd_time(updatedOrder.getEndTime()); // 使用更新后的结束时间
-        response.setCost(newCost);
-        response.setPickup_address(updatedOrder.getAddress());
-        response.setStatus(updatedOrder.getStatus().getValue());
-
-        return Optional.of(response);
     }
 
     @Override
