@@ -1,171 +1,321 @@
 <template>
-  <view class="container">
+  <view class="edit-profile-page">
+    <!-- 返回按钮 -->
+	<view class="header">
+		<view class="back-btn" @click="handleBack">
+		 <van-icon name="arrow-left" class="back-icon"/>
+		</view>
+	  <text class="header-title">Edit Profile</text>
+	</view>
 
-    <view class="edit-page">
-
-      <!-- 头像修改 -->
-      <van-cell title="Avatar" is-link center @click="chooseAvatar">
-        <template #icon>
-          <van-image round width="60" height="60" :src="user.avatar" />
-        </template>
-      </van-cell>
-
-      <!-- 表单 -->
-      <van-cell-group class="form-group">
-
-        <van-field
-          label="Name"
-          v-model="user.name"
-          placeholder="Enter your name"
-          clearable
-        />
-
-        <van-field
-          label="Email"
-          v-model="user.email"
-          placeholder="Enter your email"
-          clearable
-        />
-
-        <van-field
-          label="Phone"
-          v-model="user.phone"
-          placeholder="Enter your phone number"
-          clearable
-        />
-
-        <van-field
-          label="Password"
-          v-model="user.password"
-          placeholder="Enter new password"
-          type="password"
-          clearable
-        />
-
-      </van-cell-group>
-
-      <!-- 保存按钮 -->
-      <view class="button-group">
-        <van-button type="primary" block round @click="save">Save</van-button>
+    <!-- 头像区域 -->
+    <!-- 头像显示与修改区域 -->
+    <view class="form-item avatar-form">
+      <view class="label">Avatar</view>
+      <view class="avatar-preview" @click="chooseAvatar">
+        <image class="avatar-img" :src="user.avatar || defaultAvatar" mode="aspectFill" />
       </view>
-
     </view>
 
+
+    <!-- 表单字段 -->
+    <view class="form-item" :class="{ focused: editing === 'name' }">
+      <view class="label">Name</view>
+      <input v-if="editing === 'name'" v-model="form.name" class="input" placeholder="Enter name" />
+      <view v-else class="value">{{ user.name }}</view>
+      <van-button size="small" :type="editing === 'name' ? 'success' : 'primary'" class="edit-btn" @click="toggleEdit('name')">
+        {{ editing === 'name' ? 'Save' : 'Edit' }}
+      </van-button>
+    </view>
+
+    <view class="form-item" :class="{ focused: editing === 'email' }">
+      <view class="label">Email</view>
+      <input v-if="editing === 'email'" v-model="form.email" class="input" placeholder="Enter email" />
+      <view v-else class="value">{{ user.email }}</view>
+      <van-button size="small" :type="editing === 'email' ? 'success' : 'primary'" class="edit-btn" @click="toggleEdit('email')">
+        {{ editing === 'email' ? 'Save' : 'Edit' }}
+      </van-button>
+    </view>
+
+    <view class="form-item" :class="{ focused: editing === 'phone' }">
+      <view class="label">Phone</view>
+      <input v-if="editing === 'phone'" v-model="form.phone" class="input" placeholder="Enter phone" />
+      <view v-else class="value">{{ user.phone }}</view>
+      <van-button size="small" :type="editing === 'phone' ? 'success' : 'primary'" class="edit-btn" @click="toggleEdit('phone')">
+        {{ editing === 'phone' ? 'Save' : 'Edit' }}
+      </van-button>
+    </view>
+
+    <view class="form-item">
+      <view class="label">Password</view>
+      <view class="value">******</view>
+      <van-button
+        size="small"
+        type="primary"
+        class="edit-btn"
+        @click="goToChangePassword"
+      >
+        Edit
+      </van-button>
+    </view>
+	<view class="bottom-hint">
+	  <text>Remember to save your changes.</text>
+	</view>
   </view>
+  
 </template>
 
 <script>
 export default {
-  data() {
-    return {
-      user: {
-        name: 'Cindy',
-        email: '',
-        phone: '',
-        password: '',
-        avatar: '/static/settings/userp.jpg'
+data() {
+  return {
+    editing: '', 
+	
+    user: {
+      name: 'Cindy',
+      email: 'cindy@example.com',
+      phone: '1234567890',
+      avatar: '/static/settings/userp.jpg',
+    },
+    defaultAvatar: '/static/settings/userp.jpg',
+    form: {
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      avatar: '',
+    }
+  };
+},
+methods: {
+  chooseAvatar() {
+    uni.chooseImage({
+      count: 1,
+      success: (res) => {
+        this.user.avatar = res.tempFilePaths[0];
+        uni.showToast({ title: 'Avatar updated', icon: 'success' });
+        // TODO: 如果需要上传到后端，这里加上传接口
       }
+    });
+  },
+  toggleEdit(field) {
+    if (this.editing === field) {
+      // 验证 + 保存
+      if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email)) {
+        uni.showToast({ title: 'Invalid email format', icon: 'none' });
+        return;
+      }
+      if (field === 'phone' && !/^[0-9]{6,15}$/.test(this.form.phone)) {
+        uni.showToast({ title: 'Invalid phone number', icon: 'none' });
+        return;
+      }
+	  if (field === 'password') {
+	      // 跳转到修改密码页面
+	      uni.navigateTo({
+	        url: '/pages/settings/change_password/change_password'
+	      });
+	      return;
+	    }
+
+      this.user[field] = this.form[field];
+      this.editing = '';
+      uni.showToast({ title: 'Updated', icon: 'success' });
+    } else {
+      this.form[field] = this.user[field] || '';
+      this.editing = field;
     }
   },
-  methods: {
-    chooseAvatar() {
-      uni.chooseImage({
-        count: 1,
-        success: (res) => {
-          this.user.avatar = res.tempFilePaths[0];
-        }
+  handleBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      uni.navigateBack();
+    } else {
+      uni.reLaunch({ url: '/pages/settings/my_settings/my_settings' });
+    }
+  },
+  goToChangePassword() {
+      uni.navigateTo({
+        url: '/pages/settings/change_password/change_password'
       });
     },
-    save() {
-      // 这里可以接接口
-      uni.showToast({
-        title: 'Saved successfully',
-        icon: 'success'
-      });
-    }
-  }
 }
+
+};
 </script>
 
 <style scoped>
-.mine-page {
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 123, 255, 0.2) 0%,   
-    rgba(0, 123, 255, 0.1) 50%,  
-    rgba(255, 255, 255, 0) 100%  
-  );
-  min-height: 100vh;
-  padding: 20rpx;
-
-  box-sizing: border-box;
+.edit-profile-page {
   display: flex;
   flex-direction: column;
-  gap: 15rpx;
-}
-
-/* 用户信息 */
-.user-info {
-  margin-top: 100rpx;  
-  border-radius: 24rpx;
-  padding: 30rpx;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-  background: rgba(255,255,255,0.95) !important;
-}
-
-/* 用户文本 */
-.username {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: #222;
-  margin-left: 25rpx;
-}
-.userid {
-  font-size: 26rpx;
-  color: #777;
-  margin-top: 6rpx;
-  margin-left: 25rpx;
-}
-.edit-page {
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 123, 255, 0.2) 0%,
-    rgba(0, 123, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
   min-height: 100vh;
-  padding: 20rpx;
+  padding: 40rpx;
+  background: linear-gradient(to bottom, #e0f0ff, #ffffff);
   box-sizing: border-box;
+}
+
+
+
+.back-btn{
+  position: absolute;
+  top: 25rpx;
+  left: 30rpx;
   display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-/* form 样式 */
-.form-group {
-  border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-/* button 样式 */
-.button-group {
-  margin-top: 40rpx;
-}
-
-.van-button {
-  font-size: 30rpx;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #f4f8ff;
+  border-radius: 25rpx;
+  width: 80rpx;
   height: 80rpx;
 }
 
-/* cell 样式 */
-.van-cell {
-  margin-bottom: 20rpx;
+.back-icon{
+  font-size: 55rpx;  
+  color: #0084ff;
+}
+.header {
+  background-color: #ffffff;
+  padding: 40rpx 0;
+  text-align: center;
+  border-radius: 20rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.van-cell__title {
+.header-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #007aff;
+  text-align: center;
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #007aff;
+}
+
+.avatar-section {
+  text-align: center;
+  margin-bottom: 60rpx;
+}
+.avatar-img {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.avatar-label {
+  display: block;
+  font-size: 28rpx;
+  color: #777;
+  margin-top: 12rpx;
+}
+
+.form-item {
+  background: rgba(255, 255, 255, 0.95);
+  margin-bottom: 30rpx;
+  padding: 30rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+.label {
   font-size: 30rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+  color: #333;
+}
+
+.value {
+  font-size: 32rpx;
+  color: #666;
+  transition: color 0.3s;
+}
+
+.input {
+  font-size: 32rpx;
+  padding: 20rpx 0;
+  border: none;
+  border-bottom: 2rpx solid #007aff;
+  width: 100%;
+  background: transparent;
+  color: #111;
+  font-weight: 500;
+  transition: border-color 0.3s;
+}
+
+.edit-btn {
+  position: absolute;
+  right: 30rpx;
+  top: 40%;
+  transform: translateY(-50%);
+  font-size: 26rpx;
+  padding: 0 20rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  border-radius: 28rpx;
+}
+
+/* 保存按钮的文字样式加强 */
+:deep(.van-button--success) {
+  background: #007aff !important;
+  color: #eef4ff !important;
+  border: 1rpx solid #cce0ff !important;
+  font-weight: 500;
+}
+
+/* 编辑按钮更清爽 */
+:deep(.van-button--primary) {
+  background: #eef4ff !important;
+  color: #007aff !important;
+  border: 1rpx solid #cce0ff !important;
+  font-weight: 500;
+}
+
+.edit-btn:active {
+  opacity: 0.8;
+  transform: translateY(-50%) scale(0.97);
+}
+
+.focused {
+  border: 2rpx solid #007aff;
+  background-color: #eaf5ff;
+  box-shadow: 0 0 12rpx rgba(0, 122, 255, 0.15);
+}
+
+.avatar-form {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.95);
+  margin-top: 30rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.avatar-preview {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bottom-hint {
+  width: 100%;
+  text-align: center;
+  align-items: center;
+  font-size: 28rpx;
+  color: #888;
+  padding: 40rpx 0;
+  margin-top: auto;
 }
 
 </style>

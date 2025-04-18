@@ -8,7 +8,7 @@
 
     <!-- 标题 -->
     <view class="header">
-	 <van-icon name="credit-pay" size="30" />
+	 <van-icon name="credit-pay" size="30" color="#007aff"/>
       <text class="title">Add Bank Card </text>
     </view>
 
@@ -16,7 +16,6 @@
     <view class="input-card" @click="focus('card')">
       <van-icon name="credit-pay" size="20" />
       <input v-model="cardNumber" placeholder="Credit Card Number" readonly />
-      <van-icon name="photograph" size="20" />
     </view>
 
     <!-- 有效期 + CVV + 国家 -->
@@ -297,6 +296,7 @@ const onClose = () => {
   margin-left: 20rpx;
   align-items: center;
   text-align: center;
+  color: #007aff;
 }
 
 .input-card {

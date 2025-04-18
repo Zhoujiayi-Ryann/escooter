@@ -4,7 +4,7 @@
       <van-icon name="arrow-left" class="back-icon"/>
     </view>
     <view class="person-btn" @click="goToHelp">
-      <van-icon name="chat" class="person-icon" />
+      <van-icon name="service-o" class="person-icon" />
     </view>
 
     <view class="map-container">

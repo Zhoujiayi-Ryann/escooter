@@ -22,14 +22,16 @@
 	  <view class="mileage-card">
 	    <van-row gutter="20">
 	      <van-col span="12" class="mileage-item">
-	        <van-icon name="guide-o" class="mileage-icon" />
-	        <view class="mileage-value">{{ mileage.km }}</view>
-	        <view class="mileage-label">KM</view>
+	        <van-icon name="clock-o" class="mileage-icon" />
+	        
+	        <view class="mileage-label">Usage Hours</view>
+			<view class="mileage-value">{{ mileage.hours }}</view>
 	      </van-col>
 	      <van-col span="12" class="mileage-item">
-	        <van-icon name="location-o" class="mileage-icon" />
-	        <view class="mileage-value">{{ mileage.trips }}</view>
-	        <view class="mileage-label">Trips</view>
+	        <van-icon name="balance-o" class="mileage-icon" />
+	        
+	        <view class="mileage-label">Total Spent</view>
+			<view class="mileage-value">￡{{ mileage.spent.toFixed(2) }}</view>
 	      </van-col>
 	    </van-row>
 	  </view>
@@ -39,29 +41,29 @@
       <view class="page-section">
 		  <!-- Order Section -->
 		  <van-grid :column-num="4" border>
-			<van-grid-item icon="orders-o" text="All Orders" @click="navigateToOrder(0)" />
-			<van-grid-item icon="clock-o" text="Unused" :badge="orderStatus.unused" @click="navigateToOrder(1)" />
-			<van-grid-item icon="pending-payment" text="In Progress" @click="navigateToOrder(2)" />
-			<van-grid-item icon="passed" text="Completed" @click="navigateToOrder(3)" />
+		    <van-grid-item icon="orders-o" text="All Orders" @click="navigateTo('orders')" />
+		    <van-grid-item icon="card" text="My Card" @click="navigateTo('card')" />
+		    <van-grid-item icon="service-o" text="Help" @click="navigateTo('help')" />
+		    <van-grid-item icon="bell" text="Notifications" @click="navigateTo('notify')" />
 		  </van-grid>
 
 
 
         <!-- Function List -->
         <van-cell-group class="function-group">
-          <van-cell title="Feedback" is-link size="large" />
-		  <van-cell title="Add Card" is-link size="large" @click="goCard" />
-          <van-cell title="Settings" is-link size="large" />
+          <van-cell title="Add Card" is-link size="large" @click="goCard" />
+          <van-cell title="Feedback" is-link size="large" @click="goFeedback" />
+          <van-cell title="Edit Profile" is-link size="large" @click="gochange"/>
           <van-cell title="Log Out" is-link size="large" @click="handleLogout" />
-		  
         </van-cell-group>
+		  
 
       </view>
 
       <!-- Bottom Tabbar -->
       <van-tabbar route fixed>
         <van-tabbar-item icon="home-o" to="/pages/home/home">Home</van-tabbar-item>
-        <van-tabbar-item icon="user-o" to="/pages/settings/my_settings/my_settings" :badge="1">Mine</van-tabbar-item>
+        <van-tabbar-item icon="user-o" to="/pages/settings/my_settings/my_settings" >Mine</van-tabbar-item>
       </van-tabbar>
 
     </view>
@@ -84,8 +86,8 @@ export default {
         unused: 1
       },
       mileage: {
-        km: 256.8,
-        trips: 57
+        hours: 0,
+        spent: 0
       }
     }
   },
@@ -134,30 +136,27 @@ export default {
         url: '/pages/settings/card/card'
       });
     },
-	navigateTo(page, status = null) {
-		this.showSidebar = false;
-
-		const pageMapping = {
-			wallet: '/pages/wallet/wallet',
-			orders: '/pages/settings/orders/orders',
-			help: '/pages/help/help',
-			card: '/pages/settings/card/card'
-		};
-
-		if (pageMapping[page]) {
-			let url = pageMapping[page];
-
-			// 如果需要传 status 参数，比如跳转 orders 并指定 tab 分类
-			if (status !== null) {
-				url += `?status=${status}`;
-			}
-
-			uni.navigateTo({ url });
-		}
+	navigateTo(page) {
+	  const map = {
+	    orders: '/pages/settings/orders/orders',
+	    card: '/pages/cards/cards',
+	    help: '/pages/help/help',
+	    notify: '/pages/notification/notification'
+	  };
+	
+	  if (map[page]) {
+	    uni.navigateTo({ url: map[page] });
+	  }
 	},
-	navigateToOrder(status) {
+
+	goFeedback() {
 	  uni.navigateTo({
-	    url: `/pages/settings/orders/orders?status=${status}`
+	    url: '/pages/feedback/feedback'
+	  });
+	},
+	gochange() {
+	  uni.navigateTo({
+	    url: '/pages/settings/change/change'
 	  });
 	}
   }
