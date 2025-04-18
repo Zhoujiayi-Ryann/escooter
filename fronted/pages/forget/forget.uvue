@@ -43,32 +43,9 @@
         <text class="error-text" v-if="emailError">{{ emailErrorMessage }}</text>
 
         <!-- 主操作按钮 -->
-		<!-- 第一个按钮：输入邮箱时用 -->
-<!-- 		<button 
-		  v-if="!codeSent" 
-		  class="login-btn" 
-		  @click="sendCode">
-		  Send Code
-		</button> -->
 		<button class="login-btn" @click="handleAction">
 		  {{ verified ? "Set New Password" : (codeSent ? "Verify Code" : "Send Code") }}
 		</button>
-
-		
-		<!-- 第二个按钮：验证码阶段 -->
-<!-- 		<view v-else>
-		  <button class="login-btn" @click="verifyCode">
-		    Verify Code
-		  </button>
-		  <button 
-		    class="login-btn" 
-		    :disabled="resendCountdown > 0" 
-		    style="margin-top: 20rpx;"
-		    @click="sendCode">
-		    {{ resendCountdown > 0 ? `Resend (${resendCountdown}s)` : 'Resend Code' }}
-		  </button>
-		</view> -->
-
 
         <!-- 返回登录 -->
         <view class="tips-wrapper" style="justify-content: center; margin-top: 40rpx;">
@@ -80,6 +57,8 @@
 </template>
 
 <script>
+import { passwordApi } from '../../utils/api/password/index.uts';
+
 export default {
   data() {
     return {
@@ -88,20 +67,22 @@ export default {
       codeSent: false,
       emailError: false,
       emailErrorMessage: '',
-      correctCode: '123456', // mock 正确验证码
-	  verified: false,
-	  focusedInput: '' ,
+      verified: false,
+	  focusedInput: '',
 	  resendCountdown: 0,       // 倒计时秒数（发送按钮用）
 	  codeExpireTimeout: null,  // 记录验证码有效期定时器
 	  codeExpired: false,        // 验证码是否已过期
 	  countdownTimer: null,
+      isLoading: false
     };
   },
   methods: {
     handleAction() {
       if (this.verified) {
         // 验证成功后跳转到设置新密码页
-        uni.navigateTo({ url: '/pages/new_pass/new_pass' });
+        uni.navigateTo({ 
+          url: `/pages/new_pass/new_pass?email=${encodeURIComponent(this.email)}&code=${encodeURIComponent(this.codeInput)}` 
+        });
         return;
       }
   
@@ -120,29 +101,46 @@ export default {
       }
     
       this.emailError = false;
-      this.codeSent = true;
-      this.codeExpired = false;
-    
-      uni.showToast({ title: 'Code sent to email!', icon: 'success' });
-    
-      // 清除旧定时器
-      clearInterval(this.countdownTimer);
-      clearTimeout(this.codeExpireTimeout);
-    
-      // 启动验证码有效期（2分钟）
-      this.codeExpireTimeout = setTimeout(() => {
-        this.codeExpired = true;
-        // ⚠️ 不再直接 toast 弹窗
-      }, 60000);
-    
-      // 启动倒计时（1分钟）
-      this.resendCountdown = 60;
-      this.countdownTimer = setInterval(() => {
-        this.resendCountdown--;
-        if (this.resendCountdown <= 0) {
-          clearInterval(this.countdownTimer);
-        }
-      }, 1000);
+      this.isLoading = true;
+      
+      // 调用后端API发送验证码
+      passwordApi.forgotPassword(this.email)
+        .then(res => {
+          if (res.code === 1) {
+            this.codeSent = true;
+            this.codeExpired = false;
+            uni.showToast({ title: 'Code sent to email!', icon: 'success' });
+            
+            // 清除旧定时器
+            clearInterval(this.countdownTimer);
+            clearTimeout(this.codeExpireTimeout);
+            
+            // 启动验证码有效期（2分钟）
+            this.codeExpireTimeout = setTimeout(() => {
+              this.codeExpired = true;
+            }, 120000); // 两分钟有效期
+            
+            // 启动倒计时（1分钟）
+            this.resendCountdown = 60;
+            this.countdownTimer = setInterval(() => {
+              this.resendCountdown--;
+              if (this.resendCountdown <= 0) {
+                clearInterval(this.countdownTimer);
+              }
+            }, 1000);
+          } else {
+            this.emailError = true;
+            this.emailErrorMessage = res.msg || 'Failed to send verification code.';
+          }
+        })
+        .catch(err => {
+          this.emailError = true;
+          this.emailErrorMessage = 'Server error, please try again later.';
+          console.error('发送验证码失败:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
     },
   
     verifyCode() {
@@ -150,24 +148,41 @@ export default {
         uni.showToast({ title: 'Code has expired, please resend.', icon: 'none' });
         return;
       }
-    
-      if (this.codeInput === this.correctCode) {
-        this.verified = true;
-        uni.showToast({ title: 'Verified!', icon: 'success' });
-    
-        // ✅ 验证成功后，清除定时器
-        clearTimeout(this.codeExpireTimeout);
-        clearInterval(this.countdownTimer);
-    
-      } else {
-        uni.showToast({ title: 'Invalid code', icon: 'none' });
+      
+      if (!this.codeInput || this.codeInput.length !== 6) {
+        uni.showToast({ title: 'Please enter a valid 6-digit code', icon: 'none' });
+        return;
       }
+      
+      this.isLoading = true;
+      
+      // 调用后端API验证验证码
+      passwordApi.verifyCode(this.email, this.codeInput)
+        .then(res => {
+          if (res.code === 1) {
+            this.verified = true;
+            uni.showToast({ title: 'Verified!', icon: 'success' });
+            
+            // 验证成功后，清除定时器
+            clearTimeout(this.codeExpireTimeout);
+            clearInterval(this.countdownTimer);
+          } else {
+            uni.showToast({ title: res.msg || 'Invalid code', icon: 'none' });
+          }
+        })
+        .catch(err => {
+          uni.showToast({ title: 'Server error, please try again later', icon: 'none' });
+          console.error('验证码验证失败:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
     },
+    
     goBack() {
       uni.navigateTo({ url: '/pages/login/login' });
     }
-	
-},
+  },
   onUnload() {
     clearTimeout(this.codeExpireTimeout);
     clearInterval(this.countdownTimer);

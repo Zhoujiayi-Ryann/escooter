@@ -40,8 +40,8 @@ public class OrderController {
         try {
             // 使用Java 8 Optional处理可能的空值
             return orderService.createOrder(request)
-                    .map(response -> Result.success(response, "订单提交成功，请支付"))
-                    .orElseGet(() -> Result.error("创建订单失败"));
+                    .map(response -> Result.success(response, "Order submitted successfully, please pay"))
+                    .orElseGet(() -> Result.error("Order creation failed"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }
@@ -59,7 +59,7 @@ public class OrderController {
             // 使用Java 8 Optional和Lambda表达式处理结果
             return orderService.getOrderDetail(orderId)
                     .map(response -> Result.success(response, "success"))
-                    .orElseGet(() -> Result.error("订单不存在"));
+                    .orElseGet(() -> Result.error("Order does not exist"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }
@@ -81,11 +81,11 @@ public class OrderController {
             return orderService.payOrder(orderId)
                     .map(response -> {
                         log.info("Order {} payment processing completed", orderId);
-                        return Result.success(response, "支付成功");
+                        return Result.success(response, "Payment successful");
                     })
                     .orElseGet(() -> {
                         log.warn("Order {} payment failed: no valid result", orderId);
-                        return Result.error("支付失败: 系统错误");
+                        return Result.error("Payment failed: System error");
                     });
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
@@ -94,7 +94,7 @@ public class OrderController {
         } catch (Exception e) {
             // 处理其他未预期的错误
             log.error("Order {} payment failed: {}", orderId, e);
-            return Result.error("支付失败: 系统异常，请稍后重试");
+            return Result.error("Payment failed: System error");
         }
     }
 
@@ -114,11 +114,11 @@ public class OrderController {
             return orderService.activateOrder(orderId)
                     .map(response -> {
                         log.info("Order {} activation processing completed", orderId);
-                        return Result.success(response, "激活成功");
+                        return Result.success(response, "Activation successful");
                     })
                     .orElseGet(() -> {
                         log.warn("Order {} activation failed: no valid result", orderId);
-                        return Result.error("激活失败: 系统错误");
+                        return Result.error("Activation failed: System error");
                     });
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
@@ -127,7 +127,7 @@ public class OrderController {
         } catch (Exception e) {
             // 处理其他未预期的错误
             log.error("Order {} activation failed: {}", orderId, e);
-            return Result.error("激活失败: 系统异常，请稍后重试");
+            return Result.error("Activation failed: System error");
         }
     }
 
@@ -147,11 +147,11 @@ public class OrderController {
             return orderService.completeOrder(orderId)
                     .map(response -> {
                         log.info("Order {} completion processing completed", orderId);
-                        return Result.success(response, "完成成功");
+                        return Result.success(response, "Completion successful");
                     })
                     .orElseGet(() -> {
                         log.warn("Order {} completion failed: no valid result", orderId);
-                        return Result.error("完成失败: 系统错误");
+                        return Result.error("Completion failed: System error");
                     });
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
@@ -160,7 +160,7 @@ public class OrderController {
         } catch (Exception e) {
             // 处理其他未预期的错误
             log.error("Order {} completion failed: {}", orderId, e);
-            return Result.error("完成失败: 系统异常，请稍后重试");
+            return Result.error("Completion failed: System error");
         }
     }
 
@@ -180,10 +180,10 @@ public class OrderController {
             boolean deleted = orderService.deleteOrder(orderId);
             if (deleted) {
                 log.info("Order {} delete successfully", orderId);
-                return Result.success(null, "删除成功");
+                return Result.success(null, "Delete successfully");
             } else {
                 log.warn("Order {} delete failed", orderId);
-                return Result.error("删除失败");
+                return Result.error("Delete failed");
             }
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
@@ -192,7 +192,7 @@ public class OrderController {
         } catch (Exception e) {
             // 处理其他未预期的错误
             log.error("Order {} delete failed: system error", orderId, e);
-            return Result.error("删除失败: 系统异常，请稍后重试");
+            return Result.error("Delete failed: System error");
         }
     }
 
@@ -212,10 +212,10 @@ public class OrderController {
             boolean deleted = orderService.softDeleteOrder(orderId);
             if (deleted) {
                 log.info("Order {} soft delete successfully", orderId);
-                return Result.success(null, "软删除成功");
+                return Result.success(null, "Soft delete successfully");
             } else {
                 log.warn("Order {} soft delete failed", orderId);
-                return Result.error("软删除失败");
+                return Result.error("Soft delete failed");
             }
         } catch (OrderException e) {
             // 使用自定义异常处理订单相关错误
@@ -224,7 +224,7 @@ public class OrderController {
         } catch (Exception e) {
             // 处理其他未预期的错误
             log.error("Order {} soft delete failed: system failed", orderId, e);
-            return Result.error("软删除失败: 系统异常，请稍后重试");
+            return Result.error("Soft delete failed: System error");
         }
     }
 
@@ -241,7 +241,7 @@ public class OrderController {
             request.setOrder_id(orderId); // 设置订单ID
             Optional<OrderResponse> response = orderService.extendOrder(request);
             return response.map(Result::success)
-                    .orElseGet(() -> Result.error("延长订单失败"));
+                    .orElseGet(() -> Result.error("Extend order failed"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }
@@ -258,7 +258,7 @@ public class OrderController {
         try {
             Optional<AvailableTimeSlotsResponse> response = orderService.getAvailableTimeSlots(orderId);
             return response.map(Result::success)
-                    .orElseGet(() -> Result.error("获取可用时间段失败"));
+                    .orElseGet(() -> Result.error("Failed to get available time slots"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }

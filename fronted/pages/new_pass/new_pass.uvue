@@ -51,8 +51,8 @@
         <text class="error-text" v-if="confirmPasswordError">{{ confirmPasswordErrorMessage }}</text>
 
         <!-- 提交按钮 -->
-        <button class="login-btn" @click="resetPassword">
-          Confirm
+        <button class="login-btn" @click="resetPassword" :disabled="isLoading">
+          {{ isLoading ? 'Processing...' : 'Confirm' }}
         </button>
 
         <view class="tips-wrapper" style="justify-content: center; margin-top: 40rpx;">
@@ -64,9 +64,13 @@
 </template>
 
 <script>
+import { passwordApi } from '../../utils/api/password/index.uts';
+
 export default {
   data() {
     return {
+      email: '',
+      code: '',
       password: '',
       confirmPassword: '',
       showPassword: false,
@@ -75,8 +79,29 @@ export default {
       passwordError: false,
       confirmPasswordError: false,
       passwordErrorMessage: '',
-      confirmPasswordErrorMessage: ''
+      confirmPasswordErrorMessage: '',
+      isLoading: false
     };
+  },
+  onLoad(options) {
+    // 从URL参数获取邮箱和验证码
+    if (options.email) {
+      this.email = decodeURIComponent(options.email);
+    }
+    if (options.code) {
+      this.code = decodeURIComponent(options.code);
+    }
+    
+    // 如果没有邮箱或验证码，返回到忘记密码页面
+    if (!this.email || !this.code) {
+      uni.showToast({
+        title: 'Missing required information',
+        icon: 'none'
+      });
+      setTimeout(() => {
+        uni.redirectTo({ url: '/pages/forget/forget' });
+      }, 1500);
+    }
   },
   methods: {
     togglePasswordVisibility() {
@@ -86,14 +111,22 @@ export default {
       this.showConfirmPassword = !this.showConfirmPassword;
     },
     checkPassword() {
-      this.passwordError = this.password.length > 15;
-      this.passwordErrorMessage = this.passwordError ? 'Password cannot exceed 15 characters.' : '';
+      this.passwordError = false;
+      this.passwordErrorMessage = '';
+      
+      if (this.password.length < 6) {
+        this.passwordError = true;
+        this.passwordErrorMessage = 'Password must be at least 6 characters.';
+      } else if (this.password.length > 20) {
+        this.passwordError = true;
+        this.passwordErrorMessage = 'Password cannot exceed 20 characters.';
+      }
     },
     resetPassword() {
       this.checkPassword();
 
       if (this.passwordError) {
-        uni.showToast({ title: 'Please fix input errors', icon: 'none' });
+        uni.showToast({ title: 'Please fix password issues', icon: 'none' });
         return;
       }
 
@@ -103,16 +136,33 @@ export default {
         uni.showToast({ title: 'Passwords do not match', icon: 'none' });
         return;
       }
+      
+      if (!this.email || !this.code) {
+        uni.showToast({ title: 'Missing email or verification code', icon: 'none' });
+        return;
+      }
 
       // 清除错误状态
       this.confirmPasswordError = false;
-      this.passwordError = false;
 
-      // 重置成功逻辑
-      uni.showToast({ title: 'Password reset!', icon: 'success' });
-      setTimeout(() => uni.redirectTo({ url: '/pages/login/login' }), 1000);
-
-      // TODO: 添加后端接口调用（传参：新密码）
+      // 调用后端API重置密码
+      this.isLoading = true;
+      passwordApi.resetPassword(this.email, this.code, this.password)
+        .then(res => {
+          if (res.code === 1) {
+            uni.showToast({ title: 'Password reset successfully!', icon: 'success' });
+            setTimeout(() => uni.redirectTo({ url: '/pages/login/login' }), 1500);
+          } else {
+            uni.showToast({ title: res.msg || 'Failed to reset password', icon: 'none' });
+          }
+        })
+        .catch(err => {
+          uni.showToast({ title: 'Server error, please try again later', icon: 'none' });
+          console.error('重置密码失败:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
     },
     goBack() {
       uni.navigateTo({ url: '/pages/login/login' });

@@ -32,12 +32,12 @@ public class UserServiceImpl implements UserService {
     public User register(RegisterRequest request) {
         // 检查用户名是否已存在
         if (userMapper.checkUsernameExists(request.getUsername()) > 0) {
-            throw new RuntimeException("用户名已存在");
+            throw new RuntimeException("Username already exists");
         }
 
         // 检查邮箱是否已存在
         if (userMapper.checkEmailExists(request.getEmail()) > 0) {
-            throw new RuntimeException("邮箱已被注册");
+            throw new RuntimeException("Email already exists");
         }
 
         // 创建用户对象
@@ -63,12 +63,12 @@ public class UserServiceImpl implements UserService {
         // 根据用户名查询用户
         User user = userMapper.findByUsername(request.getUsername());
         if (user == null) {
-            throw new RuntimeException("用户名或密码错误");
+            throw new RuntimeException("Username or password is incorrect");
         }
 
         // 验证密码
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("用户名或密码错误");
+            throw new RuntimeException("Username or password is incorrect");
         }
 
         // 生成token
@@ -99,14 +99,14 @@ public class UserServiceImpl implements UserService {
         // 获取现有用户信息
         User existingUser = userMapper.findById(id);
         if (existingUser == null) {
-            throw new RuntimeException("用户不存在");
+            throw new RuntimeException("User not found");
         }
 
         // 更新用户名（如果提供）
         if (request.getUsername() != null && !request.getUsername().equals(existingUser.getUsername())) {
             // 检查新用户名是否已存在
             if (userMapper.checkUsernameExists(request.getUsername()) > 0) {
-                throw new RuntimeException("用户名已存在");
+                throw new RuntimeException("Username already exists");
             }
             existingUser.setUsername(request.getUsername());
         }
@@ -120,7 +120,7 @@ public class UserServiceImpl implements UserService {
         if (request.getEmail() != null && !request.getEmail().equals(existingUser.getEmail())) {
             // 检查新邮箱是否已存在
             if (userMapper.checkEmailExists(request.getEmail()) > 0) {
-                throw new RuntimeException("邮箱已被注册");
+                throw new RuntimeException("Email already exists");
             }
             existingUser.setEmail(request.getEmail());
         }

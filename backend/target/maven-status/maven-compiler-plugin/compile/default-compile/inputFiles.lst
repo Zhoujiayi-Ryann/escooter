@@ -15,7 +15,6 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/service/EmailService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/config/MyBatisConfig.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/User.java
-/home/devbox/project/backend/src/main/java/com/example/hello/mapper/VerificationCodeMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/CreditCardService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/PayOrderResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/FeedbackImage.java
@@ -30,6 +29,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/ScooterController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/ScooterRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/FeedbackMapper.java
+/home/devbox/project/backend/src/main/java/com/example/hello/entity/Coupon.java
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/FeedbackImageMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/config/MyBatisExceptionHandler.java
 /home/devbox/project/backend/src/main/java/com/example/hello/HelloApplication.java
@@ -69,5 +69,6 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/ScooterServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/CreditCardServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/UserController.java
+/home/devbox/project/backend/src/main/java/com/example/hello/entity/UserCoupon.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/CreditCardResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/OrderServiceImpl.java
