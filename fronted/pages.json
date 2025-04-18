@@ -131,14 +131,16 @@
 			"path" : "pages/feedback/feedback",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Feedback"
+				"navigationBarTitleText" : "Feedback",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path" : "pages/cards/cards",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Cards"
+				"navigationBarTitleText" : "Cards",
+				"navigationStyle": "custom"
 			}
 		},
 		{

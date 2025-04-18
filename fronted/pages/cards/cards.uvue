@@ -1,5 +1,11 @@
 <template>
 	<view class="cards-container">
+		<view class="header">
+		  <view class="back-btn" @click="handleBack">
+		    <van-icon name="arrow-left" class="back-icon" />
+		  </view>
+		  <text class="header-title">Cards</text>
+		</view>
 		<!-- 加载状态 -->
 		<view v-if="loading" class="loading-container">
 			<text class="loading-text">Loading...</text>
@@ -16,7 +22,7 @@
 						</text>
 					</view>
 					<view class="card-expires">
-						<text class="expires-label">有效期至:</text>
+						<text class="expires-label">Valid Thru:</text>
 						<text class="expires-date">{{ formatExpiryDate(card.expiry_date) }}</text>
 					</view>
 				</view>
@@ -31,14 +37,14 @@
 		<!-- 无卡片提示 -->
 		<view v-else class="empty-state">
 			<view class="empty-icon">💳</view>
-			<text class="empty-text">您还没有添加银行卡</text>
-			<text class="empty-subtext">添加银行卡以便更快地完成支付</text>
+			<text class="empty-text">No cards found</text>
+			<text class="empty-subtext">Add a card to enable payment</text>
 		</view>
 		
 		<!-- 添加卡片按钮 -->
 		<view class="add-card" @click="addNewCard">
 			<text class="add-icon">+</text>
-			<text class="add-text">添加银行卡</text>
+			<text class="add-text">Add New Card</text>
 		</view>
 	</view>
 </template>
@@ -81,9 +87,9 @@
 					
 					if (res.code === 1) {
 						this.cards = res.data;
-						console.log('获取银行卡成功:', this.cards);
+						console.log('Successfully obtained bank card:', this.cards);
 					} else {
-						this.error = res.message || '获取银行卡失败';
+						this.error = res.message || 'Failed to obtain bank card';
 						uni.showToast({
 							title: this.error,
 							icon: 'none'
@@ -91,13 +97,13 @@
 					}
 				}).catch(err => {
 					this.loading = false;
-					this.error = '网络错误，请稍后再试';
+					this.error = 'Network error, please try again later';
 					
 					uni.showToast({
 						title: this.error,
 						icon: 'none'
 					});
-					console.error('获取银行卡错误:', err);
+					console.error('Error in obtaining bank card:', err);
 				});
 			},
 			
@@ -111,14 +117,14 @@
 			// 删除银行卡
 			deleteCard(cardId) {
 				uni.showModal({
-					title: '确认删除',
-					content: '确定要删除这张银行卡吗？',
+					title: 'Delete Card',
+					content: 'Are you sure you want to delete this card?？',
 					success: (res) => {
 						if (res.confirm) {
 							const userId = userApi.getUserId();
 							
 							uni.showLoading({
-								title: '删除中...'
+								title: 'Deleting...'
 							});
 							
 							creditCardApi.deleteCreditCard(cardId, userId).then(res => {
@@ -126,28 +132,36 @@
 								
 								if (res.code === 1) {
 									uni.showToast({
-										title: '删除成功',
+										title: 'Delete Success',
 										icon: 'success'
 									});
 									// 重新获取银行卡列表
 									this.fetchCards();
 								} else {
 									uni.showToast({
-										title: res.message || '删除失败',
+										title: res.message || 'Delete Fail',
 										icon: 'none'
 									});
 								}
 							}).catch(err => {
 								uni.hideLoading();
 								uni.showToast({
-									title: '网络错误，请稍后再试',
+									title: 'Network error, please try again later',
 									icon: 'none'
 								});
-								console.error('删除银行卡错误:', err);
+								console.error('Delete bank card error:', err);
 							});
 						}
 					}
 				});
+			},
+			handleBack() {
+			  const pages = getCurrentPages();
+			  if (pages.length > 1) {
+			    uni.navigateBack();
+			  } else {
+			    uni.reLaunch({ url: '/pages/settings/my_settings/my_settings' });
+			  }
 			},
 			
 			// 格式化银行卡号，只显示后四位
@@ -175,10 +189,44 @@
 <style>
 .cards-container {
 	padding: 20rpx;
-	background-color: #f8f9fa;
+	background: linear-gradient(to bottom, #e0f0ff, #ffffff);
 	min-height: 100vh;
 }
-
+.back-btn {
+	  position: absolute;
+	  top: 25rpx;
+	  left: 30rpx;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  cursor: pointer;
+	  z-index: 10;
+	  background-color: #f4f8ff;
+	  border-radius: 25rpx;
+	  width: 80rpx;
+	  height: 80rpx;
+	}
+	
+	.back-icon {
+	  font-size: 55rpx;
+	  color: #0084ff;
+	}
+	
+	.header-title {
+	  font-size: 40rpx;
+	  font-weight: bold;
+	  color: #007aff;
+	  text-align: center;
+	}
+	.header {
+	  background-color: #ffffff;
+	  padding: 40rpx 0;
+	  text-align: center;
+	  border-radius: 20rpx;
+	  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+	  position: relative;
+	  margin-bottom: 30rpx;
+	}
 .loading-container {
 	display: flex;
 	justify-content: center;
