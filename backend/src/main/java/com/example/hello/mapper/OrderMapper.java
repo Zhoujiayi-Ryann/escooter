@@ -185,25 +185,43 @@ public interface OrderMapper {
          * @param orderId          订单ID
          * @param newEndTime       新的结束时间
          * @param extendedDuration 延长时间（小时）
-         * @param newCost          新的费用
+         * @param extendedCost     延长费用
+         * @param previousStatus   之前的状态
          * @return 影响的行数
          */
-        @Update("UPDATE Orders SET end_time = #{newEndTime}, extended_duration = #{extendedDuration}, cost = #{newCost} WHERE order_id = #{orderId}")
+        @Update("UPDATE Orders SET new_end_time = #{newEndTime}, " +
+                        "extended_duration = #{extendedDuration}, " +
+                        "extended_cost = #{extendedCost}, " +
+                        "cost = cost + #{extendedCost}, " +
+                        "previous_status = #{previousStatus}, " +
+                        "status = 'pending', " +
+                        "create_at = NOW() " +
+                        "WHERE order_id = #{orderId}")
         int extendOrder(@Param("orderId") Integer orderId,
                         @Param("newEndTime") LocalDateTime newEndTime,
                         @Param("extendedDuration") Float extendedDuration,
-                        @Param("newCost") BigDecimal newCost);
+                        @Param("extendedCost") BigDecimal extendedCost,
+                        @Param("previousStatus") String previousStatus);
 
         /**
          * 重置延长订单
          * 将new_end_time设为null，并将status恢复为previous_status
+         * 同时将extended_duration设为0，cost减去extended_cost，extended_cost设为null
          *
          * @param orderId        订单ID
          * @param previousStatus 之前的状态
+         * @param newCost        新的费用（原费用减去延长费用）
          * @return 影响的行数
          */
-        @Update("UPDATE Orders SET new_end_time = NULL, status = #{previousStatus} WHERE order_id = #{orderId}")
-        int resetExtendedOrder(@Param("orderId") Integer orderId, @Param("previousStatus") String previousStatus);
+        @Update("UPDATE Orders SET new_end_time = NULL, " +
+                        "status = #{previousStatus}, " +
+                        "extended_duration = 0, " +
+                        "cost = #{newCost}, " +
+                        "extended_cost = NULL " +
+                        "WHERE order_id = #{orderId}")
+        int resetExtendedOrderWithCost(@Param("orderId") Integer orderId,
+                        @Param("previousStatus") String previousStatus,
+                        @Param("newCost") BigDecimal newCost);
 
         /**
          * 查询指定滑板车在指定时间之后的下一个订单
