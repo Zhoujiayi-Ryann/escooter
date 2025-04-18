@@ -238,4 +238,33 @@ public interface OrderMapper {
                         "LIMIT 1")
         LocalDateTime findNextOrderStartTime(@Param("scooterId") Integer scooterId,
                         @Param("currentTime") LocalDateTime currentTime);
+
+        /**
+         * 查询所有超时的active订单
+         * 订单结束时间（考虑new_end_time）已过但状态仍为active的订单
+         *
+         * @return 超时的订单列表
+         */
+        @Select("SELECT * FROM Orders WHERE status = 'active' " +
+                        "AND (CASE " +
+                        "   WHEN new_end_time IS NOT NULL THEN new_end_time " +
+                        "   ELSE end_time " +
+                        "END) < NOW()")
+        @Results({
+                        @Result(property = "orderId", column = "order_id"),
+                        @Result(property = "userId", column = "user_id"),
+                        @Result(property = "scooterId", column = "scooter_id"),
+                        @Result(property = "startTime", column = "start_time"),
+                        @Result(property = "endTime", column = "end_time"),
+                        @Result(property = "duration", column = "duration"),
+                        @Result(property = "cost", column = "cost"),
+                        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
+                        @Result(property = "extendedDuration", column = "extended_duration"),
+                        @Result(property = "discount", column = "discount"),
+                        @Result(property = "address", column = "address"),
+                        @Result(property = "createdAt", column = "create_at"),
+                        @Result(property = "newEndTime", column = "new_end_time"),
+                        @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class)
+        })
+        List<Order> findTimeoutActiveOrders();
 }

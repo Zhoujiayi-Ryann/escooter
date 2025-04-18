@@ -19,6 +19,7 @@ import com.example.hello.service.EmailService;
 import com.example.hello.entity.User;
 import com.example.hello.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -627,5 +628,42 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return Optional.of(response);
+    }
+
+    /**
+     * 自动完成超时的订单
+     * 每分钟执行一次，检查并完成已超过结束时间的active订单
+     */
+    @Scheduled(fixedRate = 60000) // 每分钟执行一次
+    @Transactional
+    public void autoCompleteTimeoutOrders() {
+        log.info("Starting auto complete timeout orders");
+        try {
+            // 查询所有超时的active订单
+            List<Order> timeoutOrders = orderMapper.findTimeoutActiveOrders();
+
+            if (timeoutOrders.isEmpty()) {
+                log.info("No timeout active orders to process");
+                return;
+            }
+
+            // 处理超时的订单
+            for (Order order : timeoutOrders) {
+                log.info("Processing timeout active order: orderId={}", order.getOrderId());
+
+                // 更新订单状态为completed
+                int updated = orderMapper.updateOrderStatus(order.getOrderId(), OrderStatus.COMPLETED.getValue());
+
+                if (updated > 0) {
+                    log.info("Order {} auto completed successfully", order.getOrderId());
+                } else {
+                    log.error("Order {} auto completion failed", order.getOrderId());
+                }
+            }
+
+            log.info("Successfully processed {} timeout active orders", timeoutOrders.size());
+        } catch (Exception e) {
+            log.error("Failed to process timeout active orders: {}", e.getMessage(), e);
+        }
     }
 }

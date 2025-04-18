@@ -8,16 +8,18 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableTransactionManagement
+@EnableScheduling
 public class HelloApplication {
     private static final Logger logger = LoggerFactory.getLogger(HelloApplication.class);
 
     public static void main(String[] args) {
         SpringApplication.run(HelloApplication.class, args);
     }
-    
+
     @Bean
     public CommandLineRunner testDatabaseConnection(JdbcTemplate jdbcTemplate) {
         return args -> {
