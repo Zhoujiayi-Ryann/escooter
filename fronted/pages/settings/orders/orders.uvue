@@ -172,50 +172,16 @@
 </template>
 
 <script>
+import { orderApi } from '@/utils/api/order';
+import { userApi } from '@/utils/api/user';
+
 export default {
 	data() {
 		return {
-			tabs: ['All', 'Unpaid', 'Unused', 'In Progress', 'Completed'],
-			currentTab: 0, // 默认选中"已完成"标签
-			selectedStatus: 0, // 新增：当前选中的状态码
-			orders: [
-				{
-					id: '20230001',
-					type: 'Bicycle',
-					status: 'Completed',
-					duration: '2 hours 30 minutes',
-					orderTime: '2023-05-20 14:30',
-					price: '12',
-					statusCode: 4 // 0: 全部, 1: 未支付, 2: 未使用, 3: 进行中, 4: 已完成
-				},
-				{
-					id: '20230002',
-					type: 'Bicycle',
-					status: 'Unused',
-					duration: 'Est. 3 hours',
-					orderTime: '2023-05-22 09:15',
-					price: '15',
-					statusCode: 2
-				},
-				{
-					id: '20230003',
-					type: 'Bicycle',
-					status: 'In Progress',
-					duration: 'Used 1 hour 15 minutes',
-					orderTime: '2023-05-22 13:40',
-					price: '10',
-					statusCode: 3
-				},
-				{
-					id: '20230004',
-					type: 'Bicycle',
-					status: 'Unpaid',
-					duration: 'Est. 2 hours',
-					orderTime: '2023-05-23 10:00',
-					price: '8',
-					statusCode: 1
-				}
-			],
+			tabs: ['All', 'Pending', 'Paid', 'Active', 'Completed'],
+			currentTab: 0,
+			selectedStatus: 0,
+			orders: [], // 改为空数组，从API获取数据
 			// 添加取消订单的相关数据
 			showCancelDialog: false,
 			currentCancelOrder: null,
@@ -237,6 +203,8 @@ export default {
 			dateColumns: ['', '', ''], // 确保格式为 ['年', '月', '日']
 			timeColumns: ['', ''],     // 确保格式为 ['时', '分']
 			refreshing: false,
+			loading: false, // 添加加载状态
+			userId: userApi.getUserId(1), // 从用户API获取当前用户ID，如果未登录则使用默认值1
 		}
 	},
 	computed: {
@@ -250,9 +218,18 @@ export default {
 	},
 	methods: {
 		navigateToHome() {
-			uni.navigateTo({
-				url: '/pages/home/home'
-			});
+			const pages = getCurrentPages();
+			if (pages.length > 1) {
+				// 如果有上级页面，返回上级页面
+				uni.navigateBack({
+					delta: 1
+				});
+			} else {
+				// 如果没有上级页面，返回主页
+				uni.navigateTo({
+					url: '/pages/home/home'
+				});
+			}
 		},
 		onTabChange(index) {
 			// zjy的超级超级天才想法：解决莫名奇妙的报错
@@ -284,6 +261,7 @@ export default {
 		},
 		viewOrderDetail(orderId) {
 			// 跳转到订单详情页
+			console.log(orderId)
 			uni.navigateTo({
 				url: '/pages/order_details/order_details?id=' + orderId
 			});
@@ -408,21 +386,110 @@ export default {
 		},
 		onRefresh() {
 			console.log('开始刷新');
-			// 模拟获取订单数据
-			setTimeout(() => {
-				// 这里应该是从服务器获取最新订单数据的代码
-				console.log('刷新数据中');
-				
-				// 停止刷新状态
-				this.refreshing = false;
-				console.log('刷新完成，状态：', this.refreshing);
-				
-				// 显示提示
-				uni.showToast({
-					title: 'Refresh successfully',
-					icon: 'success'
+			this.fetchOrders(); // 使用API重新获取数据
+		},
+		
+		// 获取用户订单数据
+		fetchOrders() {
+			this.loading = true;
+			
+			orderApi.getUserOrders(this.userId)
+				.then(res => {
+					console.log(res);
+					if (res.code === 1 && res.data) {  
+						// 将API返回的数据转换为当前使用的格式
+						this.orders = res.data.map(order => {
+							return {
+								id: order.order_id.toString(),
+								type: 'Bicycle',
+								status: this.getStatusText(order.status),
+								duration: this.formatDuration(order.start_time, order.end_time),
+								orderTime: this.formatTime(order.start_time), // 使用start_time作为订单时间
+								price: order.cost.toString(),  // 使用cost而不是amount
+								statusCode: this.mapStatusToCode(order.status) // 使用字符串状态映射
+							};
+						});
+						console.log(this.orders);
+					} else {
+						uni.showToast({
+							title: res.msg || '获取订单失败',
+							icon: 'none'
+						});
+					}
+				})
+				.catch(err => {
+					console.error('获取订单出错:', err);
+					uni.showToast({
+						title: '网络错误，请稍后重试',
+						icon: 'none'
+					});
+				})
+				.finally(() => {
+					this.loading = false;
+					this.refreshing = false;
 				});
-			}, 1000);
+		},
+		
+		// 根据状态字符串映射到状态码
+		mapStatusToCode(status) {
+			console.log(status)
+			const statusMap = {
+				'pending': 1,
+				'paid': 2,
+				'active': 3,
+				'completed': 4
+			};
+			return statusMap[status.toLowerCase()] || 0;
+		},
+		
+		// 根据状态字符串获取显示文本
+		getStatusText(status) {
+			// 首字母大写其他小写的格式化
+			if (!status) return 'Unknown';
+			const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+			return formattedStatus;
+		},
+		
+		// 格式化持续时间
+		formatDuration(startTime, endTime) {
+			if (!startTime || !endTime) return 'N/A';
+			
+			// 计算时间差并格式化
+			const start = new Date(startTime);
+			const end = new Date(endTime);
+			const diffMs = end - start;
+			
+			const hours = Math.floor(diffMs / (1000 * 60 * 60));
+			const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+			
+			let result = '';
+			
+			// 处理小时部分，使用正确的单复数形式
+			if (hours > 0) {
+				result += `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+			}
+			
+			// 只有当分钟数大于0时才添加分钟部分
+			if (minutes > 0) {
+				// 如果已经有小时部分，添加空格
+				if (result) result += ' ';
+				result += `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+			}
+			
+			// 如果时长为0，显示"0 minutes"
+			if (result === '') {
+				result = '0 minutes';
+			}
+			
+			return result;
+		},
+		
+		// 格式化时间
+		formatTime(timestamp) {
+			if (!timestamp) return 'N/A';
+			
+			const date = new Date(timestamp);
+			return `${date.getFullYear()}-${this.padZero(date.getMonth() + 1)}-${this.padZero(date.getDate())} ${this.padZero(date.getHours())}:${this.padZero(date.getMinutes())}`;
 		},
 		
 		// 添加去使用订单的导航方法
@@ -446,9 +513,10 @@ export default {
 			// });
 		}
 	},
-	// 组件创建时确保默认选中的状态码正确
+	// 改为使用API获取数据
 	created() {
 		this.selectedStatus = this.currentTab;
+		this.fetchOrders();
 	}
 }
 </script>

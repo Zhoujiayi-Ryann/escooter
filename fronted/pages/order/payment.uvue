@@ -27,7 +27,7 @@
     </scroll-view>
   </template>
 </van-cell>
-			<van-cell title="Rental Days" :value="`${orderInfo.days} days`" />
+			<van-cell title="Rental Days" :value="`${orderInfo.days} ${orderInfo.days === 1 ? 'day' : 'days'}`" />
 			<van-cell title="Pickup address" :value="orderInfo.address" />
 		</van-cell-group>
 
