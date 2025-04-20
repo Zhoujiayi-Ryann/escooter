@@ -352,7 +352,8 @@
 				// 调用支付API
 				orderApi.payOrder(orderId)
 					.then(res => {
-						if (res.code === 0) {
+						console.log(res);
+						if (res.code === 1) {
 							// 支付成功
 							this.closePasswordInput();
 							uni.showToast({
