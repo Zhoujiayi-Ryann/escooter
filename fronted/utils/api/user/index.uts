@@ -12,6 +12,18 @@ export interface UserInfo {
 }
 
 /**
+ * 用户详细信息类型
+ */
+export interface UserDetailInfo {
+    user_id: number;
+    username: string;
+    email: string;
+    phone_number: string;
+    created_at: string;
+    updated_at: string;
+}
+
+/**
  * 用户API模块
  */
 export const userApi = {
@@ -43,6 +55,39 @@ export const userApi = {
             url: '/users/register',
             method: 'POST',
             data: data
+        });
+    },
+
+    /**
+     * 获取用户详细信息
+     * @param userId 用户ID
+     * @returns 用户详细信息
+     */
+    getUserDetail(userId: number): Promise<ApiResponse<UserDetailInfo>> {
+        return request<UserDetailInfo>({
+            url: `/users/${userId}`,
+            method: 'GET',
+            needToken: true
+        });
+    },
+
+    /**
+     * 更新用户信息
+     * @param userId 用户ID
+     * @param data 要更新的用户信息
+     * @returns 更新后的用户信息
+     */
+    updateUserInfo(userId: number, data: {
+        username?: string;
+        email?: string;
+        phone_number?: string;
+        password?: string;
+    }): Promise<ApiResponse<UserDetailInfo>> {
+        return request<UserDetailInfo>({
+            url: `/users/${userId}`,
+            method: 'PUT',
+            data: data,
+            needToken: true
         });
     },
 
