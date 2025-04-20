@@ -23,13 +23,13 @@ export const PANE_LIST: Array<DashboardPanel> = [
     leftType: 'echarts-line',
   },
   {
-    title: '总退款',
+    title: '总车辆数',
     number: '¥ 768.00',
     downTrend: '20.5%',
     leftType: 'echarts-bar',
   },
   {
-    title: '活跃用户（个）',
+    title: '总用户（个）',
     number: '1126',
     downTrend: '20.5%',
     leftType: 'icon-usergroup',
