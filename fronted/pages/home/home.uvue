@@ -414,6 +414,7 @@ export default {
 				'coupons': '/pages/settings/coupons/coupon',
 				'help': '/pages/help/help',
 				'settings': '/pages/settings/my_settings/my_settings',
+				'card': '/pages/settings/card/card'
 			};
 			if (pageMapping[page]) {
 				if (page === 'confirm') {

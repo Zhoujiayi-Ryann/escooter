@@ -5,7 +5,7 @@
 			<view class="help-item" @click="toggleExpand('start')">
 				<view class="item-left">
 					<van-icon name="question-o" size="20px" color="#007AFF" />
-					<text class="help-text">How to rent an e-scooter？</text>
+					<text class="help-text">How to rent an e-scooter?</text>
 				</view>
 				<van-icon :name="expanded.start ? 'arrow-up' : 'arrow'" size="16px" color="#999" />
 			</view>
@@ -15,7 +15,7 @@
 					1. Select the time and the period you would like to rent an e-scooter and click next button\n
 					2. Choose an e-scooter from the list. You can see information about available e-scooters on the list and map\n
 					3. Click next button to confirm the renting details\n
-					4. 
+					4. Finish the payment and rent successfully
 					</text>
 				</view>
 			</view>
@@ -23,17 +23,16 @@
 			<view class="help-item" @click="toggleExpand('unlock')">
 				<view class="item-left">
 					<van-icon name="warning-o" size="20px" color="#FF9500" />
-					<text class="help-text">How to unlock？</text>
+					<text class="help-text">How to expand the period?</text>
 				</view>
 				<van-icon :name="expanded.unlock ? 'arrow-up' : 'arrow'" size="16px" color="#999" />
 			</view>
 			<view class="expand-wrapper" :class="{ 'expanded': expanded.unlock }">
 				<view class="expand-content">
 					<text class="solution-text">
-					1. Make sure you have completed the payment\n
-					2. 
-					3. 
-					4. 
+					1. Go to the order list\n
+					2. Find the order you want to expand\n
+					3. Click the "expand" button.
 					</text>
 				</view>
 			</view>
@@ -41,16 +40,32 @@
 			<view class="help-item" @click="toggleExpand('broken')">
 				<view class="item-left">
 					<van-icon name="info-o" size="20px" color="#FF3B30" />
-					<text class="help-text">The e-scooter is broken？</text>
+					<text class="help-text">How does it charge?</text>
 				</view>
 				<van-icon :name="expanded.broken ? 'arrow-up' : 'arrow'" size="16px" color="#999" />
 			</view>
 			<view class="expand-wrapper" :class="{ 'expanded': expanded.broken }">
 				<view class="expand-content">
 					<text class="solution-text">
-					1. Go to your personal settings and find the corresponding bill\n
-					2. Click the feedback button on the bottom\n
-					3. Write down the problem you met and submit
+					The e-scooters' prices for each hour are shown in the list on home page.\n
+					The total cost will be it multiplys the time used.
+					</text>
+				</view>
+			</view>
+			<view class="divider"></view>
+			<view class="help-item" @click="toggleExpand('payment')">
+				<view class="item-left">
+					<van-icon name="info-o" size="20px" color="#FF3B30" />
+					<text class="help-text">How to pay the bill?</text>
+				</view>
+				<van-icon :name="expanded.broken ? 'arrow-up' : 'arrow'" size="16px" color="#999" />
+			</view>
+			<view class="expand-wrapper" :class="{ 'expanded': expanded.payment }">
+				<view class="expand-content">
+					<text class="solution-text">
+					You can follow the steps when reserving e-scooters and just select a card to pay.\n
+					If you do not pay when reserving, there will be announcements on home page and you can just click them,\n
+					or go to the order list page to finish the payment.
 					</text>
 				</view>
 			</view>
@@ -73,7 +88,8 @@
 				expanded: {
 					start: false,
 					unlock: false,
-					broken: false
+					broken: false,
+					payment: false
 				}
 			}
 		},
@@ -83,22 +99,12 @@
 			},
 			navigateToDetail(type) {
 				const typeMapping = {
-					'daily': '/pages/help/daily-issues',
-					'start': '/pages/help/start-issues',
-					'return': '/pages/help/damaged-vehicle',
-					'feedback': '/pages/feedback/feedback',
-					'faq': '/pages/help/faq'
+					'feedback': '/pages/feedback/feedback'
 				};
 				
 				if (typeMapping[type]) {
 					uni.navigateTo({
 						url: typeMapping[type]
-					});
-				} else {
-					uni.showToast({
-						title: '该页面正在开发中',
-						icon: 'none',
-						duration: 2000
 					});
 				}
 			}
