@@ -7,6 +7,7 @@ import com.example.hello.dto.response.PayOrderResponse;
 import com.example.hello.dto.response.ChangeOrderStatusResponse;
 import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -90,4 +91,13 @@ public interface OrderService {
      * @return 可用时间段信息
      */
     Optional<AvailableTimeSlotsResponse> getAvailableTimeSlots(Integer orderId);
+
+    /**
+     * 获取用户的所有订单
+     * 按创建时间倒序排序
+     *
+     * @param userId 用户ID
+     * @return 订单列表
+     */
+    List<OrderResponse> getUserOrders(Integer userId);
 }

@@ -35,10 +35,25 @@ public class OrderResponse {
     private LocalDateTime end_time;
 
     /**
+     * 新的结束时间（用于延长订单）
+     */
+    private LocalDateTime new_end_time;
+
+    /**
+     * 延长时间（小时）
+     */
+    private Float extended_duration;
+
+    /**
+     * 延长订单的额外费用
+     */
+    private BigDecimal extended_cost;
+
+    /**
      * 订单费用
      */
     private BigDecimal cost;
-    
+
     /**
      * 折扣金额
      */

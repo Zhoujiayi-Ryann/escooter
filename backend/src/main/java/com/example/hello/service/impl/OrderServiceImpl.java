@@ -666,4 +666,36 @@ public class OrderServiceImpl implements OrderService {
             log.error("Failed to process timeout active orders: {}", e.getMessage(), e);
         }
     }
+
+    @Override
+    public List<OrderResponse> getUserOrders(Integer userId) {
+        log.info("Getting orders for user: {}", userId);
+        try {
+            // 查询用户的所有订单
+            List<Order> orders = orderMapper.findOrdersByUserId(userId);
+
+            // 转换为OrderResponse列表
+            return orders.stream()
+                    .map(order -> {
+                        OrderResponse response = new OrderResponse();
+                        response.setOrder_id(order.getOrderId());
+                        response.setUser_id(order.getUserId());
+                        response.setScooter_id(order.getScooterId());
+                        response.setStart_time(order.getStartTime());
+                        response.setEnd_time(order.getEndTime());
+                        response.setNew_end_time(order.getNewEndTime());
+                        response.setExtended_duration(order.getExtendedDuration());
+                        response.setExtended_cost(order.getExtendedCost());
+                        response.setCost(order.getCost());
+                        response.setDiscount_amount(order.getDiscount());
+                        response.setPickup_address(order.getAddress());
+                        response.setStatus(order.getStatus().getValue());
+                        return response;
+                    })
+                    .toList();
+        } catch (Exception e) {
+            log.error("Failed to get orders for user {}: {}", userId, e.getMessage(), e);
+            throw new OrderException("Failed to get user orders: " + e.getMessage());
+        }
+    }
 }

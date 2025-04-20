@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -261,6 +262,28 @@ public class OrderController {
                     .orElseGet(() -> Result.error("Failed to get available time slots"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户的所有订单接口
+     * 按创建时间倒序排序
+     * 
+     * @param userId 用户ID
+     * @return 订单列表
+     */
+    @GetMapping("/users/{user_id}/orders")
+    public Result<List<OrderResponse>> getUserOrders(@PathVariable("user_id") Integer userId) {
+        try {
+            log.info("Getting orders for user: {}", userId);
+            List<OrderResponse> orders = orderService.getUserOrders(userId);
+            return Result.success(orders, "success");
+        } catch (OrderException e) {
+            log.warn("Failed to get orders for user {}: {}", userId, e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to get orders for user {}: system error", userId, e);
+            return Result.error("Failed to get user orders: System error");
         }
     }
 }

@@ -267,4 +267,30 @@ public interface OrderMapper {
                         @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class)
         })
         List<Order> findTimeoutActiveOrders();
+
+        /**
+         * 查询用户的所有订单
+         * 按创建时间倒序排序
+         *
+         * @param userId 用户ID
+         * @return 订单列表
+         */
+        @Select("SELECT * FROM Orders WHERE user_id = #{userId} AND is_deleted = false ORDER BY create_at DESC")
+        @Results({
+                        @Result(property = "orderId", column = "order_id"),
+                        @Result(property = "userId", column = "user_id"),
+                        @Result(property = "scooterId", column = "scooter_id"),
+                        @Result(property = "startTime", column = "start_time"),
+                        @Result(property = "endTime", column = "end_time"),
+                        @Result(property = "duration", column = "duration"),
+                        @Result(property = "cost", column = "cost"),
+                        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
+                        @Result(property = "extendedDuration", column = "extended_duration"),
+                        @Result(property = "discount", column = "discount"),
+                        @Result(property = "address", column = "address"),
+                        @Result(property = "createdAt", column = "create_at"),
+                        @Result(property = "newEndTime", column = "new_end_time"),
+                        @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class)
+        })
+        List<Order> findOrdersByUserId(@Param("userId") Integer userId);
 }
