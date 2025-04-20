@@ -38,7 +38,7 @@ public class UserController {
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         try {
             LoginResponse response = userService.login(request);
-            return Result.success(response, "登录成功");
+            return Result.success(response, "Login successfully");
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }
@@ -55,16 +55,16 @@ public class UserController {
 
             // 验证token中的用户ID与请求的ID是否匹配
             if (!id.equals(tokenUserId.longValue())) {
-                return Result.error("无权访问其他用户的信息");
+                return Result.error("No access to other user information");
             }
 
             User user = userService.getUserById(id);
             if (user == null) {
-                return Result.error("用户不存在");
+                return Result.error("User not found");
             }
-            return Result.success(user, "获取用户信息成功");
+            return Result.success(user, "Get user information successfully");
         } catch (Exception e) {
-            return Result.error("获取用户信息失败：" + e.getMessage());
+            return Result.error("Failed to get user information: " + e.getMessage());
         }
     }
 
@@ -81,13 +81,13 @@ public class UserController {
 
             // 验证token中的用户ID与请求的ID是否匹配
             if (!id.equals(tokenUserId.longValue())) {
-                return Result.error("无权修改其他用户的信息");
+                return Result.error("No access to modify other user information");
             }
 
             User updatedUser = userService.updateUser(id, request);
-            return Result.success(updatedUser, "更新用户信息成功");
+            return Result.success(updatedUser, "Update user information successfully");
         } catch (Exception e) {
-            return Result.error("更新用户信息失败：" + e.getMessage());
+            return Result.error("Failed to update user information: " + e.getMessage());
         }
     }
 }

@@ -109,7 +109,8 @@
 			"path" : "pages/settings/change/change",
 			"style" : 
 			{
-				"navigationBarTitleText" : ""
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -130,14 +131,16 @@
 			"path" : "pages/feedback/feedback",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Feedback"
+				"navigationBarTitleText" : "Feedback",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path" : "pages/cards/cards",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Cards"
+				"navigationBarTitleText" : "Cards",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -166,6 +169,14 @@
 		},
 		{
 			"path" : "pages/order_in_progress/order_in_progress",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/settings/change_password/change_password",
 			"style" : 
 			{
 				"navigationBarTitleText" : "",

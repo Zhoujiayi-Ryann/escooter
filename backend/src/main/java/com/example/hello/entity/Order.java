@@ -62,6 +62,11 @@ public class Order {
     private BigDecimal discount;
 
     /**
+     * 延长订单的额外费用
+     */
+    private BigDecimal extendedCost;
+
+    /**
      * 取车地址
      */
     private String address;
@@ -75,4 +80,14 @@ public class Order {
      * 订单创建时间
      */
     private LocalDateTime createdAt;
+
+    /**
+     * 新的结束时间（用于延长订单）
+     */
+    private LocalDateTime newEndTime;
+
+    /**
+     * 延长前的订单状态
+     */
+    private OrderStatus previousStatus;
 }

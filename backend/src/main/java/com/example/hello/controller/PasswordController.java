@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,8 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 密码相关控制器
- * 处理忘记密码、验证码验证和重置密码功能
+ * Password related controller
+ * Handles forgot password, verification code validation and password reset functionality
  */
 @RestController
 @RequestMapping("/api/password")
@@ -32,100 +33,102 @@ public class PasswordController {
 
     @Autowired
     private UserMapper userMapper;
+    
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private static final String RESET_PASSWORD_CODE_TYPE = "RESET_PASSWORD";
 
     /**
-     * 处理忘记密码请求，发送重置密码验证码到用户邮箱
+     * Handle forgot password request, send password reset verification code to user's email
      *
-     * @param request 忘记密码请求对象
-     * @return 响应实体
+     * @param request Forgot password request object
+     * @return Response entity
      */
     @PostMapping("/forgot")
     public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        log.info("received forgot password request, email: {}", request.getEmail());
+        log.info("Received forgot password request, email: {}", request.getEmail());
 
-        // 验证邮箱是否存在
+        // Verify if email exists
         User user = userMapper.findByEmail(request.getEmail());
         if (user == null) {
-            log.warn("email not found: {}", request.getEmail());
-            return ResponseEntity.badRequest().body(Result.error("email not found"));
+            log.warn("Email not found: {}", request.getEmail());
+            return ResponseEntity.badRequest().body("{\"code\":0,\"msg\":\"Email not found\",\"data\":null}");
         }
 
         try {
-            // 生成验证码并发送邮件
+            // Generate verification code and send email
             String code = verificationCodeService.generateAndSendCode(
                     request.getEmail(), RESET_PASSWORD_CODE_TYPE);
-            log.info("sent reset password verification code to email: {}", request.getEmail());
+            log.info("Sent reset password verification code to email: {}", request.getEmail());
             
-            return ResponseEntity.ok(Result.success("reset password verification code sent to email"));
+            return ResponseEntity.ok("{\"code\":1,\"msg\":\"Reset password verification code sent to email\",\"data\":null}");
         } catch (Exception e) {
-            log.error("send reset password verification code failed: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Result.error("send verification code failed, please try again later"));
+            log.error("Send reset password verification code failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"code\":0,\"msg\":\"Send verification code failed, please try again later\",\"data\":null}");
         }
     }
 
     /**
-     * 验证重置密码验证码是否有效
+     * Verify if reset password verification code is valid
      *
-     * @param request 验证码验证请求
-     * @return 响应实体
+     * @param request Verification code verification request
+     * @return Response entity
      */
     @PostMapping("/verify-code")
     public ResponseEntity<String> verifyCode(@Valid @RequestBody VerifyCodeRequest request) {
-        log.info("verify reset password verification code, email: {}", request.getEmail());
+        log.info("Verify reset password verification code, email: {}", request.getEmail());
 
         boolean valid = verificationCodeService.verifyCode(
                 request.getEmail(), request.getCode(), RESET_PASSWORD_CODE_TYPE);
 
         if (valid) {
-            log.info("verification code verified successfully, email: {}", request.getEmail());
-            return ResponseEntity.ok(Result.success("verification code is valid"));
+            log.info("Verification code verified successfully, email: {}", request.getEmail());
+            return ResponseEntity.ok("{\"code\":1,\"msg\":\"Verification code is valid\",\"data\":null}");
         } else {
-            log.warn("verification code verification failed, email: {}", request.getEmail());
-            return ResponseEntity.badRequest().body(Result.error("verification code is invalid or expired"));
+            log.warn("Verification code verification failed, email: {}", request.getEmail());
+            return ResponseEntity.badRequest().body("{\"code\":0,\"msg\":\"Verification code is invalid or expired\",\"data\":null}");
         }
     }
 
     /**
-     * 重置用户密码
+     * Reset user password
      *
-     * @param request 重置密码请求
-     * @return 响应实体
+     * @param request Reset password request
+     * @return Response entity
      */
     @PostMapping("/reset")
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        log.info("received reset password request, email: {}", request.getEmail());
+        log.info("Received reset password request, email: {}", request.getEmail());
 
-        // 验证码检查
+        // Verification code check
         boolean valid = verificationCodeService.verifyCode(
                 request.getEmail(), request.getCode(), RESET_PASSWORD_CODE_TYPE);
 
         if (!valid) {
-            log.warn("reset password failed: verification code is invalid, email: {}", request.getEmail());
-            return ResponseEntity.badRequest().body(Result.error("verification code is invalid or expired"));
+            log.warn("Reset password failed: verification code is invalid, email: {}", request.getEmail());
+            return ResponseEntity.badRequest().body("{\"code\":0,\"msg\":\"Verification code is invalid or expired\",\"data\":null}");
         }
 
-        // 查找用户
+        // Find user
         User user = userMapper.findByEmail(request.getEmail());
         if (user == null) {
-            log.warn("reset password failed: user not found, email: {}", request.getEmail());
-            return ResponseEntity.badRequest().body(Result.error("user not found"));
+            log.warn("Reset password failed: user not found, email: {}", request.getEmail());
+            return ResponseEntity.badRequest().body("{\"code\":0,\"msg\":\"User not found\",\"data\":null}");
         }
 
         try {
-            // 更新密码（不进行加密）
-            user.setPassword(request.getNewPassword());
+            // Update password with encryption
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
             userMapper.updateUser(user);
             
-            // 将验证码标记为已使用
+            // Mark verification code as used
             verificationCodeService.useCode(request.getEmail(), request.getCode(), RESET_PASSWORD_CODE_TYPE);
             
-            log.info("password reset successfully, email: {}", request.getEmail());
-            return ResponseEntity.ok(Result.success("password reset successfully"));
+            log.info("Password reset successfully, email: {}", request.getEmail());
+            return ResponseEntity.ok("{\"code\":1,\"msg\":\"Password reset successfully\",\"data\":null}");
         } catch (Exception e) {
-            log.error("reset password failed: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Result.error("reset password failed, please try again later"));
+            log.error("Reset password failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"code\":0,\"msg\":\"Reset password failed, please try again later\",\"data\":null}");
         }
     }
 } 

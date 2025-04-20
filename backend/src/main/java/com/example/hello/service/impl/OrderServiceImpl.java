@@ -19,6 +19,7 @@ import com.example.hello.service.EmailService;
 import com.example.hello.entity.User;
 import com.example.hello.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +75,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. 验证开始时间和结束时间
         if (request.getEnd_time().isBefore(request.getStart_time())) {
-            log.error("End time cannot be earlier than start time: startTime={}, endTime={}", request.getStart_time(), request.getEnd_time());
+            log.error("End time cannot be earlier than start time: startTime={}, endTime={}", request.getStart_time(),
+                    request.getEnd_time());
             throw new RuntimeException("结束时间不能早于开始时间");
         }
 
@@ -217,18 +219,30 @@ public class OrderServiceImpl implements OrderService {
         }
 
         try {
-            // 4. 更新订单状态为paid
-            log.info("Updating order {} status to paid", orderId);
-            int updated = orderMapper.updateOrderStatus(orderId, OrderStatus.PAID.getValue());
+            // 4. 更新订单状态
+            String newStatus;
+            if (order.getNewEndTime() != null) {
+                // 如果是延长订单，恢复到之前的状态
+                newStatus = order.getPreviousStatus().getValue();
+                log.info("Extended order {} will be restored to previous status: {}", orderId, newStatus);
+            } else {
+                // 如果是新订单，设置为已支付状态
+                newStatus = OrderStatus.PAID.getValue();
+                log.info("New order {} will be set to paid status", orderId);
+            }
 
-            // 5. 如果更新成功，返回支付结果
+            // 5. 更新订单状态
+            log.info("Updating order {} status to {}", orderId, newStatus);
+            int updated = orderMapper.updateOrderStatus(orderId, newStatus);
+
+            // 6. 如果更新成功，返回支付结果
             if (updated > 0) {
                 PayOrderResponse response = new PayOrderResponse();
                 response.setOrder_id(orderId);
-                response.setStatus(OrderStatus.PAID.getValue());
+                response.setStatus(newStatus);
                 log.info("Order {} payment successful", orderId);
-                
-                // 6. 发送订单确认邮件
+
+                // 7. 发送订单确认邮件
                 try {
                     // 查询用户信息获取邮箱
                     User user = userMapper.findById(order.getUserId().longValue());
@@ -238,21 +252,22 @@ public class OrderServiceImpl implements OrderService {
                             emailService.sendOrderConfirmationEmail(order, user.getEmail());
                         }).start();
                     } else {
-                        log.warn("Unable to send order confirmation email: User {} does not have a valid email address", order.getUserId());
+                        log.warn("Unable to send order confirmation email: User {} does not have a valid email address",
+                                order.getUserId());
                     }
                 } catch (Exception e) {
                     // 邮件发送失败不影响主流程
                     log.error("Error sending order confirmation email: {}", e.getMessage(), e);
                 }
-                
+
                 return Optional.of(response);
             } else {
                 log.error("Order {} payment failed: Update status failed", orderId);
-                throw new OrderException("支付失败: 更新订单状态失败");
+                throw new OrderException("Payment failed: Update status failed");
             }
         } catch (Exception e) {
             log.error("Order {} payment failed: {}", orderId, e.getMessage(), e);
-            throw new OrderException("支付失败: " + e.getMessage(), e);
+            throw new OrderException("Payment failed: " + e.getMessage(), e);
         }
     }
 
@@ -271,7 +286,8 @@ public class OrderServiceImpl implements OrderService {
         // 2. 验证订单状态
         String currentStatus = (String) detailMap.get("status");
         if (!OrderStatus.PAID.getValue().equals(currentStatus)) {
-            log.warn("Activation failed: Order {} current status is {}, activation not allowed", orderId, currentStatus);
+            log.warn("Activation failed: Order {} current status is {}, activation not allowed", orderId,
+                    currentStatus);
             throw OrderException.invalidStatus(orderId, currentStatus, OrderStatus.ACTIVE.getValue());
         }
 
@@ -279,7 +295,7 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime startTime = (LocalDateTime) detailMap.get("start_time");
         if (startTime.isAfter(LocalDateTime.now())) {
             log.warn("Activation failed: Order {} start time {} has not arrived yet", orderId, startTime);
-            throw new OrderException("订单开始时间未到达，无法激活");
+            throw new OrderException("Order start time has not arrived, cannot activate");
         }
 
         try {
@@ -313,11 +329,11 @@ public class OrderServiceImpl implements OrderService {
                 return Optional.of(response);
             } else {
                 log.error("Order {} activation failed: Update status failed", orderId);
-                throw new OrderException("激活失败: 更新订单状态失败");
+                throw new OrderException("Activation failed: Update status failed");
             }
         } catch (Exception e) {
             log.error("Order {} activation failed: {}", orderId, e.getMessage(), e);
-            throw new OrderException("激活失败: " + e.getMessage(), e);
+            throw new OrderException("Activation failed: " + e.getMessage(), e);
         }
     }
 
@@ -336,7 +352,8 @@ public class OrderServiceImpl implements OrderService {
         // 2. 验证订单状态
         String currentStatus = (String) detailMap.get("status");
         if (!OrderStatus.ACTIVE.getValue().equals(currentStatus)) {
-            log.warn("Completion failed: Order {} current status is {}, completion not allowed", orderId, currentStatus);
+            log.warn("Completion failed: Order {} current status is {}, completion not allowed", orderId,
+                    currentStatus);
             throw OrderException.invalidStatus(orderId, currentStatus, OrderStatus.COMPLETED.getValue());
         }
 
@@ -371,11 +388,11 @@ public class OrderServiceImpl implements OrderService {
                 return Optional.of(response);
             } else {
                 log.error("Order {} completion failed: Update status failed", orderId);
-                throw new OrderException("完成失败: 更新订单状态失败");
+                throw new OrderException("Completion failed: Update status failed");
             }
         } catch (Exception e) {
             log.error("Order {} completion failed: {}", orderId, e.getMessage(), e);
-            throw new OrderException("完成失败: " + e.getMessage(), e);
+            throw new OrderException("Completion failed: " + e.getMessage(), e);
         }
     }
 
@@ -393,7 +410,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. 验证订单状态
         if (order.getStatus() != OrderStatus.PENDING) {
-            log.warn("Deletion failed: Order {} current status is {}, deletion not allowed", orderId, order.getStatus());
+            log.warn("Deletion failed: Order {} current status is {}, deletion not allowed", orderId,
+                    order.getStatus());
             throw OrderException.invalidStatus(orderId, order.getStatus().getValue(), OrderStatus.PENDING.getValue());
         }
 
@@ -411,7 +429,7 @@ public class OrderServiceImpl implements OrderService {
             }
         } catch (Exception e) {
             log.error("Order {} deletion failed: {}", orderId, e.getMessage(), e);
-            throw new OrderException("删除失败: " + e.getMessage(), e);
+            throw new OrderException("Deletion failed: " + e.getMessage(), e);
         }
     }
 
@@ -429,7 +447,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. 验证订单状态
         if (order.getStatus() != OrderStatus.COMPLETED) {
-            log.warn("Soft deletion failed: Order {} current status is {}, soft deletion not allowed", orderId, order.getStatus());
+            log.warn("Soft deletion failed: Order {} current status is {}, soft deletion not allowed", orderId,
+                    order.getStatus());
             throw OrderException.invalidStatus(orderId, order.getStatus().getValue(), OrderStatus.COMPLETED.getValue());
         }
 
@@ -447,7 +466,7 @@ public class OrderServiceImpl implements OrderService {
             }
         } catch (Exception e) {
             log.error("Order {} soft deletion failed: {}", orderId, e.getMessage(), e);
-            throw new OrderException("软删除失败: " + e.getMessage(), e);
+            throw new OrderException("Soft deletion failed: " + e.getMessage(), e);
         }
     }
 
@@ -467,89 +486,117 @@ public class OrderServiceImpl implements OrderService {
                 return;
             }
 
-            // 删除超时的订单
+            // 处理超时的订单
             for (Order order : timeoutOrders) {
-                log.info("Deleting timeout pending order: orderId={}", order.getOrderId());
-                orderMapper.deleteOrder(order.getOrderId(), OrderStatus.PENDING.getValue());
+                log.info("Processing timeout pending order: orderId={}", order.getOrderId());
+
+                if (order.getNewEndTime() != null) {
+                    // 如果是延长订单（new_end_time不为空）
+                    // 1. 将new_end_time设为null
+                    // 2. 将status恢复为previous_status
+                    // 3. 将extended_duration设为0
+                    // 4. 将cost减去extended_cost
+                    // 5. 将extended_cost设为null
+                    log.info("Resetting extended order: orderId={}, previousStatus={}",
+                            order.getOrderId(), order.getPreviousStatus());
+
+                    // 计算新的cost
+                    BigDecimal newCost = order.getCost().subtract(order.getExtendedCost());
+
+                    // 更新订单
+                    orderMapper.resetExtendedOrderWithCost(
+                            order.getOrderId(),
+                            order.getPreviousStatus().getValue(),
+                            newCost);
+                } else {
+                    // 如果是普通订单（new_end_time为空），直接删除
+                    log.info("Deleting timeout pending order: orderId={}", order.getOrderId());
+                    orderMapper.deleteOrder(order.getOrderId(), OrderStatus.PENDING.getValue());
+                }
             }
 
             log.info("Successfully processed {} timeout pending orders", timeoutOrders.size());
         } catch (Exception e) {
             log.error("Failed to process timeout pending orders: {}", e.getMessage(), e);
-            throw new OrderException("处理超时pending订单失败: " + e.getMessage());
+            throw new OrderException("Failed to process timeout pending orders: " + e.getMessage());
         }
     }
 
     @Override
     @Transactional
     public Optional<OrderResponse> extendOrder(ExtendOrderRequest request) {
-        // 1. 检查订单是否存在且状态为active或paid
-        final Order order = orderMapper.findById(request.getOrder_id());
-        if (order == null) {
-            throw new RuntimeException("订单不存在");
+        try {
+            // 1. 获取订单信息
+            Order order = orderMapper.findById(request.getOrder_id());
+            if (order == null) {
+                throw new OrderException("订单不存在");
+            }
+
+            // 2. 验证订单状态
+            if (order.getStatus() != OrderStatus.ACTIVE && order.getStatus() != OrderStatus.PAID) {
+                throw new OrderException("只有进行中或已支付的订单可以延长");
+            }
+
+            // 3. 验证新的结束时间
+            if (!request.getNew_end_time().isAfter(order.getEndTime())) {
+                throw new OrderException("新的结束时间必须晚于当前结束时间");
+            }
+
+            // 4. 检查时间段是否与其他订单重叠
+            List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
+                    order.getScooterId(),
+                    order.getStartTime(),
+                    request.getNew_end_time());
+            overlappingOrders.removeIf(o -> o.getOrderId().equals(order.getOrderId()));
+            if (!overlappingOrders.isEmpty()) {
+                throw new OrderException("该时间段内滑板车已被预订");
+            }
+
+            // 5. 计算延长时间（小时）
+            Duration duration = Duration.between(order.getEndTime(), request.getNew_end_time());
+            float newExtendedDuration = duration.toMinutes() / 60.0f;
+            float totalExtendedDuration = order.getExtendedDuration() + newExtendedDuration;
+
+            // 6. 计算延长费用
+            BigDecimal currentPrice = orderMapper.getScooterPrice(order.getScooterId());
+            BigDecimal extendedPrice = currentPrice.add(new BigDecimal("2.00")); // 延长部分每小时贵2元
+            BigDecimal extendedCost = extendedPrice.multiply(BigDecimal.valueOf(newExtendedDuration))
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            // 7. 更新订单
+            int result = orderMapper.extendOrder(
+                    order.getOrderId(),
+                    request.getNew_end_time(),
+                    totalExtendedDuration,
+                    extendedCost,
+                    order.getStatus().getValue());
+
+            if (result <= 0) {
+                throw new OrderException("延长订单失败");
+            }
+
+            // 8. 获取更新后的订单信息
+            Order updatedOrder = orderMapper.findById(order.getOrderId());
+
+            // 9. 构建响应
+            OrderResponse response = new OrderResponse();
+            response.setOrder_id(updatedOrder.getOrderId());
+            response.setUser_id(updatedOrder.getUserId());
+            response.setScooter_id(updatedOrder.getScooterId());
+            response.setStart_time(updatedOrder.getStartTime());
+            response.setEnd_time(updatedOrder.getNewEndTime());
+            response.setCost(updatedOrder.getCost());
+            response.setStatus(updatedOrder.getStatus().getValue());
+            response.setPickup_address(updatedOrder.getAddress());
+
+            return Optional.of(response);
+        } catch (OrderException e) {
+            log.error("延长订单失败: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("延长订单失败", e);
+            throw new OrderException("延长订单失败: " + e.getMessage());
         }
-
-        if (order.getStatus() != OrderStatus.ACTIVE && order.getStatus() != OrderStatus.PAID) {
-            throw new RuntimeException("只有进行中和已支付的订单可以延长");
-        }
-
-        // 2. 检查新的结束时间是否晚于当前结束时间
-        if (!request.getNew_end_time().isAfter(order.getEndTime())) {
-            throw new RuntimeException("新的结束时间必须晚于当前结束时间");
-        }
-
-        // 3. 检查时间段是否与其他订单重叠（排除completed状态）
-        List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
-                order.getScooterId(),
-                order.getStartTime(),
-                request.getNew_end_time());
-
-        // 过滤掉当前订单
-        overlappingOrders.removeIf(o -> o.getOrderId().equals(order.getOrderId()));
-
-        if (!overlappingOrders.isEmpty()) {
-            throw new RuntimeException("该时间段内滑板车已被预订");
-        }
-
-        // 4. 计算延长时间（小时）
-        Duration duration = Duration.between(order.getEndTime(), request.getNew_end_time());
-        float newExtendedDuration = duration.toMinutes() / 60.0f;
-        // 总延长时间 = 原有延长时间 + 新的延长时间
-        float totalExtendedDuration = order.getExtendedDuration() + newExtendedDuration;
-
-        // 5. 计算新的费用
-        // 获取滑板车当前价格
-        BigDecimal currentPrice = orderMapper.getScooterPrice(order.getScooterId());
-        // 延长部分的价格比原来贵2元
-        BigDecimal extendedPrice = currentPrice.add(new BigDecimal("2.00"));
-        // 计算延长部分的费用
-        BigDecimal extendedCost = extendedPrice.multiply(BigDecimal.valueOf(newExtendedDuration))
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
-        // 总费用 = 原费用 + 延长费用
-        BigDecimal newCost = order.getCost().add(extendedCost);
-
-        // 6. 更新订单
-        orderMapper.extendOrder(
-                order.getOrderId(),
-                request.getNew_end_time(),
-                totalExtendedDuration,
-                newCost);
-
-        // 7. 重新查询订单以获取最新数据
-        final Order updatedOrder = orderMapper.findById(order.getOrderId());
-
-        // 8. 构建响应
-        OrderResponse response = new OrderResponse();
-        response.setOrder_id(updatedOrder.getOrderId());
-        response.setUser_id(updatedOrder.getUserId());
-        response.setScooter_id(updatedOrder.getScooterId());
-        response.setStart_time(updatedOrder.getStartTime());
-        response.setEnd_time(updatedOrder.getEndTime()); // 使用更新后的结束时间
-        response.setCost(newCost);
-        response.setPickup_address(updatedOrder.getAddress());
-        response.setStatus(updatedOrder.getStatus().getValue());
-
-        return Optional.of(response);
     }
 
     @Override
@@ -557,7 +604,7 @@ public class OrderServiceImpl implements OrderService {
         // 1. 查询当前订单
         final Order order = orderMapper.findById(orderId);
         if (order == null) {
-            throw new RuntimeException("订单不存在");
+            throw new RuntimeException("Order does not exist");
         }
 
         // 2. 查询下一个订单的开始时间
@@ -581,5 +628,42 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return Optional.of(response);
+    }
+
+    /**
+     * 自动完成超时的订单
+     * 每分钟执行一次，检查并完成已超过结束时间的active订单
+     */
+    @Scheduled(fixedRate = 60000) // 每分钟执行一次
+    @Transactional
+    public void autoCompleteTimeoutOrders() {
+        log.info("Starting auto complete timeout orders");
+        try {
+            // 查询所有超时的active订单
+            List<Order> timeoutOrders = orderMapper.findTimeoutActiveOrders();
+
+            if (timeoutOrders.isEmpty()) {
+                log.info("No timeout active orders to process");
+                return;
+            }
+
+            // 处理超时的订单
+            for (Order order : timeoutOrders) {
+                log.info("Processing timeout active order: orderId={}", order.getOrderId());
+
+                // 更新订单状态为completed
+                int updated = orderMapper.updateOrderStatus(order.getOrderId(), OrderStatus.COMPLETED.getValue());
+
+                if (updated > 0) {
+                    log.info("Order {} auto completed successfully", order.getOrderId());
+                } else {
+                    log.error("Order {} auto completion failed", order.getOrderId());
+                }
+            }
+
+            log.info("Successfully processed {} timeout active orders", timeoutOrders.size());
+        } catch (Exception e) {
+            log.error("Failed to process timeout active orders: {}", e.getMessage(), e);
+        }
     }
 }

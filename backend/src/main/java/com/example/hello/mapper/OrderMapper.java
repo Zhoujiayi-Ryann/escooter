@@ -185,13 +185,42 @@ public interface OrderMapper {
          * @param orderId          订单ID
          * @param newEndTime       新的结束时间
          * @param extendedDuration 延长时间（小时）
-         * @param newCost          新的费用
+         * @param extendedCost     延长费用
+         * @param previousStatus   之前的状态
          * @return 影响的行数
          */
-        @Update("UPDATE Orders SET end_time = #{newEndTime}, extended_duration = #{extendedDuration}, cost = #{newCost} WHERE order_id = #{orderId}")
+        @Update("UPDATE Orders SET new_end_time = #{newEndTime}, " +
+                        "extended_duration = #{extendedDuration}, " +
+                        "extended_cost = #{extendedCost}, " +
+                        "cost = cost + #{extendedCost}, " +
+                        "previous_status = #{previousStatus}, " +
+                        "status = 'pending', " +
+                        "create_at = NOW() " +
+                        "WHERE order_id = #{orderId}")
         int extendOrder(@Param("orderId") Integer orderId,
                         @Param("newEndTime") LocalDateTime newEndTime,
                         @Param("extendedDuration") Float extendedDuration,
+                        @Param("extendedCost") BigDecimal extendedCost,
+                        @Param("previousStatus") String previousStatus);
+
+        /**
+         * 重置延长订单
+         * 将new_end_time设为null，并将status恢复为previous_status
+         * 同时将extended_duration设为0，cost减去extended_cost，extended_cost设为null
+         *
+         * @param orderId        订单ID
+         * @param previousStatus 之前的状态
+         * @param newCost        新的费用（原费用减去延长费用）
+         * @return 影响的行数
+         */
+        @Update("UPDATE Orders SET new_end_time = NULL, " +
+                        "status = #{previousStatus}, " +
+                        "extended_duration = 0, " +
+                        "cost = #{newCost}, " +
+                        "extended_cost = NULL " +
+                        "WHERE order_id = #{orderId}")
+        int resetExtendedOrderWithCost(@Param("orderId") Integer orderId,
+                        @Param("previousStatus") String previousStatus,
                         @Param("newCost") BigDecimal newCost);
 
         /**
@@ -209,4 +238,33 @@ public interface OrderMapper {
                         "LIMIT 1")
         LocalDateTime findNextOrderStartTime(@Param("scooterId") Integer scooterId,
                         @Param("currentTime") LocalDateTime currentTime);
+
+        /**
+         * 查询所有超时的active订单
+         * 订单结束时间（考虑new_end_time）已过但状态仍为active的订单
+         *
+         * @return 超时的订单列表
+         */
+        @Select("SELECT * FROM Orders WHERE status = 'active' " +
+                        "AND (CASE " +
+                        "   WHEN new_end_time IS NOT NULL THEN new_end_time " +
+                        "   ELSE end_time " +
+                        "END) < NOW()")
+        @Results({
+                        @Result(property = "orderId", column = "order_id"),
+                        @Result(property = "userId", column = "user_id"),
+                        @Result(property = "scooterId", column = "scooter_id"),
+                        @Result(property = "startTime", column = "start_time"),
+                        @Result(property = "endTime", column = "end_time"),
+                        @Result(property = "duration", column = "duration"),
+                        @Result(property = "cost", column = "cost"),
+                        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
+                        @Result(property = "extendedDuration", column = "extended_duration"),
+                        @Result(property = "discount", column = "discount"),
+                        @Result(property = "address", column = "address"),
+                        @Result(property = "createdAt", column = "create_at"),
+                        @Result(property = "newEndTime", column = "new_end_time"),
+                        @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class)
+        })
+        List<Order> findTimeoutActiveOrders();
 }

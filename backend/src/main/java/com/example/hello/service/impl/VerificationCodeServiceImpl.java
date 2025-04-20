@@ -1,28 +1,30 @@
 package com.example.hello.service.impl;
 
-import com.example.hello.entity.VerificationCode;
-import com.example.hello.mapper.VerificationCodeMapper;
 import com.example.hello.service.EmailService;
 import com.example.hello.service.VerificationCodeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 验证码服务实现类
+ * Verification code service implementation - Memory storage version
  */
 @Service
 @Slf4j
 public class VerificationCodeServiceImpl implements VerificationCodeService {
 
-    @Autowired
-    private VerificationCodeMapper verificationCodeMapper;
+    /**
+     * In-memory data structure for storing verification codes
+     * Format: "email:type" -> [code, expirationTime, isUsed]
+     */
+    private static final Map<String, Object[]> CODE_CACHE = new ConcurrentHashMap<>();
 
     @Autowired
     private EmailService emailService;
@@ -30,37 +32,32 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     @Autowired
     private TemplateEngine templateEngine;
 
-    // 验证码有效期（分钟）
-    private static final int CODE_EXPIRATION_MINUTES = 1;
+    // Verification code validity period (minutes)
+    private static final int CODE_EXPIRATION_MINUTES = 5;
     
-    // 验证码长度
+    // Verification code length
     private static final int CODE_LENGTH = 6;
 
     @Override
-    @Transactional
     public String generateAndSendCode(String email, String type) {
-        log.info("开始为邮箱 {} 生成 {} 类型的验证码", email, type);
+        log.info("Generating verification code for email: {}, type: {}", email, type);
         
-        // 使之前的同类型验证码失效
+        // Invalidate previous codes of the same type
         invalidateAllCodes(email, type);
         
-        // 生成6位随机数字验证码
+        // Generate a 6-digit random numeric verification code
         String code = generateRandomCode(CODE_LENGTH);
         
-        // 创建验证码记录
-        VerificationCode verificationCode = new VerificationCode();
-        verificationCode.setEmail(email);
-        verificationCode.setCode(code);
-        verificationCode.setType(type);
-        verificationCode.setCreatedAt(LocalDateTime.now());
-        verificationCode.setExpiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES));
-        verificationCode.setUsed(false);
+        // Calculate expiration time
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES);
         
-        // 保存到数据库
-        verificationCodeMapper.insert(verificationCode);
-        log.info("验证码 {} 已保存到数据库，类型：{}, 邮箱：{}", code, type, email);
+        // Save to memory cache
+        String key = generateKey(email, type);
+        CODE_CACHE.put(key, new Object[]{code, expiresAt, false});
         
-        // 发送验证码邮件
+        log.info("Verification code generated: {}, for email: {}, type: {}", code, email, type);
+        
+        // Send verification email
         sendVerificationEmail(email, code, type);
         
         return code;
@@ -68,53 +65,81 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     @Override
     public boolean verifyCode(String email, String code, String type) {
-        log.info("验证邮箱 {} 的验证码 {}, 类型: {}", email, code, type);
+        log.info("Verifying code for email: {}, type: {}", email, type);
         
-        VerificationCode verificationCode = verificationCodeMapper.findValidCode(
-                email, code, type, LocalDateTime.now());
+        String key = generateKey(email, type);
+        Object[] codeData = CODE_CACHE.get(key);
         
-        boolean valid = verificationCode != null;
-        log.info("验证码验证结果: {}", valid ? "有效" : "无效");
+        if (codeData == null) {
+            log.warn("No verification code record found for email: {}, type: {}", email, type);
+            return false;
+        }
+        
+        String savedCode = (String) codeData[0];
+        LocalDateTime expiresAt = (LocalDateTime) codeData[1];
+        boolean isUsed = (boolean) codeData[2];
+        
+        LocalDateTime now = LocalDateTime.now();
+        
+        boolean valid = savedCode.equals(code) && !isUsed && now.isBefore(expiresAt);
+        log.info("Verification result: {}, for email: {}, type: {}", valid ? "valid" : "invalid", email, type);
         
         return valid;
     }
 
     @Override
-    @Transactional
     public boolean useCode(String email, String code, String type) {
-        log.info("标记验证码为已使用，邮箱: {}, 验证码: {}, 类型: {}", email, code, type);
+        log.info("Marking code as used for email: {}, type: {}", email, type);
         
-        VerificationCode verificationCode = verificationCodeMapper.findValidCode(
-                email, code, type, LocalDateTime.now());
+        String key = generateKey(email, type);
+        Object[] codeData = CODE_CACHE.get(key);
         
-        if (verificationCode == null) {
-            log.warn("找不到有效的验证码，无法标记为已使用");
+        if (codeData == null) {
+            log.warn("No verification code record found for email: {}, type: {}", email, type);
             return false;
         }
         
-        int affected = verificationCodeMapper.markAsUsed(verificationCode.getId());
-        boolean success = affected > 0;
-        log.info("标记验证码为已使用结果: {}", success ? "成功" : "失败");
+        String savedCode = (String) codeData[0];
+        LocalDateTime expiresAt = (LocalDateTime) codeData[1];
         
-        return success;
+        LocalDateTime now = LocalDateTime.now();
+        
+        if (!savedCode.equals(code) || now.isAfter(expiresAt)) {
+            log.warn("Code is invalid or expired for email: {}, type: {}", email, type);
+            return false;
+        }
+        
+        // Mark as used
+        codeData[2] = true;
+        CODE_CACHE.put(key, codeData);
+        
+        log.info("Code marked as used successfully for email: {}, type: {}", email, type);
+        return true;
     }
 
     @Override
-    @Transactional
     public boolean invalidateAllCodes(String email, String type) {
-        log.info("使邮箱 {} 的所有 {} 类型验证码失效", email, type);
+        log.info("Invalidating all codes for email: {}, type: {}", email, type);
         
-        int affected = verificationCodeMapper.invalidateAllCodes(email, type);
-        log.info("已使 {} 个验证码失效", affected);
+        String key = generateKey(email, type);
+        CODE_CACHE.remove(key);
         
-        return affected >= 0; // 即使没有验证码被标记为失效，也认为操作成功
+        log.info("All codes invalidated for email: {}, type: {}", email, type);
+        return true;
     }
     
     /**
-     * 生成指定长度的随机数字验证码
+     * Generate cache key
+     */
+    private String generateKey(String email, String type) {
+        return email + ":" + type;
+    }
+    
+    /**
+     * Generate a random numeric verification code of specified length
      *
-     * @param length 验证码长度
-     * @return 随机数字验证码
+     * @param length Verification code length
+     * @return Random numeric verification code
      */
     private String generateRandomCode(int length) {
         Random random = new Random();
@@ -126,11 +151,11 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     }
     
     /**
-     * 发送验证码邮件
+     * Send verification code email
      *
-     * @param email 收件人邮箱
-     * @param code  验证码
-     * @param type  验证码类型
+     * @param email Recipient email
+     * @param code  Verification code
+     * @param type  Verification code type
      */
     private void sendVerificationEmail(String email, String code, String type) {
         try {
@@ -141,22 +166,26 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
             String templateName;
             
             if ("RESET_PASSWORD".equals(type)) {
-                subject = "密码重置验证码";
+                subject = "Password Reset Verification Code";
                 templateName = "mail/reset-password";
+                
+                // For development: Log the code
+                log.info("Password reset verification code: {} has been generated for: {}", code, email);
             } else if ("REGISTER".equals(type)) {
-                subject = "注册验证码";
+                subject = "Registration Verification Code";
                 templateName = "mail/register-verification";
             } else {
-                subject = "验证码";
+                subject = "Verification Code";
                 templateName = "mail/general-verification";
             }
             
+            // Enable email sending
             String content = templateEngine.process(templateName, context);
             emailService.sendHtmlEmail(email, subject, content);
             
-            log.info("验证码邮件发送成功，邮箱: {}, 类型: {}", email, type);
+            log.info("Verification email sent successfully to: {}, type: {}", email, type);
         } catch (Exception e) {
-            log.error("发送验证码邮件失败: {}", e.getMessage(), e);
+            log.error("Failed to send verification email to: {}, type: {}, error: {}", email, type, e.getMessage(), e);
         }
     }
 } 
