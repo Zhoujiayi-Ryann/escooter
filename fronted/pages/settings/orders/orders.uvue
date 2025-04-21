@@ -161,7 +161,7 @@
 	  >
 	    <van-date-picker 
 	      v-model="dateColumns" 
-	      :min-date="new Date()"
+	      :min-date="minDate"
 	      :max-date="maxDate"
 	    />
 	    <van-time-picker 
@@ -195,7 +195,7 @@ export default {
 			// 修改日期时间选择器相关数据
 			showTimePicker: false,
 			currentDate: new Date(),
-			minDate: new Date(),
+			minDate: new Date(),  // 这个值会在实际使用时被更新
 			maxDate: new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate()),
 			selectedExtendDate: '',
 			
@@ -249,12 +249,31 @@ export default {
 				content: 'Are you sure to delete this order?',
 				success: (res) => {
 					if (res.confirm) {
-						// 模拟删除订单
-						this.orders = this.orders.filter(order => order.id !== orderId);
-						uni.showToast({
-							title: 'Deleted',
-							icon: 'success'
-						});
+						// 调用删除订单API  MODIFY
+						orderApi.deleteOrder(Number(orderId))
+							.then(res => {
+								if (res.code === 1) {
+									// API调用成功，更新本地数据
+									this.orders = this.orders.filter(order => order.id !== orderId);
+									uni.showToast({
+										title: 'Deleted',
+										icon: 'success'
+									});
+								} else {
+									// API调用失败，显示错误信息
+									uni.showToast({
+										title: res.msg || '删除失败',
+										icon: 'none'
+									});
+								}
+							})
+							.catch(err => {
+								console.error('删除订单出错:', err);
+								uni.showToast({
+									title: '网络错误，请稍后重试',
+									icon: 'none'
+								});
+							});
 					}
 				}
 			});
@@ -277,29 +296,63 @@ export default {
 				confirmText: 'Confirm',
 				success: (res) => {
 					if (res.confirm) {
-						this.cancelOrder(order.id);
+						// 调用删除订单API
+						orderApi.deleteOrder(Number(order.id))
+							.then(res => {
+								if (res.code === 1) {
+									// API调用成功，更新本地数据
+									this.orders = this.orders.filter(o => o.id !== order.id);
+									uni.showToast({
+										title: 'Order Cancelled',
+										icon: 'success'
+									});
+								} else {
+									// API调用失败，显示错误信息
+									uni.showToast({
+										title: res.msg || '取消失败',
+										icon: 'none'
+									});
+								}
+							})
+							.catch(err => {
+								console.error('取消订单出错:', err);
+								uni.showToast({
+									title: '网络错误，请稍后重试',
+									icon: 'none'
+								});
+							});
 					}
 				}
 			});
 		},
 		
-		// 取消订单方法
-		cancelOrder(orderId) {
-			// 模拟取消订单
-			this.orders = this.orders.filter(order => order.id !== orderId);
-			uni.showToast({
-				title: 'Order Cancelled',
-				icon: 'success'
-			});
-		},
-		
-		// 显示延长租车对话框 - 简化版
+		// 显示延长租车对话框
 		showExtendRentalDialog(order) {
 		  this.currentExtendOrder = order;
 		  this.selectedExtendDate = '';
 		  
-		  // 直接显示日期选择器
-		  this.showDateTimePicker();
+		  // 获取订单结束时间并显示日期选择器
+		  orderApi.getOrderDetail(Number(order.id))
+		    .then(res => {
+		      if (res.code === 1 && res.data && res.data.end_time) {
+		        // 使用订单的结束时间作为最小可选日期
+		        this.minDate = new Date(res.data.end_time);
+		        // 显示日期选择器
+		        this.showDateTimePicker();
+		      } else {
+		        uni.showToast({
+		          title: '获取订单详情失败',
+		          icon: 'none'
+		        });
+		      }
+		    })
+		    .catch(err => {
+		      console.error('获取订单结束时间失败:', err);
+		      uni.showToast({
+		        title: '网络错误，请稍后重试',
+		        icon: 'none'
+		      });
+		    });
 		},
 		
 		// 显示日期时间选择器
@@ -309,25 +362,26 @@ export default {
 		  this.initDateTimeColumns();
 		},
 		
-		// 初始化日期和时间列 - 修正格式
+		// 初始化日期和时间列 - 使用订单结束时间
 		initDateTimeColumns() {
-		  // 获取当前日期，作为初始值
-		  const now = new Date();
-		  
-		  // 设置初始日期为当前日期
+		  // 使用已经设置好的minDate(订单结束时间)
+		  // 确保初始值不早于最小日期
+		  this.setDateTimeValues(this.minDate);
+		},
+		
+		// 设置日期时间值的辅助方法
+		setDateTimeValues(date) {
+		  // 设置日期
 		  this.dateColumns = [
-		    now.getFullYear().toString(),
-		    (now.getMonth() + 1).toString().padStart(2, '0'),
-		    now.getDate().toString().padStart(2, '0')
+		    date.getFullYear().toString(),
+		    (date.getMonth() + 1).toString().padStart(2, '0'),
+		    date.getDate().toString().padStart(2, '0')
 		  ];
 		  
-		  // 设置初始时间为当前时间后一小时
-		  const hour = now.getHours();
-		  const nextHour = (hour + 1) % 24;
-		  
+		  // 设置时间
 		  this.timeColumns = [
-		    nextHour.toString().padStart(2, '0'),
-		    '00' // 分钟默认为00
+		    date.getHours().toString().padStart(2, '0'),
+		    date.getMinutes().toString().padStart(2, '0')
 		  ];
 		},
 		
@@ -343,9 +397,45 @@ export default {
 		  this.selectedExtendDate = `${year}-${month}-${day} ${hour}:${minute}`;
 		  this.showTimePicker = false;
 		  
-		  // 直接执行延长租车功能，不再弹出确认对话框
-		  if (this.currentExtendOrder && this.selectedExtendDate) {
-		    this.extendRental(this.currentExtendOrder.id, this.selectedExtendDate);
+		  // 获取当前订单信息，然后跳转到支付页面
+		  if (this.currentExtendOrder) {
+		    // 获取订单详情
+		    orderApi.getOrderDetail(Number(this.currentExtendOrder.id))
+		      .then(res => {
+		        if (res.code === 1 && res.data) {
+		          // 构建订单信息对象
+				  console.log(res);
+		          const orderInfo = {
+		            orderId: this.currentExtendOrder.id,
+		            scooterCode: res.data.scooter_code || this.currentExtendOrder.type,
+		            address: res.data.pickup_address || "未知地点",
+		            cost: this.calculateExtensionCost(), // 计算延长费用
+		            discountAmount: 0, // 折扣金额默认为0
+		            startDate: this.formatDatePart(new Date(res.data.end_time)), // 使用原订单的结束日期作为延长的开始日期
+		            startTime: this.formatTimePart(new Date(res.data.end_time)), // 使用原订单的结束时间作为延长的开始时间
+		            endDate: `${year}-${month}-${day}`, // 新选择的结束日期
+		            endTime: `${hour}:${minute}`, // 新选择的结束时间
+		            days: this.calculateDays(new Date(res.data.end_time), new Date(`${year}-${month}-${day} ${hour}:${minute}`)) // 计算正确的天数差
+		          };
+		          // 编码并跳转到支付页面
+		          const orderInfoStr = encodeURIComponent(JSON.stringify(orderInfo));
+		          uni.navigateTo({
+		            url: `/pages/order/payment?orderInfo=${orderInfoStr}`
+		          });
+		        } else {
+		          uni.showToast({
+		            title: res.msg || '获取订单详情失败',
+		            icon: 'none'
+		          });
+		        }
+		      })
+		      .catch(err => {
+		        console.error('获取订单详情出错:', err);
+		        uni.showToast({
+		          title: '网络错误，请稍后重试',
+		          icon: 'none'
+		        });
+		      });
 		  }
 		},
 		
@@ -370,20 +460,44 @@ export default {
 		  return String(num).padStart(2, '0');
 		},
 		
-		// 处理延长租车
-		extendRental(orderId, dateTime) {
-		  // 找到对应订单
-		  const orderIndex = this.orders.findIndex(order => order.id === orderId);
-		  if (orderIndex !== -1) {
-		    // 更新订单信息，这里只是模拟
-		    this.orders[orderIndex].duration += ` → ${dateTime}`;
-		
-		    uni.showToast({
-		      title: '租期已延长',
-		      icon: 'success'
-		    });
-		  }
+		// 格式化日期部分 (YYYY-MM-DD)
+		formatDatePart(date) {
+		  const year = date.getFullYear();
+		  const month = this.padZero(date.getMonth() + 1);
+		  const day = this.padZero(date.getDate());
+		  
+		  return `${year}-${month}-${day}`;
 		},
+		
+		// 格式化时间部分 (HH:MM)
+		formatTimePart(date) {
+		  const hour = this.padZero(date.getHours());
+		  const minute = this.padZero(date.getMinutes());
+		  
+		  return `${hour}:${minute}`;
+		},
+		
+		// 计算延长租期的费用
+		calculateExtensionCost() {
+		  // 这里可以根据实际业务逻辑计算费用
+		  // 例如：根据延长的天数或小时数乘以单价
+		  
+		  if (!this.currentExtendOrder || !this.selectedExtendDate) {
+		    return "0.00";
+		  }
+		  
+		  // 每天12.00的价格计算
+		  const days = this.calculateDays(new Date(), new Date(this.selectedExtendDate));
+		  return (days * 12.00).toFixed(2);
+		},
+		
+		// 计算两个日期之间的天数
+		calculateDays(startDate, endDate) {
+		  const diffTime = Math.abs(endDate - startDate);
+		  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+		  return Math.max(1, diffDays); // 至少1天
+		},
+		
 		onRefresh() {
 			console.log('开始刷新');
 			this.fetchOrders(); // 使用API重新获取数据

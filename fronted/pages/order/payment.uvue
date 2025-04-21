@@ -19,14 +19,14 @@
 			    </template>
 			  </van-cell>
 			<van-cell title="Order Number" :value="orderId" />
-			
-<van-cell title="Rental Period">
-  <template #value>
-    <scroll-view scroll-x="true" class="scroll-time-line">
-      <text>{{ orderInfo.startDate }} {{ orderInfo.startTime }} to {{ orderInfo.endDate }} {{ orderInfo.endTime }}</text>
-    </scroll-view>
-  </template>
-</van-cell>
+
+			<van-cell title="Rental Period">
+			<template #value>
+				<scroll-view scroll-x="true" class="scroll-time-line">
+				<text>{{ orderInfo.startDate }} {{ orderInfo.startTime }} to {{ orderInfo.endDate }} {{ orderInfo.endTime }}</text>
+				</scroll-view>
+			</template>
+			</van-cell>
 			<van-cell title="Rental Days" :value="`${orderInfo.days} ${orderInfo.days === 1 ? 'day' : 'days'}`" />
 			<van-cell title="Pickup address" :value="orderInfo.address" />
 		</van-cell-group>
