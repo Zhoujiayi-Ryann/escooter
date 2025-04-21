@@ -147,11 +147,7 @@ export interface ChangeOrderStatusResponse {
  * 可用时间段响应
  */
 export interface AvailableTimeSlotsResponse {
-    order_id: number;           // 订单ID
-    available_slots: {          // 可用时间段列表
-        start_time: string;     // 开始时间
-        end_time: string;       // 结束时间
-        price: number;          // 价格
-    }[];
-    current_end_time: string;   // 当前结束时间
+    current_end_time: string;     // 当前结束时间
+    next_start_time: string;      // 下一个订单的开始时间
+    max_extended_hours: number;   // 最大可延长时间（小时）
 } 
