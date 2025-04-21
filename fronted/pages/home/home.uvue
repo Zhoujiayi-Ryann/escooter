@@ -6,6 +6,18 @@
 		<view class="notification-button" @click="navigateTo('notification')">
 			<van-icon name="bell" size="24px" color="#333" />
 		</view>
+		<view class="order-tip" v-if="hasUnstartedOrder">
+			<view class="tip-content">
+				<text>You have already had an order.</text>
+				<van-button 
+					type="primary" 
+					size="small" 
+					class="use-button"
+					@click="goToOrder">
+					Go to use
+				</van-button>
+			</view>
+		</view>
 		<view class="sidebar"
 		:class="{ 'sidebar-open': showSidebar }">			
 			<view class="user-info">
@@ -136,14 +148,16 @@
 						<van-button
 						round
 						type="default"
-						@click="backToTimeSelector">
-						Back
+						@click="backToTimeSelector"
+						class="back-button">
+						<van-icon name="arrow-left" />
 						</van-button>
 						<van-button
 						round
 						type="success"
 						:disabled="selected === null"
-						@click="navigateTo('confirm')">
+						@click="navigateTo('confirm')"
+						class="confirm-button">
 						{{ selected === null ? 'Choose An E-scooter' : 'Next' }}
 						</van-button>
 					</view>
@@ -202,6 +216,7 @@
 <script>
 import { scooterApi } from '../../utils/api/scooter';
 import { userApi } from '../../utils/api/user';
+import { orderApi } from '../../utils/api/order';
 
 export default {
 	data() {
@@ -252,7 +267,8 @@ export default {
 			tempEndTime: ['', ''],
 			showStartPicker: false,
 			showEndPicker: false,
-			quickOptionSelected: ''
+			quickOptionSelected: '',
+			hasUnstartedOrder: false,
 		};
 	},
 	mounted() {
@@ -262,6 +278,7 @@ export default {
 		this.fetchScooters();
 		this.getUsername();
 		this.initDateFormatting();
+		this.checkUnstartedOrder();
 	},
 	onReady() {
 		this.setHeight();
@@ -273,26 +290,28 @@ export default {
 	},
 	computed: {
 		rentalDurationText() {
-			const isSameDay = 
-				this.startDate.getDate() === this.endDate.getDate() &&
-				this.startDate.getMonth() === this.endDate.getMonth() &&
-				this.startDate.getFullYear() === this.endDate.getFullYear();
-			if (isSameDay) {
-				const startHour = parseInt(this.startTime.split(':')[0]);
-				const startMinute = parseInt(this.startTime.split(':')[1]);
-				const endHour = parseInt(this.endTime.split(':')[0]);
-				const endMinute = parseInt(this.endTime.split(':')[1]);
-				let totalMinutesDiff = (endHour - startHour) * 60 + (endMinute - startMinute);
-				if (totalMinutesDiff < 60) {
-					return `${totalMinutesDiff} Minutes`;
-				} else {
-					const hoursDiff = Math.floor(totalMinutesDiff / 60);
-					return hoursDiff === 1 ? `1 Hour` : `${hoursDiff} Hours`;
-				}
+			const startDateTime = new Date(this.startDate);
+			const [startHour, startMinute] = this.startTime.split(':').map(Number);
+			startDateTime.setHours(startHour, startMinute);
+			
+			const endDateTime = new Date(this.endDate);
+			const [endHour, endMinute] = this.endTime.split(':').map(Number);
+			endDateTime.setHours(endHour, endMinute);
+			
+			const diffMs = endDateTime.getTime() - startDateTime.getTime();
+			const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+			
+			if (diffMinutes < 60) {
+				return `${diffMinutes} Minutes`;
 			} else {
-				const dayMs = 24 * 60 * 60 * 1000;
-				const rentalDays = Math.floor((this.endDate.getTime() - this.startDate.getTime()) / dayMs);
-				return rentalDays === 1 ? `1 Day` : `${rentalDays} Days`;
+				// 计算小时数，向上取整
+				const diffHours = Math.ceil(diffMinutes / 60);
+				if (diffHours < 24) {
+					return diffHours === 1 ? '1 Hour' : `${diffHours} Hours`;
+				} else {
+					const diffDays = Math.floor(diffHours / 24);
+					return diffDays === 1 ? '1 Day' : `${diffDays} Days`;
+				}
 			}
 		},
 		isTimeValid() {
@@ -340,7 +359,7 @@ export default {
 		getAnchors() {
 			this.anchors = [
 				60,
-				Math.round(0.7 * this.windowHeight)
+				Math.round(0.5 * this.windowHeight)
 			];
 		},
 		updateMarkers() {
@@ -651,6 +670,29 @@ export default {
 			const day = date.getDate().toString().padStart(2, '0');
 			return `${year}-${month}-${day}`;
 		},
+		checkUnstartedOrder() {
+			const userId = userApi.getUserId(1);
+			orderApi.getUserOrders(userId).then(res => {
+				if (res.code === 1 && res.data) {
+					const paidOrder = res.data.find(order => {
+						const orderMap = order.toMap();
+						return orderMap.get('status') === 'paid';
+					});
+					
+					this.hasUnstartedOrder = !!paidOrder;
+				} else {
+					this.hasUnstartedOrder = false;
+				}
+			}).catch(err => {
+				console.error('获取订单失败:', err);
+				this.hasUnstartedOrder = false;
+			});
+		},
+		goToOrder() {
+			uni.navigateTo({
+				url: '/pages/settings/orders/orders'
+			});
+		},
 	}
 };
 </script>
@@ -683,9 +725,12 @@ export default {
 		background-color: #ffffff;
 		font-size: 26px;
 	}
+	.instruction text {
+		font-size: 20px;
+	}
 	.list-container {
 		margin-top: 35px;
-		margin-bottom: 55px;
+		margin-bottom: 65px;
 	}
 	.next-button-area {
 		background-color: #ffffff;
@@ -728,7 +773,7 @@ export default {
 		border: 1px solid #eee;
 		border-radius: 8px;
 		width: 95%;
-		margin: auto;
+		margin: 5px auto;
 	}
 	.detail {
 		display: flex;
@@ -944,10 +989,47 @@ export default {
 	}
 	.button-group {
 		display: flex;
+		flex-direction: row;
 		gap: 10px;
 		padding: 0 10px;
 	}
 	.button-group .van-button {
 		flex: 1;
+	}
+	.button-group .back-button {
+		flex: 0.2;
+		min-width: 50px !important;
+	}
+	.button-group .confirm-button {
+		flex: 0.8;
+	}
+	.order-tip {
+		position: fixed;
+		bottom: 100px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 100;
+		background-color: rgba(255, 255, 255, 0.95);
+		border-radius: 8px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+		padding: 10px 15px;
+		width: 90%;
+		max-width: 400px;
+		height: 100px;
+		display: flex;
+		justify-content: center;
+	}
+	.tip-content {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+	}
+	.tip-content text {
+		font-size: 18px;
+		color: #333;
+	}
+	.use-button {
+		margin-left: 15px;
 	}
 </style> 
