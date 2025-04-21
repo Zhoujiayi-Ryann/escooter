@@ -5,7 +5,10 @@ import {
     CreateOrderRequest, 
     OrderResponse, 
     OrderDetailResponse, 
-    PayOrderResponse 
+    PayOrderResponse,
+    ExtendOrderRequest,
+    ChangeOrderStatusResponse,
+    AvailableTimeSlotsResponse
 } from '../types';
 
 /**
@@ -62,6 +65,72 @@ export const orderApi = {
             url: `/users/${userId}/orders`,
             method: 'GET',
             needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 延长订单
+     * @param data 延长订单请求数据
+     * @returns 延长后的订单信息
+     */
+    extendOrder(data: ExtendOrderRequest): Promise<ApiResponse<OrderResponse>> {
+        return request<OrderResponse>({
+            url: '/orders/extend',
+            method: 'POST',
+            data: data,
+            needToken: true
+        });
+    },
+
+    /**
+     * 激活订单
+     * @param orderId 订单ID
+     * @returns 激活后的订单信息
+     */
+    activateOrder(orderId: number): Promise<ApiResponse<ChangeOrderStatusResponse>> {
+        return request<ChangeOrderStatusResponse>({
+            url: `/orders/${orderId}/activate`,
+            method: 'POST',
+            needToken: true
+        });
+    },
+
+    /**
+     * 完成订单
+     * @param orderId 订单ID
+     * @returns 完成后的订单信息
+     */
+    completeOrder(orderId: number): Promise<ApiResponse<ChangeOrderStatusResponse>> {
+        return request<ChangeOrderStatusResponse>({
+            url: `/orders/${orderId}/complete`,
+            method: 'POST',
+            needToken: true
+        });
+    },
+
+    /**
+     * 删除订单
+     * @param orderId 订单ID
+     * @returns 删除结果
+     */
+    deleteOrder(orderId: number): Promise<ApiResponse<boolean>> {
+        return request<boolean>({
+            url: `/orders/${orderId}`,
+            method: 'DELETE',
+            needToken: true
+        });
+    },
+
+    /**
+     * 获取可用时间段
+     * @param orderId 订单ID
+     * @returns 可用时间段信息
+     */
+    getAvailableTimeSlots(orderId: number): Promise<ApiResponse<AvailableTimeSlotsResponse>> {
+        return request<AvailableTimeSlotsResponse>({
+            url: `/orders/${orderId}/available-time-slots`,
+            method: 'GET',
+            needToken: true
         });
     }
 }

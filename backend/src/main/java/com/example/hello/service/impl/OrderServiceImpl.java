@@ -575,6 +575,8 @@ public class OrderServiceImpl implements OrderService {
             response.setCost(updatedOrder.getCost());
             response.setStatus(updatedOrder.getStatus().getValue());
             response.setPickup_address(updatedOrder.getAddress());
+            response.setExtended_cost(extendedCost);
+            response.setExtended_duration(newExtendedDuration);
 
             return Optional.of(response);
         } catch (OrderException e) {

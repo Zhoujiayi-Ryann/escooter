@@ -122,4 +122,36 @@ export interface FeedbackResponse {
     feedback_id: number;
     order_id?: number;
     image_urls: string[];
+}
+
+/**
+ * 延长订单请求
+ */
+export interface ExtendOrderRequest {
+    order_id: number;           // 订单ID
+    new_end_time: string;       // 新的结束时间
+    reason?: string;            // 延长原因（可选）
+}
+
+/**
+ * 订单状态变更响应
+ */
+export interface ChangeOrderStatusResponse {
+    order_id: number;           // 订单ID
+    status: string;             // 新状态
+    previous_status: string;    // 原状态
+    message: string;            // 状态变更消息
+}
+
+/**
+ * 可用时间段响应
+ */
+export interface AvailableTimeSlotsResponse {
+    order_id: number;           // 订单ID
+    available_slots: {          // 可用时间段列表
+        start_time: string;     // 开始时间
+        end_time: string;       // 结束时间
+        price: number;          // 价格
+    }[];
+    current_end_time: string;   // 当前结束时间
 } 
