@@ -182,6 +182,20 @@
 				"navigationBarTitleText" : "",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path" : "pages/notification/customer-service",
+			"style" : 
+			{
+				"navigationBarTitleText" : "Support Messages"
+			}
+		},
+		{
+			"path" : "pages/notification/system",
+			"style" : 
+			{
+				"navigationBarTitleText" : "System Messages"
+			}
 		}
 	],
 	"globalStyle": {
