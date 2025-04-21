@@ -6,15 +6,15 @@
 		<view class="notification-button" @click="navigateTo('notification')">
 			<van-icon name="bell" size="24px" color="#333" />
 		</view>
-		<view class="order-tip" v-if="hasUnstartedOrder">
+		<view class="order-tip" v-if="orderTipInfo.show">
 			<view class="tip-content">
-				<text>You have already had an order.</text>
+				<text>{{ orderTipInfo.message }}</text>
 				<van-button 
 					type="primary" 
 					size="small" 
 					class="use-button"
-					@click="goToOrder">
-					Go to use
+					@click="orderTipInfo.action">
+					{{ orderTipInfo.buttonText }}
 				</van-button>
 			</view>
 		</view>
@@ -268,7 +268,12 @@ export default {
 			showStartPicker: false,
 			showEndPicker: false,
 			quickOptionSelected: '',
-			hasUnstartedOrder: false,
+			orderTipInfo: {
+				show: false,
+				message: '',
+				buttonText: '',
+				action: () => {}
+			}
 		};
 	},
 	mounted() {
@@ -674,23 +679,67 @@ export default {
 			const userId = userApi.getUserId(1);
 			orderApi.getUserOrders(userId).then(res => {
 				if (res.code === 1 && res.data) {
+					res.data.forEach((order, index) => {
+						const orderMap = order.toMap();
+					});
+					const pendingOrder = res.data.find(order => {
+						const orderMap = order.toMap();
+						const status = orderMap.get('status');
+						return status === 'pending';
+					});
+					const activeOrder = res.data.find(order => {
+						const orderMap = order.toMap();
+						const status = orderMap.get('status');
+						return status === 'active';
+					});
 					const paidOrder = res.data.find(order => {
 						const orderMap = order.toMap();
-						return orderMap.get('status') === 'paid';
+						const status = orderMap.get('status');
+						return status === 'paid';
 					});
-					
-					this.hasUnstartedOrder = !!paidOrder;
+					if (pendingOrder) {
+						this.orderTipInfo = {
+							show: true,
+							message: 'You have an unpaid order.',
+							buttonText: 'Go to pay',
+							action: () => {
+								uni.navigateTo({
+									url: '/pages/settings/orders/orders'
+								});
+							}
+						};
+					} else if (activeOrder) {
+						this.orderTipInfo = {
+							show: true,
+							message: 'You have an active order.',
+							buttonText: 'Check details',
+							action: () => {
+								uni.navigateTo({
+									url: '/pages/settings/orders/orders'
+								});
+							}
+						};
+					} else if (paidOrder) {
+						this.orderTipInfo = {
+							show: true,
+							message: 'You have already had an order.',
+							buttonText: 'Go to use',
+							action: () => {
+								uni.navigateTo({
+									url: '/pages/settings/orders/orders'
+								});
+							}
+						};
+					} else {
+						this.orderTipInfo.show = false;
+					}
 				} else {
-					this.hasUnstartedOrder = false;
+					console.log('获取订单数据失败或数据为空');
+					this.orderTipInfo.show = false;
 				}
 			}).catch(err => {
 				console.error('获取订单失败:', err);
-				this.hasUnstartedOrder = false;
-			});
-		},
-		goToOrder() {
-			uni.navigateTo({
-				url: '/pages/settings/orders/orders'
+				this.orderTipInfo.show = false;
 			});
 		},
 	}
@@ -1024,6 +1073,7 @@ export default {
 		flex-direction: row;
 		justify-content: center;
 		align-items: center;
+		gap: 15px;
 	}
 	.tip-content text {
 		font-size: 18px;
