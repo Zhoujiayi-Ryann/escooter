@@ -13,7 +13,6 @@ import com.example.hello.entity.Scooter;
 import com.example.hello.exception.OrderException;
 import com.example.hello.mapper.OrderMapper;
 import com.example.hello.mapper.ScooterMapper;
-import com.example.hello.mapper.DiscountMapper;
 import com.example.hello.service.OrderService;
 import com.example.hello.service.EmailService;
 import com.example.hello.entity.User;
@@ -44,9 +43,6 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private ScooterMapper scooterMapper;
-
-    @Autowired
-    private DiscountMapper discountMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -96,52 +92,43 @@ public class OrderServiceImpl implements OrderService {
         float durationHours = duration.toMinutes() / 60.0f;
         log.info("Rental duration: {} hours", durationHours);
 
-        // 5. 获取用户折扣率（如果有）
-        BigDecimal discountRate = discountMapper.getUserDiscountRate(request.getUser_id());
-        if (discountRate == null) {
-            discountRate = BigDecimal.ONE; // 无折扣
-        }
-        log.info("User discount rate: {}", discountRate);
+        // 创建订单时不计算价格
+        BigDecimal cost = BigDecimal.ZERO; // 设置为0，不再使用null
+        BigDecimal discountAmount = BigDecimal.ZERO; // 折扣金额设为0
 
-        // 6. 计算费用
-        BigDecimal hourlyRate = scooter.getPrice();
-        BigDecimal baseCost = hourlyRate.multiply(BigDecimal.valueOf(durationHours));
-        BigDecimal discountAmount = baseCost.multiply(BigDecimal.ONE.subtract(discountRate));
-        BigDecimal finalCost = baseCost.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
-
-        log.info("Base cost: {} = {} × {}", baseCost, hourlyRate, durationHours);
-        log.info("Discount amount: {}", discountAmount);
-        log.info("Final cost: {}", finalCost);
-
-        // 7. 创建订单
+        // 创建订单
         Order order = new Order();
         order.setUserId(request.getUser_id());
         order.setScooterId(request.getScooter_id());
         order.setStartTime(request.getStart_time());
         order.setEndTime(request.getEnd_time());
         order.setDuration(durationHours);
-        order.setCost(finalCost);
+        order.setCost(cost);
         order.setStatus(OrderStatus.PENDING);
         order.setExtendedDuration(0.0f);
         order.setDiscount(discountAmount);
         order.setAddress(request.getPickup_address());
         order.setCreatedAt(LocalDateTime.now());
 
-        // 8. 保存订单
+        // 保存订单
         orderMapper.insertOrder(order);
         log.info("Order created successfully: orderId={}", order.getOrderId());
 
-        // 9. 构建响应
+        // 构建响应，包含所有订单字段
         OrderResponse response = new OrderResponse();
         response.setOrder_id(order.getOrderId());
         response.setUser_id(order.getUserId());
         response.setScooter_id(order.getScooterId());
         response.setStart_time(order.getStartTime());
         response.setEnd_time(order.getEndTime());
+        response.setNew_end_time(order.getNewEndTime());
+        response.setExtended_duration(order.getExtendedDuration());
+        response.setExtended_cost(order.getExtendedCost());
         response.setCost(order.getCost());
         response.setDiscount_amount(order.getDiscount());
         response.setPickup_address(order.getAddress());
         response.setStatus(order.getStatus().getValue());
+        response.setCreated_at(order.getCreatedAt());
 
         return Optional.of(response);
     }

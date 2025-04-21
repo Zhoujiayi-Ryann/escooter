@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.ScooterMapper">
+    
+    <!-- Find all scooters -->
+    <select id="findAll" resultType="com.example.hello.entity.Scooter">
+        SELECT 
+            scooter_id as scooterId,
+            location_lat as locationLat,
+            location_lng as locationLng,
+            status,
+            battery_level as batteryLevel,
+            total_usage_time as totalUsageTime,
+            price,
+            last_maintenance_date as lastMaintenanceDate,
+            last_used_date as lastUsedDate,
+            is_deleted as isDeleted
+        FROM 
+            Scooters
+        WHERE 
+            is_deleted = 0
+    </select>
+    
+    <!-- Find all available scooters -->
+    <select id="findAllAvailable" resultType="com.example.hello.entity.Scooter">
+        SELECT 
+            scooter_id as scooterId,
+            location_lat as locationLat,
+            location_lng as locationLng,
+            status,
+            battery_level as batteryLevel,
+            total_usage_time as totalUsageTime,
+            price,
+            last_maintenance_date as lastMaintenanceDate,
+            last_used_date as lastUsedDate,
+            is_deleted as isDeleted
+        FROM 
+            Scooters
+        WHERE 
+            status = 'free'
+            AND is_deleted = 0
+    </select>
+    
+    <!-- Find scooters available in a specific time period -->
+    <select id="findAvailableInTimePeriod" resultType="com.example.hello.entity.Scooter">
+        SELECT 
+            s.scooter_id as scooterId,
+            s.location_lat as locationLat,
+            s.location_lng as locationLng,
+            s.status,
+            s.battery_level as batteryLevel,
+            s.total_usage_time as totalUsageTime,
+            s.price,
+            s.last_maintenance_date as lastMaintenanceDate,
+            s.last_used_date as lastUsedDate,
+            s.is_deleted as isDeleted
+        FROM 
+            Scooters s
+        WHERE 
+            s.is_deleted = 0
+            AND s.battery_level > 10
+            AND NOT EXISTS (
+                SELECT 1 
+                FROM Orders o 
+                WHERE 
+                    o.scooter_id = s.scooter_id
+                    AND o.is_deleted = 0
+                    AND o.status != 'cancelled'
+                    AND o.start_time &lt;= #{endTime} 
+                    AND o.end_time &gt;= #{startTime}
+            )
+    </select>
+    
+    <!-- Find scooter by ID -->
+    <select id="findById" resultType="com.example.hello.entity.Scooter">
+        SELECT 
+            scooter_id as scooterId,
+            location_lat as locationLat,
+            location_lng as locationLng,
+            status,
+            battery_level as batteryLevel,
+            total_usage_time as totalUsageTime,
+            price,
+            last_maintenance_date as lastMaintenanceDate,
+            last_used_date as lastUsedDate,
+            is_deleted as isDeleted
+        FROM 
+            Scooters
+        WHERE 
+            scooter_id = #{scooterId}
+            AND is_deleted = 0
+    </select>
+    
+    <!-- Check if a scooter exists -->
+    <select id="exists" resultType="int">
+        SELECT COUNT(*) 
+        FROM Scooters 
+        WHERE scooter_id = #{scooterId} 
+        AND is_deleted = 0
+    </select>
+    
+    <!-- Insert a new scooter -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="scooterId">
+        INSERT INTO Scooters (
+            location_lat,
+            location_lng,
+            status,
+            battery_level,
+            total_usage_time,
+            price,
+            last_maintenance_date,
+            last_used_date,
+            is_deleted
+        ) VALUES (
+            #{locationLat},
+            #{locationLng},
+            #{status},
+            #{batteryLevel},
+            #{totalUsageTime},
+            #{price},
+            #{lastMaintenanceDate},
+            #{lastUsedDate},
+            0
+        )
+    </insert>
+    
+    <!-- Update a scooter -->
+    <update id="update">
+        UPDATE Scooters 
+        SET 
+            location_lat = #{locationLat},
+            location_lng = #{locationLng},
+            status = #{status},
+            battery_level = #{batteryLevel},
+            total_usage_time = #{totalUsageTime},
+            price = #{price}
+            <if test="lastMaintenanceDate != null">
+                , last_maintenance_date = #{lastMaintenanceDate}
+            </if>
+            <if test="lastUsedDate != null">
+                , last_used_date = #{lastUsedDate}
+            </if>
+        WHERE 
+            scooter_id = #{scooterId}
+            AND is_deleted = 0
+    </update>
+    
+    <!-- Update scooter status -->
+    <update id="updateScooterStatus">
+        UPDATE Scooters 
+        SET 
+            status = #{status}, 
+            last_used_date = NOW()
+        WHERE 
+            scooter_id = #{scooterId}
+            AND is_deleted = 0
+    </update>
+    
+    <!-- Soft delete a scooter -->
+    <update id="softDelete">
+        UPDATE Scooters 
+        SET is_deleted = 1
+        WHERE 
+            scooter_id = #{scooterId}
+            AND is_deleted = 0
+    </update>
+    
+    <!-- Hard delete a scooter -->
+    <delete id="delete">
+        DELETE FROM Scooters
+        WHERE scooter_id = #{scooterId}
+    </delete>
+    
+</mapper> 

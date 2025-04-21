@@ -41,8 +41,8 @@ public class OrderController {
         try {
             // 使用Java 8 Optional处理可能的空值
             return orderService.createOrder(request)
-                    .map(response -> Result.success(response, "Order submitted successfully, please pay"))
-                    .orElseGet(() -> Result.error("Order creation failed"));
+                    .map(response -> Result.success(response, "订单创建成功，请继续完成支付"))
+                    .orElseGet(() -> Result.error("订单创建失败"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }

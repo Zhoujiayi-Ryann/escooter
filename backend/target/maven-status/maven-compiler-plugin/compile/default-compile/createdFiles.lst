@@ -13,7 +13,6 @@ com/example/hello/common/Result.class
 com/example/hello/entity/Order.class
 com/example/hello/controller/FileUploadController.class
 com/example/hello/dto/request/LoginRequest.class
-com/example/hello/mapper/DiscountMapper.class
 com/example/hello/dto/request/FeedbackRequest.class
 com/example/hello/scheduler/OrderTimeoutScheduler.class
 com/example/hello/dto/response/ChangeOrderStatusResponse.class
@@ -54,6 +53,7 @@ com/example/hello/controller/OrderController.class
 com/example/hello/exception/OrderException.class
 com/example/hello/entity/VerificationCode$VerificationCodeBuilder.class
 com/example/hello/controller/UserController.class
+com/example/hello/dto/request/ScooterAvailabilityRequest.class
 com/example/hello/controller/ScooterController.class
 com/example/hello/config/SchedulingConfig.class
 com/example/hello/config/MyBatisConfig.class

@@ -1,0 +1,51 @@
+nohup: ignoring input
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.2)
+
+2025-04-21T08:18:00.734Z  INFO 54631 --- [hello] [           main] com.example.hello.HelloApplication       : Starting HelloApplication v0.0.1-SNAPSHOT using Java 17 with PID 54631 (/home/devbox/project/backend/target/hello-0.0.1-SNAPSHOT.jar started by devbox in /home/devbox/project/backend)
+2025-04-21T08:18:00.738Z  INFO 54631 --- [hello] [           main] com.example.hello.HelloApplication       : The following 1 profile is active: "prod"
+2025-04-21T08:18:04.268Z  INFO 54631 --- [hello] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-04-21T08:18:04.328Z  INFO 54631 --- [hello] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-04-21T08:18:04.328Z  INFO 54631 --- [hello] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.18]
+2025-04-21T08:18:04.625Z  INFO 54631 --- [hello] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-04-21T08:18:04.627Z  INFO 54631 --- [hello] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3703 ms
+2025-04-21T08:18:05.538Z  INFO 54631 --- [hello] [           main] c.example.hello.config.DatabaseConfig    : Initializing datasource,URL: jdbc:mysql://escoot-mysql.ns-x3h6hlzn.svc:3306/escoot?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+2025-04-21T08:18:05.548Z  INFO 54631 --- [hello] [           main] c.example.hello.config.DatabaseConfig    : Datasource initialization completed
+2025-04-21T08:18:08.523Z  INFO 54631 --- [hello] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-04-21T08:18:08.544Z  INFO 54631 --- [hello] [           main] com.example.hello.HelloApplication       : Started HelloApplication in 8.913 seconds (process running for 10.204)
+2025-04-21T08:18:08.549Z  INFO 54631 --- [hello] [   scheduling-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-04-21T08:18:08.618Z  INFO 54631 --- [hello] [           main] com.example.hello.HelloApplication       : Test database connection...
+2025-04-21T08:18:09.028Z  INFO 54631 --- [hello] [   scheduling-1] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@a7114b1
+2025-04-21T08:18:09.030Z  INFO 54631 --- [hello] [   scheduling-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-04-21T08:18:09.040Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting auto complete timeout orders
+2025-04-21T08:18:09.121Z  INFO 54631 --- [hello] [           main] com.example.hello.HelloApplication       : Test database connection successful: Connection successful
+2025-04-21T08:18:09.137Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout active orders to process
+2025-04-21T08:18:09.140Z  INFO 54631 --- [hello] [   scheduling-1] c.e.h.scheduler.OrderTimeoutScheduler    : Start checking order overtime check mission
+2025-04-21T08:18:09.141Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting process timeout pending orders
+2025-04-21T08:18:09.219Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout pending orders to process
+2025-04-21T08:19:08.535Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting auto complete timeout orders
+2025-04-21T08:19:08.537Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout active orders to process
+2025-04-21T08:19:08.538Z  INFO 54631 --- [hello] [   scheduling-1] c.e.h.scheduler.OrderTimeoutScheduler    : Start checking order overtime check mission
+2025-04-21T08:19:08.538Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting process timeout pending orders
+2025-04-21T08:19:08.540Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout pending orders to process
+2025-04-21T08:20:08.535Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting auto complete timeout orders
+2025-04-21T08:20:08.537Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout active orders to process
+2025-04-21T08:20:08.538Z  INFO 54631 --- [hello] [   scheduling-1] c.e.h.scheduler.OrderTimeoutScheduler    : Start checking order overtime check mission
+2025-04-21T08:20:08.539Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting process timeout pending orders
+2025-04-21T08:20:08.540Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout pending orders to process
+2025-04-21T08:21:08.536Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting auto complete timeout orders
+2025-04-21T08:21:08.538Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout active orders to process
+2025-04-21T08:21:08.539Z  INFO 54631 --- [hello] [   scheduling-1] c.e.h.scheduler.OrderTimeoutScheduler    : Start checking order overtime check mission
+2025-04-21T08:21:08.539Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting process timeout pending orders
+2025-04-21T08:21:08.541Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout pending orders to process
+2025-04-21T08:22:08.535Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting auto complete timeout orders
+2025-04-21T08:22:08.537Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout active orders to process
+2025-04-21T08:22:08.538Z  INFO 54631 --- [hello] [   scheduling-1] c.e.h.scheduler.OrderTimeoutScheduler    : Start checking order overtime check mission
+2025-04-21T08:22:08.538Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : Starting process timeout pending orders
+2025-04-21T08:22:08.539Z  INFO 54631 --- [hello] [   scheduling-1] c.e.hello.service.impl.OrderServiceImpl  : No timeout pending orders to process

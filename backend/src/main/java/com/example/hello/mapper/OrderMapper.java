@@ -25,9 +25,9 @@ public interface OrderMapper {
          * @param order 订单对象
          * @return 影响的行数
          */
-        @Insert("INSERT INTO Orders (user_id, scooter_id, start_time, end_time, duration, cost, status, extended_duration, discount, address, create_at) "
+        @Insert("INSERT INTO Orders (user_id, scooter_id, start_time, end_time, duration, cost, status, extended_duration, discount, address, create_at, is_deleted) "
                         +
-                        "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status, typeHandler=com.example.hello.handler.OrderStatusTypeHandler}, #{extendedDuration}, #{discount}, #{address}, #{createdAt})")
+                        "VALUES (#{userId}, #{scooterId}, #{startTime}, #{endTime}, #{duration}, #{cost}, #{status, typeHandler=com.example.hello.handler.OrderStatusTypeHandler}, #{extendedDuration}, #{discount}, #{address}, #{createdAt}, 0)")
         @Options(useGeneratedKeys = true, keyProperty = "orderId")
         int insertOrder(Order order);
 
@@ -293,4 +293,15 @@ public interface OrderMapper {
                         @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class)
         })
         List<Order> findOrdersByUserId(@Param("userId") Integer userId);
+
+        /**
+         * 更新订单费用和折扣
+         *
+         * @param orderId 订单ID
+         * @param cost 订单费用
+         * @param discount 订单折扣
+         * @return 影响的行数
+         */
+        @Update("UPDATE Orders SET cost = #{cost}, discount = #{discount} WHERE order_id = #{orderId}")
+        int updateOrderCostAndDiscount(@Param("orderId") Integer orderId, @Param("cost") BigDecimal cost, @Param("discount") BigDecimal discount);
 }

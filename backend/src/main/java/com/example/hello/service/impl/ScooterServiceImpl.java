@@ -1,5 +1,6 @@
 package com.example.hello.service.impl;
 
+import com.example.hello.dto.request.ScooterAvailabilityRequest;
 import com.example.hello.dto.request.ScooterRequest;
 import com.example.hello.dto.response.ScooterResponse;
 import com.example.hello.entity.Scooter;
@@ -53,6 +54,46 @@ public class ScooterServiceImpl implements ScooterService {
         // 使用 PageHelper 进行分页，默认每页10条数据
         PageHelper.startPage(1, 10);
         return scooterMapper.findAllAvailable();
+    }
+    
+    /**
+     * 根据时间段查询可用的滑板车
+     * 
+     * @param request 包含时间段的请求对象
+     * @return 可用滑板车列表
+     */
+    @Override
+    public List<ScooterResponse> findAvailableInTimePeriod(ScooterAvailabilityRequest request) {
+        logger.info("Find available scooters in time period: {}", request);
+        return findAvailableInTimePeriod(request.getStart_time(), request.getEnd_time());
+    }
+    
+    /**
+     * 根据时间段查询可用的滑板车
+     * 
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 可用滑板车列表
+     */
+    @Override
+    public List<ScooterResponse> findAvailableInTimePeriod(LocalDateTime startTime, LocalDateTime endTime) {
+        logger.info("Find available scooters from {} to {}", startTime, endTime);
+        
+        // 验证时间段的有效性
+        if (startTime.isAfter(endTime)) {
+            logger.warn("Invalid time period: start time is after end time");
+            throw new IllegalArgumentException("Start time cannot be after end time");
+        }
+        
+        // 使用 PageHelper 进行分页，默认每页20条数据
+        PageHelper.startPage(1, 20);
+        List<Scooter> availableScooters = scooterMapper.findAvailableInTimePeriod(startTime, endTime);
+        
+        logger.info("Found {} available scooters in the specified time period", availableScooters.size());
+        
+        return availableScooters.stream()
+                .map(ScooterResponse::fromEntity)
+                .collect(Collectors.toList());
     }
     
     /**

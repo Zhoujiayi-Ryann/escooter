@@ -1,6 +1,7 @@
 package com.example.hello.controller;
 
 import com.example.hello.common.Result;
+import com.example.hello.dto.request.ScooterAvailabilityRequest;
 import com.example.hello.dto.request.ScooterRequest;
 import com.example.hello.dto.response.ScooterResponse;
 import com.example.hello.entity.Scooter;
@@ -45,13 +46,53 @@ public class ScooterController {
     }
 
     /**
-     * 获取所有可用滑板车
+     * 获取可用滑板车
+     * 如果没有提供时间参数，则获取当前可用的滑板车
+     * 如果提供了时间参数，则获取在指定时间段内可用的滑板车
+     *
+     * @param request 可选的时间段参数
+     * @return 结果包含可用滑板车列表
+     */
+    @PostMapping("/scooters/available")
+    public Result<List<ScooterResponse>> getAvailableScooters(@RequestBody(required = false) ScooterAvailabilityRequest request) {
+        if (request == null) {
+            logger.info("Get all currently available scooters");
+            try {
+                List<Scooter> availableScooters = scooterService.findAllAvailable();
+                List<ScooterResponse> responseList = availableScooters.stream()
+                        .map(ScooterResponse::fromEntity)
+                        .collect(Collectors.toList());
+                logger.info("Found {} currently available scooters", responseList.size());
+                return Result.success(responseList, "Get the currently available scooter list successfully");
+            } catch (Exception e) {
+                logger.error("Get the currently available scooter list failed", e);
+                return Result.error("Get the currently available scooter list failed: " + e.getMessage());
+            }
+        } else {
+            logger.info("Get available scooters in time period: from {} to {}", 
+                    request.getStart_time(), request.getEnd_time());
+            try {
+                List<ScooterResponse> availableScooters = scooterService.findAvailableInTimePeriod(request);
+                logger.info("Found {} scooters available in the requested time period", availableScooters.size());
+                return Result.success(availableScooters, "Get the available scooter list for the specified time period successfully");
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid time period request: {}", e.getMessage());
+                return Result.error("Invalid time period: " + e.getMessage());
+            } catch (Exception e) {
+                logger.error("Get the available scooter list failed", e);
+                return Result.error("Get the available scooter list failed: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 获取所有当前可用滑板车 (保留旧接口以兼容)
      *
      * @return 结果包含可用滑板车列表
      */
     @GetMapping("/scooters")
-    public Result<List<ScooterResponse>> getAvailableScooters() {
-        logger.info("Get all the available scooters");
+    public Result<List<ScooterResponse>> getCurrentlyAvailableScooters() {
+        logger.info("Get all the currently available scooters (legacy endpoint)");
         try {
             List<Scooter> availableScooters = scooterService.findAllAvailable();
             List<ScooterResponse> responseList = availableScooters.stream()

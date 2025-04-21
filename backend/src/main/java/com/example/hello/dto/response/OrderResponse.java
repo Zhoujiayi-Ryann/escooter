@@ -68,4 +68,9 @@ public class OrderResponse {
      * 订单状态
      */
     private String status;
+    
+    /**
+     * 订单创建时间
+     */
+    private LocalDateTime created_at;
 }

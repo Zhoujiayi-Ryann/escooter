@@ -1,8 +1,10 @@
 package com.example.hello.service;
 
+import com.example.hello.dto.request.ScooterAvailabilityRequest;
 import com.example.hello.dto.request.ScooterRequest;
 import com.example.hello.dto.response.ScooterResponse;
 import com.example.hello.entity.Scooter;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +25,23 @@ public interface ScooterService {
      * @return 可用滑板车列表
      */
     List<Scooter> findAllAvailable();
+    
+    /**
+     * 根据时间段查询可用的滑板车
+     * 
+     * @param request 包含时间段的请求对象
+     * @return 可用滑板车列表
+     */
+    List<ScooterResponse> findAvailableInTimePeriod(ScooterAvailabilityRequest request);
+    
+    /**
+     * 根据时间段查询可用的滑板车
+     * 
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 可用滑板车列表
+     */
+    List<ScooterResponse> findAvailableInTimePeriod(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
      * 根据ID获取滑板车

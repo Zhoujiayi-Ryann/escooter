@@ -57,13 +57,13 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/OrderController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/OrderMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/Scooter.java
-/home/devbox/project/backend/src/main/java/com/example/hello/mapper/DiscountMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/VerificationCodeService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/FileUploadController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/common/OrderStatus.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/PasswordController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/ForgotPasswordRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/ResetPasswordRequest.java
+/home/devbox/project/backend/src/main/java/com/example/hello/dto/request/ScooterAvailabilityRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/FeedbackService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/OrderService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/ScooterServiceImpl.java
