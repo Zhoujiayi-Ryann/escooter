@@ -101,7 +101,6 @@ public class OrderServiceImpl implements OrderService {
 
         // 创建订单时不计算价格
         BigDecimal cost = BigDecimal.ZERO; // 设置为0，不再使用null
-        BigDecimal discountAmount = BigDecimal.ZERO; // 折扣金额设为0
 
         // 创建订单
         Order order = new Order();
@@ -113,7 +112,6 @@ public class OrderServiceImpl implements OrderService {
         order.setCost(cost);
         order.setStatus(OrderStatus.PENDING);
         order.setExtendedDuration(0.0f);
-        order.setDiscount(discountAmount);
         order.setAddress(request.getPickup_address());
         order.setCreatedAt(LocalDateTime.now());
 
@@ -132,7 +130,6 @@ public class OrderServiceImpl implements OrderService {
         response.setExtended_duration(order.getExtendedDuration());
         response.setExtended_cost(order.getExtendedCost());
         response.setCost(order.getCost());
-        response.setDiscount_amount(order.getDiscount());
         response.setPickup_address(order.getAddress());
         response.setStatus(order.getStatus().getValue());
         response.setCreated_at(order.getCreatedAt());
@@ -197,7 +194,6 @@ public class OrderServiceImpl implements OrderService {
         response.setExtended_duration((Float) detailMap.get("extended_duration"));
         response.setExtended_cost((BigDecimal) detailMap.get("extended_cost"));
         response.setCost(calculatedCost); // 直接设置计算后的价格为cost
-        response.setDiscount_amount((BigDecimal) detailMap.get("discount"));
         response.setStatus((String) detailMap.get("status"));
         response.setPickup_address((String) detailMap.get("address"));
         response.setCreated_at((LocalDateTime) detailMap.get("create_at"));
@@ -277,50 +273,65 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal discountAmount = BigDecimal.ZERO;
             
             if (couponRequest != null && couponRequest.getCouponId() != null) {
-                log.info("Processing coupon: couponId={}, orderId={}", couponRequest.getCouponId(), orderId);
+                log.info("开始处理优惠券: couponId={}, orderId={}, 订单基础金额={}", 
+                    couponRequest.getCouponId(), orderId, order.getCost());
                 
                 // 5.1 查询优惠券
                 Coupon coupon = couponMapper.findById(couponRequest.getCouponId());
                 
                 if (coupon == null) {
-                    log.warn("Payment failed: Coupon {} does not exist", couponRequest.getCouponId());
+                    log.warn("支付失败: 优惠券{}不存在", couponRequest.getCouponId());
                     throw new OrderException("优惠券不存在");
                 }
                 
                 // 5.2 验证优惠券是否可用
                 if (!coupon.getIsActive()) {
-                    log.warn("Payment failed: Coupon {} is not active", couponRequest.getCouponId());
+                    log.warn("支付失败: 优惠券{}已失效", couponRequest.getCouponId());
                     throw new OrderException("优惠券已失效");
                 }
                 
                 // 5.3 验证优惠券是否在有效期内
                 LocalDateTime now = LocalDateTime.now();
                 if (coupon.getValidFrom().isAfter(now.toLocalDate()) || coupon.getValidTo().isBefore(now.toLocalDate())) {
-                    log.warn("Payment failed: Coupon {} is not in valid period", couponRequest.getCouponId());
+                    log.warn("支付失败: 优惠券{}不在有效期内 (有效期: {} 至 {})", 
+                        couponRequest.getCouponId(), 
+                        coupon.getValidFrom(),
+                        coupon.getValidTo());
                     throw new OrderException("优惠券不在有效期内");
                 }
                 
                 // 5.4 验证是否满足最低消费
                 if (coupon.getMinSpend() != null && order.getCost().compareTo(coupon.getMinSpend()) < 0) {
-                    log.warn("Payment failed: Order cost {} does not meet coupon minimum spend {}", 
-                            order.getCost(), coupon.getMinSpend());
-                    throw new OrderException("订单金额未达到优惠券使用条件");
+                    log.warn("支付失败: 订单金额{}未达到优惠券最低消费要求{}", 
+                        order.getCost(), coupon.getMinSpend());
+                    throw new OrderException(String.format("订单金额%.2f未达到优惠券最低消费要求%.2f", 
+                        order.getCost().doubleValue(), 
+                        coupon.getMinSpend().doubleValue()));
                 }
                 
-                // 5.5 使用优惠券
+                // 5.5 验证用户是否拥有该优惠券
+                boolean userOwnsCoupon = couponMapper.checkUserCoupon(order.getUserId(), coupon.getCouponId());
+                if (!userOwnsCoupon) {
+                    log.warn("支付失败: 用户{}未拥有优惠券{}", order.getUserId(), coupon.getCouponId());
+                    throw new OrderException("您未拥有该优惠券");
+                }
+                
+                // 5.6 使用优惠券
                 int updated = couponMapper.useCoupon(order.getUserId(), coupon.getCouponId(), orderId);
                 if (updated <= 0) {
-                    log.warn("Payment failed: Coupon {} is already used or not owned by user {}", 
-                            coupon.getCouponId(), order.getUserId());
+                    log.warn("支付失败: 优惠券{}已被使用或不属于用户{}", 
+                        coupon.getCouponId(), order.getUserId());
                     throw new OrderException("优惠券已使用或不属于该用户");
                 }
                 
-                // 5.6 计算折扣金额
+                // 5.7 计算折扣金额
                 discountAmount = coupon.getCouponAmount();
                 
-                // 5.7 更新订单折扣信息
+                // 5.8 更新订单折扣信息
                 BigDecimal finalCost = order.getCost().subtract(discountAmount);
                 if (finalCost.compareTo(BigDecimal.ZERO) < 0) {
+                    log.info("折扣金额{}大于订单金额{}，最终价格将被设置为0", 
+                        discountAmount, order.getCost());
                     finalCost = BigDecimal.ZERO;
                 }
                 
@@ -328,8 +339,8 @@ public class OrderServiceImpl implements OrderService {
                 order.setCost(finalCost);
                 order.setDiscount(discountAmount);
                 
-                log.info("Applied coupon discount: orderId={}, discount={}, finalCost={}", 
-                        orderId, discountAmount, finalCost);
+                log.info("优惠券应用成功: orderId={}, 原价={}, 折扣={}, 最终价格={}", 
+                    orderId, basePrice, discountAmount, finalCost);
             }
 
             // 6. 更新订单状态
@@ -355,9 +366,16 @@ public class OrderServiceImpl implements OrderService {
                 response.setUser_id(order.getUserId()); 
                 response.setStatus(newStatus);
                 response.setCost(order.getCost());
-                response.setDiscount_amount(discountAmount);
-                log.info("Order {} payment successful, cost={}, discount={}", 
-                        orderId, order.getCost(), discountAmount);
+                
+                // 设置优惠券信息
+                if (couponRequest != null && couponRequest.getCouponId() != null) {
+                    response.setCoupon_id(couponRequest.getCouponId());
+                    response.setCoupon_amount(discountAmount);
+                }
+                
+                log.info("Order {} payment successful, cost={}, couponId={}, couponAmount={}", 
+                        orderId, order.getCost(), 
+                        response.getCoupon_id(), response.getCoupon_amount());
 
                 // 9. 发送订单确认邮件
                 try {
@@ -390,62 +408,34 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 获取订单可用的优惠券列表
+     * 获取用户所有未使用的优惠券
      * 
-     * @param orderId 订单ID
      * @param userId 用户ID
-     * @return 可用优惠券列表
+     * @return 优惠券列表
      */
     @Override
-    public Optional<AvailableCouponsResponse> getAvailableCoupons(Integer orderId, Integer userId) {
-        log.info("Getting available coupons: orderId={}, userId={}", orderId, userId);
+    public Optional<AvailableCouponsResponse> getAvailableCoupons(Integer userId) {
+        log.info("Getting available coupons for user: userId={}", userId);
         
         try {
-            // 1. 查询订单
-            Order order = orderMapper.findById(orderId);
-            if (order == null) {
-                log.warn("Get available coupons failed: Order {} does not exist", orderId);
-                throw OrderException.notFound(orderId);
-            }
-            
-            // 2. 验证订单所属用户
-            if (!order.getUserId().equals(userId)) {
-                log.warn("Get available coupons failed: Order {} does not belong to user {}", orderId, userId);
-                throw new OrderException("订单不属于该用户");
-            }
-            
-            // 3. 查询用户所有未使用的优惠券
+            // 查询用户所有未使用的优惠券
             List<Coupon> allCoupons = couponMapper.findUserCoupons(userId);
             
-            // 4. 筛选可用于当前订单的优惠券
+            // 筛选未使用的优惠券
             List<Coupon> availableCoupons = allCoupons.stream()
-                    .filter(coupon -> {
-                        // 过滤未使用的优惠券
-                        if (coupon.getIsUsed()) {
-                            return false;
-                        }
-                        
+                    .filter(coupon -> !coupon.getIsUsed())
+                    .peek(coupon -> {
                         // 验证有效期
                         LocalDateTime now = LocalDateTime.now();
-                        if (coupon.getValidFrom().isAfter(now.toLocalDate()) || 
-                            coupon.getValidTo().isBefore(now.toLocalDate())) {
-                            return false;
-                        }
-                        
-                        // 验证最低消费
-                        if (coupon.getMinSpend() != null && 
-                            order.getCost().compareTo(coupon.getMinSpend()) < 0) {
-                            return false;
-                        }
+                        boolean isValid = !coupon.getValidFrom().isAfter(now.toLocalDate()) && 
+                                       !coupon.getValidTo().isBefore(now.toLocalDate());
                         
                         // 设置可用状态
-                        coupon.setStatus("able");
-                        
-                        return true;
+                        coupon.setStatus(isValid ? "able" : "disabled");
                     })
                     .toList();
             
-            log.info("Found {} available coupons for order {}", availableCoupons.size(), orderId);
+            log.info("Found {} available coupons for user {}", availableCoupons.size(), userId);
             
             return Optional.of(AvailableCouponsResponse.of(availableCoupons));
         } catch (Exception e) {
@@ -883,7 +873,6 @@ public class OrderServiceImpl implements OrderService {
                         response.setExtended_duration(order.getExtendedDuration());
                         response.setExtended_cost(order.getExtendedCost());
                         response.setCost(order.getCost());
-                        response.setDiscount_amount(order.getDiscount());
                         response.setPickup_address(order.getAddress());
                         response.setStatus(order.getStatus().getValue());
                         response.setCreated_at(order.getCreatedAt());

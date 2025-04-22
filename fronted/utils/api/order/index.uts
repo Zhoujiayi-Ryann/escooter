@@ -73,14 +73,13 @@ export const orderApi = {
     },
 
     /**
-     * 获取订单可用的优惠券
-     * @param orderId 订单ID
+     * 获取用户所有未使用的优惠券
      * @param userId 用户ID
      * @returns 可用优惠券列表
      */
-    getAvailableCoupons(orderId: number, userId: number): Promise<ApiResponse<AvailableCouponsResponse>> {
+    getAvailableCoupons(userId: number): Promise<ApiResponse<AvailableCouponsResponse>> {
         return request<AvailableCouponsResponse>({
-            url: `/orders/${orderId}/available-coupons?user_id=${userId}`,
+            url: `/users/${userId}/coupons`,
             method: 'GET',
             needToken: false // 需要登录权限
         });
@@ -200,7 +199,7 @@ export const orderApi = {
  * });
  * 
  * // 获取可用优惠券
- * orderApi.getAvailableCoupons(1, 1).then(res => {
+ * orderApi.getAvailableCoupons(1).then(res => {
  *     if (res.code === 1) {
  *         console.log('可用优惠券:', res.data);
  *     }

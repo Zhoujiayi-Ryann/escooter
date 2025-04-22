@@ -49,14 +49,9 @@
 		</van-cell-group>
 
 		<van-cell-group inset class="amount-card">
-			<van-cell title="Base Amount" v-if="orderInfo.discountAmount > 0" class="base-amount">
+			<van-cell title="Base Amount" class="base-amount">
 				<template #value>
 					<text class="currency base-price">${{ calculateBaseTotalAmount() }}</text>
-				</template>
-			</van-cell>
-			<van-cell title="Discount" v-if="orderInfo.discountAmount > 0" class="discount-amount">
-				<template #value>
-					<text class="currency discount-price">-${{ orderInfo.discountAmount }}</text>
 				</template>
 			</van-cell>
 			<van-cell title="Coupon Discount" v-if="calculateCouponDiscount() > 0" class="coupon-discount">
@@ -339,8 +334,15 @@
 						if (res.code === 1) {
 							// 支付成功
 							this.closePasswordInput();
+							
+							// 构建成功消息，包含优惠券信息
+							let successMessage = 'Payment successful';
+							if (res.data && res.data.coupon_amount) {
+								successMessage += ` (Saved $${res.data.coupon_amount})`;
+							}
+							
 							uni.showToast({
-								title: 'Payment successful',
+								title: successMessage,
 								icon: 'success',
 								duration: 2000
 							});
@@ -417,11 +419,9 @@
 					});
 				}
 			},
-			// 计算订单基础金额（不含任何折扣）
+			// 计算订单基础金额（不含优惠券折扣）
 			calculateBaseTotalAmount() {
-				// 基础价格 = 天数 * 单价
-				const amount = (this.orderInfo.days || 1) * (this.unitPrice || 0);
-				return amount.toFixed(2);
+				return this.orderInfo.cost.toFixed(2);
 			},
 			// 计算优惠券折扣金额
 			calculateCouponDiscount() {
@@ -444,7 +444,7 @@
 			calculateTotal() {
 				console.log('开始计算总价, 基础价格:', this.orderInfo.cost);
 				
-				// 基础价格（已包含后端返回的折扣）
+				// 基础价格
 				let basePrice = parseFloat(this.orderInfo.cost || 0);
 				
 				// 减去优惠券折扣

@@ -63,4 +63,15 @@ public interface CouponMapper {
             @Result(property = "isActive", column = "is_active")
     })
     Coupon findById(@Param("couponId") Integer couponId);
+
+    /**
+     * 检查用户是否拥有指定的优惠券且未使用
+     *
+     * @param userId   用户ID
+     * @param couponId 优惠券ID
+     * @return 如果用户拥有该优惠券且未使用则返回true，否则返回false
+     */
+    @Select("SELECT COUNT(*) > 0 FROM Users_Coupons " +
+            "WHERE user_id = #{userId} AND coupon_id = #{couponId} AND is_used = 0")
+    boolean checkUserCoupon(@Param("userId") Integer userId, @Param("couponId") Integer couponId);
 } 

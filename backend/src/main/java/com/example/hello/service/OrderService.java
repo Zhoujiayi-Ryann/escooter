@@ -114,11 +114,9 @@ public interface OrderService {
     List<OrderResponse> getUserOrders(Integer userId);
 
     /**
-     * 获取订单可用的优惠券列表
-     * 
-     * @param orderId 订单ID
+     * 获取用户所有未使用的优惠券
      * @param userId 用户ID
-     * @return 可用优惠券列表
+     * @return 优惠券列表
      */
-    Optional<AvailableCouponsResponse> getAvailableCoupons(Integer orderId, Integer userId);
+    Optional<AvailableCouponsResponse> getAvailableCoupons(Integer userId);
 }

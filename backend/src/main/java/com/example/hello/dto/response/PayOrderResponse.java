@@ -30,7 +30,12 @@ public class PayOrderResponse {
     private BigDecimal cost;
     
     /**
-     * 折扣金额
+     * 使用的优惠券ID
      */
-    private BigDecimal discount_amount;
+    private Integer coupon_id;
+    
+    /**
+     * 优惠券优惠金额
+     */
+    private BigDecimal coupon_amount;
 } 

@@ -93,6 +93,8 @@ export interface PayOrderResponse {
     status: string;
     cost: number;
     discount_amount: number;
+    coupon_id?: number;  // 使用的优惠券ID
+    coupon_amount?: number;  // 优惠券优惠金额
 }
 
 // 定义添加银行卡请求类型

@@ -293,20 +293,17 @@ public class OrderController {
     }
 
     /**
-     * 获取订单可用的优惠券列表
-     * 
-     * @param orderId 订单ID
+     * 获取用户所有未使用的优惠券
      * @param userId 用户ID
-     * @return 可用优惠券列表
+     * @return 优惠券列表
      */
-    @GetMapping("/orders/{order_id}/available-coupons")
+    @GetMapping("/users/{user_id}/coupons")
     public Result<AvailableCouponsResponse> getAvailableCoupons(
-            @PathVariable("order_id") Integer orderId,
-            @RequestParam("user_id") Integer userId) {
+            @PathVariable("user_id") Integer userId) {
         try {
-            log.info("Getting available coupons for order: orderId={}, userId={}", orderId, userId);
+            log.info("Getting available coupons for user: userId={}", userId);
             
-            Optional<AvailableCouponsResponse> response = orderService.getAvailableCoupons(orderId, userId);
+            Optional<AvailableCouponsResponse> response = orderService.getAvailableCoupons(userId);
             return response.map(r -> Result.success(r, "查询成功"))
                     .orElseGet(() -> Result.error("无可用优惠券"));
         } catch (OrderException e) {
