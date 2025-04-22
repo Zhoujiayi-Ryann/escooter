@@ -75,7 +75,7 @@ export const orderApi = {
      */
     extendOrder(data: ExtendOrderRequest): Promise<ApiResponse<OrderResponse>> {
         return request<OrderResponse>({
-            url: '/orders/extend',
+            url: `/orders/{orderId}/extend`,
             method: 'POST',
             data: data,
             needToken: true
@@ -130,6 +130,19 @@ export const orderApi = {
         return request<AvailableTimeSlotsResponse>({
             url: `/orders/${orderId}/available-slots`,
             method: 'GET',
+            needToken: true
+        });
+    },
+
+    /**
+     * 软删除订单
+     * @param orderId 订单ID
+     * @returns 删除结果
+     */
+    softDeleteOrder(orderId: number): Promise<ApiResponse<boolean>> {
+        return request<boolean>({
+            url: `/orders/${orderId}/soft`,
+            method: 'DELETE',
             needToken: true
         });
     }
