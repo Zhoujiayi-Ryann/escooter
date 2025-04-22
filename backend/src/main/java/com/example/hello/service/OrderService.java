@@ -7,6 +7,8 @@ import com.example.hello.dto.response.PayOrderResponse;
 import com.example.hello.dto.response.ChangeOrderStatusResponse;
 import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
+import com.example.hello.dto.response.AvailableCouponsResponse;
+import com.example.hello.dto.request.CouponRequest;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +35,16 @@ public interface OrderService {
 
     /**
      * 支付订单
+     * 将订单状态从pending更新为paid
+     *
+     * @param orderId 订单ID
+     * @param couponRequest 优惠券请求（可选）
+     * @return 支付结果
+     */
+    Optional<PayOrderResponse> payOrder(Integer orderId, CouponRequest couponRequest);
+
+    /**
+     * 支付订单（不使用优惠券）
      * 将订单状态从pending更新为paid
      *
      * @param orderId 订单ID
@@ -100,4 +112,13 @@ public interface OrderService {
      * @return 订单列表
      */
     List<OrderResponse> getUserOrders(Integer userId);
+
+    /**
+     * 获取订单可用的优惠券列表
+     * 
+     * @param orderId 订单ID
+     * @param userId 用户ID
+     * @return 可用优惠券列表
+     */
+    Optional<AvailableCouponsResponse> getAvailableCoupons(Integer orderId, Integer userId);
 }

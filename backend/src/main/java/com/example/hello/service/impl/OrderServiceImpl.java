@@ -8,11 +8,15 @@ import com.example.hello.dto.response.PayOrderResponse;
 import com.example.hello.dto.response.ChangeOrderStatusResponse;
 import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
+import com.example.hello.dto.response.AvailableCouponsResponse;
+import com.example.hello.dto.request.CouponRequest;
 import com.example.hello.entity.Order;
 import com.example.hello.entity.Scooter;
+import com.example.hello.entity.Coupon;
 import com.example.hello.exception.OrderException;
 import com.example.hello.mapper.OrderMapper;
 import com.example.hello.mapper.ScooterMapper;
+import com.example.hello.mapper.CouponMapper;
 import com.example.hello.service.OrderService;
 import com.example.hello.service.EmailService;
 import com.example.hello.entity.User;
@@ -49,6 +53,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+    private CouponMapper couponMapper;
 
     /**
      * 创建订单
@@ -142,39 +149,77 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     public Optional<OrderDetailResponse> getOrderDetail(Integer orderId) {
+        log.info("Getting order detail: orderId={}", orderId);
+        
         // 查询订单详情（包含滑板车信息）
         Map<String, Object> detailMap = orderMapper.getOrderDetail(orderId);
 
         // 如果订单不存在，返回空
         if (detailMap == null || detailMap.isEmpty()) {
+            log.warn("Order {} does not exist", orderId);
             return Optional.empty();
         }
 
         // 使用Java 8 Stream API和函数式编程构建响应对象
         OrderDetailResponse response = new OrderDetailResponse();
 
+        // 获取基础数据
+        LocalDateTime startTime = (LocalDateTime) detailMap.get("start_time");
+        LocalDateTime endTime = (LocalDateTime) detailMap.get("end_time");
+        Float duration = (Float) detailMap.get("duration");
+        BigDecimal hourlyPrice = (BigDecimal) detailMap.get("price");
+        BigDecimal baseCost = (BigDecimal) detailMap.get("cost");
+        
+        // 计算租赁天数
+        long days = 0;
+        if (startTime != null && endTime != null) {
+            Duration between = java.time.Duration.between(startTime, endTime);
+            days = (long) Math.ceil(between.toHours() / 24.0);
+        }
+        
+        // 计算价格（单价*小时数）
+        BigDecimal calculatedCost = BigDecimal.ZERO;
+        if (hourlyPrice != null && duration != null) {
+            calculatedCost = hourlyPrice.multiply(BigDecimal.valueOf(duration));
+        } else {
+            // 如果无法计算，则使用数据库中的cost值
+            calculatedCost = baseCost;
+        }
+
         // 设置订单基本信息
         response.setOrder_id((Integer) detailMap.get("order_id"));
         response.setUser_id((Integer) detailMap.get("user_id"));
         response.setScooter_id((Integer) detailMap.get("scooter_id"));
-        response.setStart_time((LocalDateTime) detailMap.get("start_time"));
-        response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
+        response.setStart_time(startTime);
+        response.setEnd_time(endTime);
+        response.setRental_days((int) days);
+        response.setDuration(duration);
         response.setExtended_duration((Float) detailMap.get("extended_duration"));
-        response.setCost((BigDecimal) detailMap.get("cost"));
+        response.setExtended_cost((BigDecimal) detailMap.get("extended_cost"));
+        response.setCost(calculatedCost); // 直接设置计算后的价格为cost
         response.setDiscount_amount((BigDecimal) detailMap.get("discount"));
         response.setStatus((String) detailMap.get("status"));
         response.setPickup_address((String) detailMap.get("address"));
+        response.setCreated_at((LocalDateTime) detailMap.get("create_at"));
+        response.setNew_end_time((LocalDateTime) detailMap.get("new_end_time"));
+        response.setPrevious_status((String) detailMap.get("previous_status"));
+        response.setIs_deleted((Boolean) detailMap.get("is_deleted"));
 
         // 构建滑板车信息对象
         OrderDetailResponse.ScooterInfoDto scooterInfo = new OrderDetailResponse.ScooterInfoDto();
         scooterInfo.setLatitude((BigDecimal) detailMap.get("location_lat"));
         scooterInfo.setLongitude((BigDecimal) detailMap.get("location_lng"));
         scooterInfo.setBattery_level((Integer) detailMap.get("battery_level"));
-        scooterInfo.setPrice((BigDecimal) detailMap.get("price"));
-
+        scooterInfo.setPrice(hourlyPrice);
+        
+        // 设置滑板车型号和编号
+        scooterInfo.setStyle("Standard"); // 默认型号，可以从数据库读取
+        scooterInfo.setNumber("S" + detailMap.get("scooter_id")); // 生成编号
+        
         // 设置滑板车信息
         response.setScooter_info(scooterInfo);
 
+        log.info("Order detail retrieved successfully: orderId={}", orderId);
         return Optional.of(response);
     }
 
@@ -183,11 +228,12 @@ public class OrderServiceImpl implements OrderService {
      * 将订单状态从pending更新为paid
      *
      * @param orderId 订单ID
+     * @param couponRequest 优惠券请求（可选）
      * @return 支付结果
      */
     @Override
     @Transactional
-    public Optional<PayOrderResponse> payOrder(Integer orderId) {
+    public Optional<PayOrderResponse> payOrder(Integer orderId, CouponRequest couponRequest) {
         log.info("Starting process order payment request: orderId={}", orderId);
 
         // 1. 查询订单
@@ -206,7 +252,87 @@ public class OrderServiceImpl implements OrderService {
         }
 
         try {
-            // 4. 更新订单状态
+            // 4. 计算实际订单价格（租赁时长 * 每小时价格）
+            BigDecimal hourlyPrice = orderMapper.getScooterPrice(order.getScooterId());
+            if (hourlyPrice == null) {
+                log.warn("Payment failed: Scooter {} has no price", order.getScooterId());
+                throw new OrderException("滑板车价格不存在");
+            }
+            
+            // 获取实际租赁时长（小时）
+            float durationHours = order.getDuration();
+            
+            // 计算基础价格
+            BigDecimal basePrice = hourlyPrice.multiply(BigDecimal.valueOf(durationHours))
+                .setScale(2, RoundingMode.HALF_UP);
+            
+            log.info("Calculated order base price: orderId={}, hourlyPrice={}, duration={}, basePrice={}", 
+                    orderId, hourlyPrice, durationHours, basePrice);
+                    
+            // 更新订单的基础价格
+            orderMapper.updateOrderCostAndDiscount(orderId, basePrice, order.getDiscount());
+            order.setCost(basePrice);
+            
+            // 5. 处理优惠券（如果有）
+            BigDecimal discountAmount = BigDecimal.ZERO;
+            
+            if (couponRequest != null && couponRequest.getCouponId() != null) {
+                log.info("Processing coupon: couponId={}, orderId={}", couponRequest.getCouponId(), orderId);
+                
+                // 5.1 查询优惠券
+                Coupon coupon = couponMapper.findById(couponRequest.getCouponId());
+                
+                if (coupon == null) {
+                    log.warn("Payment failed: Coupon {} does not exist", couponRequest.getCouponId());
+                    throw new OrderException("优惠券不存在");
+                }
+                
+                // 5.2 验证优惠券是否可用
+                if (!coupon.getIsActive()) {
+                    log.warn("Payment failed: Coupon {} is not active", couponRequest.getCouponId());
+                    throw new OrderException("优惠券已失效");
+                }
+                
+                // 5.3 验证优惠券是否在有效期内
+                LocalDateTime now = LocalDateTime.now();
+                if (coupon.getValidFrom().isAfter(now.toLocalDate()) || coupon.getValidTo().isBefore(now.toLocalDate())) {
+                    log.warn("Payment failed: Coupon {} is not in valid period", couponRequest.getCouponId());
+                    throw new OrderException("优惠券不在有效期内");
+                }
+                
+                // 5.4 验证是否满足最低消费
+                if (coupon.getMinSpend() != null && order.getCost().compareTo(coupon.getMinSpend()) < 0) {
+                    log.warn("Payment failed: Order cost {} does not meet coupon minimum spend {}", 
+                            order.getCost(), coupon.getMinSpend());
+                    throw new OrderException("订单金额未达到优惠券使用条件");
+                }
+                
+                // 5.5 使用优惠券
+                int updated = couponMapper.useCoupon(order.getUserId(), coupon.getCouponId(), orderId);
+                if (updated <= 0) {
+                    log.warn("Payment failed: Coupon {} is already used or not owned by user {}", 
+                            coupon.getCouponId(), order.getUserId());
+                    throw new OrderException("优惠券已使用或不属于该用户");
+                }
+                
+                // 5.6 计算折扣金额
+                discountAmount = coupon.getCouponAmount();
+                
+                // 5.7 更新订单折扣信息
+                BigDecimal finalCost = order.getCost().subtract(discountAmount);
+                if (finalCost.compareTo(BigDecimal.ZERO) < 0) {
+                    finalCost = BigDecimal.ZERO;
+                }
+                
+                orderMapper.updateOrderCostAndDiscount(orderId, finalCost, discountAmount);
+                order.setCost(finalCost);
+                order.setDiscount(discountAmount);
+                
+                log.info("Applied coupon discount: orderId={}, discount={}, finalCost={}", 
+                        orderId, discountAmount, finalCost);
+            }
+
+            // 6. 更新订单状态
             String newStatus;
             if (order.getNewEndTime() != null) {
                 // 如果是延长订单，恢复到之前的状态
@@ -218,32 +344,37 @@ public class OrderServiceImpl implements OrderService {
                 log.info("New order {} will be set to paid status", orderId);
             }
 
-            // 5. 更新订单状态
+            // 7. 更新订单状态
             log.info("Updating order {} status to {}", orderId, newStatus);
             int updated = orderMapper.updateOrderStatus(orderId, newStatus);
 
-            // 6. 如果更新成功，返回支付结果
+            // 8. 如果更新成功，返回支付结果
             if (updated > 0) {
                 PayOrderResponse response = new PayOrderResponse();
                 response.setOrder_id(orderId);
+                response.setUser_id(order.getUserId()); 
                 response.setStatus(newStatus);
-                log.info("Order {} payment successful", orderId);
+                response.setCost(order.getCost());
+                response.setDiscount_amount(discountAmount);
+                log.info("Order {} payment successful, cost={}, discount={}", 
+                        orderId, order.getCost(), discountAmount);
 
-                // 7. 发送订单确认邮件
+                // 9. 发送订单确认邮件
                 try {
                     // 查询用户信息获取邮箱
                     User user = userMapper.findById(order.getUserId().longValue());
                     if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
-                        // 异步发送邮件，避免阻塞主流程
-                        new Thread(() -> {
-                            emailService.sendOrderConfirmationEmail(order, user.getEmail());
-                        }).start();
+                        log.info("Sending order confirmation email to user: {}, email: {}", 
+                                order.getUserId(), user.getEmail());
+                        // 立即发送邮件，不使用异步方式
+                        emailService.sendOrderConfirmationEmail(order, user.getEmail());
+                        log.info("Order confirmation email sent successfully");
                     } else {
                         log.warn("Unable to send order confirmation email: User {} does not have a valid email address",
                                 order.getUserId());
                     }
                 } catch (Exception e) {
-                    // 邮件发送失败不影响主流程
+                    // 邮件发送失败不影响主流程，但需要记录错误
                     log.error("Error sending order confirmation email: {}", e.getMessage(), e);
                 }
 
@@ -256,6 +387,82 @@ public class OrderServiceImpl implements OrderService {
             log.error("Order {} payment failed: {}", orderId, e.getMessage(), e);
             throw new OrderException("Payment failed: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 获取订单可用的优惠券列表
+     * 
+     * @param orderId 订单ID
+     * @param userId 用户ID
+     * @return 可用优惠券列表
+     */
+    @Override
+    public Optional<AvailableCouponsResponse> getAvailableCoupons(Integer orderId, Integer userId) {
+        log.info("Getting available coupons: orderId={}, userId={}", orderId, userId);
+        
+        try {
+            // 1. 查询订单
+            Order order = orderMapper.findById(orderId);
+            if (order == null) {
+                log.warn("Get available coupons failed: Order {} does not exist", orderId);
+                throw OrderException.notFound(orderId);
+            }
+            
+            // 2. 验证订单所属用户
+            if (!order.getUserId().equals(userId)) {
+                log.warn("Get available coupons failed: Order {} does not belong to user {}", orderId, userId);
+                throw new OrderException("订单不属于该用户");
+            }
+            
+            // 3. 查询用户所有未使用的优惠券
+            List<Coupon> allCoupons = couponMapper.findUserCoupons(userId);
+            
+            // 4. 筛选可用于当前订单的优惠券
+            List<Coupon> availableCoupons = allCoupons.stream()
+                    .filter(coupon -> {
+                        // 过滤未使用的优惠券
+                        if (coupon.getIsUsed()) {
+                            return false;
+                        }
+                        
+                        // 验证有效期
+                        LocalDateTime now = LocalDateTime.now();
+                        if (coupon.getValidFrom().isAfter(now.toLocalDate()) || 
+                            coupon.getValidTo().isBefore(now.toLocalDate())) {
+                            return false;
+                        }
+                        
+                        // 验证最低消费
+                        if (coupon.getMinSpend() != null && 
+                            order.getCost().compareTo(coupon.getMinSpend()) < 0) {
+                            return false;
+                        }
+                        
+                        // 设置可用状态
+                        coupon.setStatus("able");
+                        
+                        return true;
+                    })
+                    .toList();
+            
+            log.info("Found {} available coupons for order {}", availableCoupons.size(), orderId);
+            
+            return Optional.of(AvailableCouponsResponse.of(availableCoupons));
+        } catch (Exception e) {
+            log.error("Get available coupons failed: {}", e.getMessage(), e);
+            throw new OrderException("Get available coupons failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 支付订单（不使用优惠券，保持与原有方法兼容）
+     *
+     * @param orderId 订单ID
+     * @return 支付结果
+     */
+    @Override
+    public Optional<PayOrderResponse> payOrder(Integer orderId) {
+        return payOrder(orderId, null);
     }
 
     @Override
@@ -679,6 +886,7 @@ public class OrderServiceImpl implements OrderService {
                         response.setDiscount_amount(order.getDiscount());
                         response.setPickup_address(order.getAddress());
                         response.setStatus(order.getStatus().getValue());
+                        response.setCreated_at(order.getCreatedAt());
                         return response;
                     })
                     .toList();

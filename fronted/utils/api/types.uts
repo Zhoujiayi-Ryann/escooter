@@ -27,8 +27,8 @@ export interface Scooter {
     location_lat: number;
     location_lng: number;
     battery_level: number;
-    status: string;
     price: number;
+    status: string;
 }
 
 // 定义订单创建请求类型
@@ -47,9 +47,14 @@ export interface OrderResponse {
     scooter_id: number;
     start_time: string;
     end_time: string;
+    new_end_time: string | null;
+    extended_duration: number;
+    extended_cost: number;
     cost: number;
+    discount_amount: number;
     pickup_address: string;
     status: string;
+    created_at: string;
 }
 
 // 定义订单详情的滑板车信息类型
@@ -67,16 +72,27 @@ export interface OrderDetailResponse {
     scooter_id: number;
     start_time: string;
     end_time: string;
+    new_end_time: string | null;
+    duration: number;
+    extended_duration: number;
+    extended_cost: number;
     cost: number;
+    discount_amount: number;
     pickup_address: string;
     status: string;
+    created_at: string;
+    previous_status: string | null;
+    is_deleted: boolean;
     scooter_info: ScooterInfo;
 }
 
 // 定义支付订单响应类型
 export interface PayOrderResponse {
     order_id: number;
+    user_id: number;
     status: string;
+    cost: number;
+    discount_amount: number;
 }
 
 // 定义添加银行卡请求类型
@@ -122,6 +138,30 @@ export interface FeedbackResponse {
     feedback_id: number;
     order_id?: number;
     image_urls: string[];
+}
+
+// 定义优惠券请求类型
+export interface CouponRequest {
+    couponId: number;
+    orderId: number;
+}
+
+// 定义优惠券信息类型
+export interface Coupon {
+    id: number;
+    name: string;
+    description: string;
+    type: number;
+    value: number;
+    threshold: number;
+    startTime: string;
+    endTime: string;
+    status: number;
+}
+
+// 定义可用优惠券响应类型
+export interface AvailableCouponsResponse {
+    coupons: Coupon[];
 }
 
 /**

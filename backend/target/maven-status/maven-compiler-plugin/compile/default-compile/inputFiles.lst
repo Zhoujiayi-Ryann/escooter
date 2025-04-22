@@ -24,6 +24,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/config/DatabaseConfig.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/RegisterRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/exception/GlobalExceptionHandler.java
+/home/devbox/project/backend/src/main/java/com/example/hello/dto/response/AvailableCouponsResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/handler/OrderStatusTypeHandler.java
 /home/devbox/project/backend/src/main/java/com/example/hello/mapper/CreditCardMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/ScooterController.java
@@ -36,6 +37,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/FeedbackController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/EmailServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/OrderDetailResponse.java
+/home/devbox/project/backend/src/main/java/com/example/hello/mapper/CouponMapper.java
 /home/devbox/project/backend/src/main/java/com/example/hello/exception/OrderException.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/LoginRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/LoginResponse.java
@@ -47,6 +49,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/FeedbackListResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/utils/CreditCardUtils.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/ScooterService.java
+/home/devbox/project/backend/src/main/java/com/example/hello/dto/response/CouponResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/AddCreditCardRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/common/Result.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/ExtendOrderRequest.java
@@ -59,6 +62,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/Scooter.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/VerificationCodeService.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/FileUploadController.java
+/home/devbox/project/backend/src/main/java/com/example/hello/dto/request/CouponRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/common/OrderStatus.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/PasswordController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/ForgotPasswordRequest.java

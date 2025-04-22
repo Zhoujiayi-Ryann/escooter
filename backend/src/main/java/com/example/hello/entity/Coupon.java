@@ -41,7 +41,23 @@ public class Coupon {
     private LocalDate validTo;
 
     /**
-     * 是否已使用
+     * 是否激活
      */
     private Boolean isActive;
+    
+    /**
+     * 是否已使用（来自Users_Coupons表）
+     */
+    private Boolean isUsed;
+    
+    /**
+     * 关联的订单ID（来自Users_Coupons表）
+     */
+    private Integer orderId;
+    
+    /**
+     * 计算优惠券的状态（是否可用于当前订单）
+     * 状态: "able" - 可用, "disable" - 不可用
+     */
+    private String status;
 }

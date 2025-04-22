@@ -2,7 +2,6 @@ package com.example.hello.dto.response;
 
 import lombok.Data;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
  * 支付订单响应DTO
@@ -16,17 +15,22 @@ public class PayOrderResponse {
     private Integer order_id;
     
     /**
+     * 用户ID
+     */
+    private Integer user_id;
+    
+    /**
      * 订单状态
      */
     private String status;
     
     /**
-     * 支付金额
+     * 订单费用（含折扣后的最终金额）
      */
-    private BigDecimal amount;
+    private BigDecimal cost;
     
     /**
-     * 支付时间
+     * 折扣金额
      */
-    private LocalDateTime paid_at;
+    private BigDecimal discount_amount;
 } 

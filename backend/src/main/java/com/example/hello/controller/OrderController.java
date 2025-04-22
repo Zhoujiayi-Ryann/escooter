@@ -8,6 +8,8 @@ import com.example.hello.dto.response.PayOrderResponse;
 import com.example.hello.dto.response.ChangeOrderStatusResponse;
 import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
+import com.example.hello.dto.response.AvailableCouponsResponse;
+import com.example.hello.dto.request.CouponRequest;
 import com.example.hello.exception.OrderException;
 import com.example.hello.service.OrderService;
 import jakarta.validation.Valid;
@@ -71,15 +73,18 @@ public class OrderController {
      * 将订单状态从pending更新为paid
      * 
      * @param orderId 订单ID
+     * @param couponRequest 优惠券请求（可选）
      * @return 支付结果
      */
     @PostMapping("/orders/{order_id}/pay")
-    public Result<PayOrderResponse> payOrder(@PathVariable("order_id") Integer orderId) {
+    public Result<PayOrderResponse> payOrder(
+            @PathVariable("order_id") Integer orderId,
+            @RequestBody(required = false) CouponRequest couponRequest) {
         try {
-            log.info("Received order payment request: orderId={}", orderId);
+            log.info("Received order payment request: orderId={}, couponRequest={}", orderId, couponRequest);
 
             // 调用服务进行支付处理，使用Java 8 Optional处理
-            return orderService.payOrder(orderId)
+            return orderService.payOrder(orderId, couponRequest)
                     .map(response -> {
                         log.info("Order {} payment processing completed", orderId);
                         return Result.success(response, "Payment successful");
@@ -284,6 +289,32 @@ public class OrderController {
         } catch (Exception e) {
             log.error("Failed to get orders for user {}: system error", userId, e);
             return Result.error("Failed to get user orders: System error");
+        }
+    }
+
+    /**
+     * 获取订单可用的优惠券列表
+     * 
+     * @param orderId 订单ID
+     * @param userId 用户ID
+     * @return 可用优惠券列表
+     */
+    @GetMapping("/orders/{order_id}/available-coupons")
+    public Result<AvailableCouponsResponse> getAvailableCoupons(
+            @PathVariable("order_id") Integer orderId,
+            @RequestParam("user_id") Integer userId) {
+        try {
+            log.info("Getting available coupons for order: orderId={}, userId={}", orderId, userId);
+            
+            Optional<AvailableCouponsResponse> response = orderService.getAvailableCoupons(orderId, userId);
+            return response.map(r -> Result.success(r, "查询成功"))
+                    .orElseGet(() -> Result.error("无可用优惠券"));
+        } catch (OrderException e) {
+            log.warn("Failed to get available coupons: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to get available coupons: system error", e);
+            return Result.error("查询失败：系统错误");
         }
     }
 }

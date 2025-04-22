@@ -36,9 +36,24 @@ public class OrderDetailResponse {
     private LocalDateTime end_time;
 
     /**
+     * 租赁天数
+     */
+    private Integer rental_days;
+
+    /**
+     * 租赁持续时间（小时）
+     */
+    private Float duration;
+
+    /**
      * 延长时间（小时）
      */
     private Float extended_duration;
+
+    /**
+     * 延长订单的额外费用
+     */
+    private BigDecimal extended_cost;
 
     /**
      * 订单费用
@@ -61,6 +76,26 @@ public class OrderDetailResponse {
     private String status;
 
     /**
+     * 订单创建时间
+     */
+    private LocalDateTime created_at;
+
+    /**
+     * 新的结束时间（用于延长订单）
+     */
+    private LocalDateTime new_end_time;
+
+    /**
+     * 之前的状态（用于延长订单）
+     */
+    private String previous_status;
+
+    /**
+     * 是否已删除
+     */
+    private Boolean is_deleted;
+
+    /**
      * 滑板车信息
      */
     private ScooterInfoDto scooter_info;
@@ -70,6 +105,16 @@ public class OrderDetailResponse {
      */
     @Data
     public static class ScooterInfoDto {
+        /**
+         * 滑板车型号/样式
+         */
+        private String style;
+        
+        /**
+         * 滑板车编号
+         */
+        private String number;
+        
         /**
          * 纬度
          */
@@ -86,7 +131,7 @@ public class OrderDetailResponse {
         private Integer battery_level;
 
         /**
-         * 价格
+         * 单价（每小时）
          */
         private BigDecimal price;
     }

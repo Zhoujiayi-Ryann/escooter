@@ -217,6 +217,7 @@
 import { scooterApi } from '../../utils/api/scooter';
 import { userApi } from '../../utils/api/user';
 import { orderApi } from '../../utils/api/order';
+import { dateUtils } from '../../utils/dateUtils';
 
 export default {
 	data() {
@@ -280,7 +281,6 @@ export default {
 		this.getLocation();
 		this.startCompass();
 		this.updateMarkers();
-		this.fetchScooters();
 		this.getUsername();
 		this.initDateFormatting();
 		this.checkUnstartedOrder();
@@ -368,6 +368,12 @@ export default {
 			];
 		},
 		updateMarkers() {
+			// 如果没有滑板车数据，则设置为空数组
+			if (!this.scooters || this.scooters.length === 0) {
+				this.markers = [];
+				return;
+			}
+			
 			this.markers = this.scooters.map(scooter => ({
 				id: scooter.scooterId.toString(),
 				latitude: scooter.locationLat,
@@ -396,6 +402,10 @@ export default {
 			}
 			this.updateMarkers();
 		},
+		/**
+		 * 获取所有滑板车（旧方法，不再默认调用）
+		 * 现在我们使用getAvailableScooters在showScooterList方法中根据时间段筛选滑板车
+		 */
 		fetchScooters() {
 			scooterApi.getScooters().then(res => {
 				if (res.code === 1) {
@@ -664,6 +674,64 @@ export default {
 		showScooterList() {
 			this.panelState = 'scooterList';
 			this.getAnchors();
+			
+			// 将日期和时间转换为ISO格式的日期时间字符串
+			const startDateTime = new Date(this.startDate);
+			const [startHour, startMinute] = this.startTime.split(':').map(Number);
+			startDateTime.setHours(startHour, startMinute);
+			
+			const endDateTime = new Date(this.endDate);
+			const [endHour, endMinute] = this.endTime.split(':').map(Number);
+			endDateTime.setHours(endHour, endMinute);
+			
+			// 使用日期工具类格式化日期时间
+			const startISOString = dateUtils.formatDateForBackend(startDateTime);
+			const endISOString = dateUtils.formatDateForBackend(endDateTime);
+			
+			console.log('Sending dates to backend:', startISOString, endISOString);
+			
+			// 使用 getAvailableScooters 获取指定时间段内可用的滑板车
+			uni.showLoading({
+				title: 'Loading available scooters...'
+			});
+			
+			scooterApi.getAvailableScooters(startISOString, endISOString).then(res => {
+				if (res.code === 1) {
+					this.scooters = res.data.map(scooter => ({
+						scooterId: scooter.scooter_id,
+						locationLat: scooter.location_lat,
+						locationLng: scooter.location_lng,
+						status: scooter.status,
+						batteryLevel: scooter.battery_level,
+						price: scooter.price
+					}));
+					this.updateMarkers();
+					
+					if (this.scooters.length === 0) {
+						uni.showToast({
+							title: 'No available scooters for this time period',
+							icon: 'none',
+							duration: 2000
+						});
+					}
+				} else {
+					console.error('获取滑板车失败:', res.msg);
+					uni.showToast({
+						title: 'Failed to get available scooters',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			}).catch(err => {
+				console.error('获取滑板车异常:', err);
+				uni.showToast({
+					title: 'Network request exception',
+					icon: 'none',
+					duration: 2000
+				});
+			}).finally(() => {
+				uni.hideLoading();
+			});
 		},
 		backToTimeSelector() {
 			this.panelState = 'timeSelector';

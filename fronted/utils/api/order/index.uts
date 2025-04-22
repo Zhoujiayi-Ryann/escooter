@@ -8,7 +8,9 @@ import {
     PayOrderResponse,
     ExtendOrderRequest,
     ChangeOrderStatusResponse,
-    AvailableTimeSlotsResponse
+    AvailableTimeSlotsResponse,
+    AvailableCouponsResponse,
+    CouponRequest
 } from '../types';
 
 /**
@@ -43,14 +45,43 @@ export const orderApi = {
     },
 
     /**
-     * 支付订单
+     * 支付订单 (使用优惠券)
      * @param orderId 订单ID
+     * @param couponRequest 优惠券请求（可选）
      * @returns 支付结果
      */
-    payOrder(orderId: number): Promise<ApiResponse<PayOrderResponse>> {
+    payOrder(orderId: number, couponRequest?: CouponRequest): Promise<ApiResponse<PayOrderResponse>> {
         return request<PayOrderResponse>({
             url: `/orders/${orderId}/pay`,
             method: 'POST',
+            data: couponRequest, // 如果有优惠券就传，没有就传null
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 支付订单 (不使用优惠券)
+     * @param orderId 订单ID
+     * @returns 支付结果
+     */
+    payOrderWithoutCoupon(orderId: number): Promise<ApiResponse<PayOrderResponse>> {
+        return request<PayOrderResponse>({
+            url: `/orders/${orderId}/pay`,
+            method: 'POST',
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 获取订单可用的优惠券
+     * @param orderId 订单ID
+     * @param userId 用户ID
+     * @returns 可用优惠券列表
+     */
+    getAvailableCoupons(orderId: number, userId: number): Promise<ApiResponse<AvailableCouponsResponse>> {
+        return request<AvailableCouponsResponse>({
+            url: `/orders/${orderId}/available-coupons?user_id=${userId}`,
+            method: 'GET',
             needToken: false // 需要登录权限
         });
     },
@@ -163,8 +194,26 @@ export const orderApi = {
  * };
  * 
  * orderApi.createOrder(orderData).then(res => {
- *     if (res.code === 0) {
+ *     if (res.code === 1) {
  *         console.log('订单创建成功:', res.data);
+ *     }
+ * });
+ * 
+ * // 获取可用优惠券
+ * orderApi.getAvailableCoupons(1, 1).then(res => {
+ *     if (res.code === 1) {
+ *         console.log('可用优惠券:', res.data);
+ *     }
+ * });
+ * 
+ * // 使用优惠券支付
+ * const couponRequest = {
+ *     couponId: 1,
+ *     orderId: 1
+ * };
+ * orderApi.payOrder(1, couponRequest).then(res => {
+ *     if (res.code === 1) {
+ *         console.log('支付成功:', res.data);
  *     }
  * });
  */ 

@@ -43,7 +43,7 @@
       
       <view class="info-item">
         <text class="info-value">Price:
-		    <text class="info-label">£{{ price }}/day</text>
+		    <text class="info-label">£{{ price }}/hour</text>
         </text>
       </view>
     </view>
@@ -160,13 +160,15 @@ export default {
     // 获取滑板车详细信息
     getScooterInfo(scooterId) {
       this.isLoading = true;
-      scooterApi.getScooterById(scooterId)  // 使用 scooterApi 替代 api
+      scooterApi.getScooterById(scooterId)
         .then(res => {
           if (res.code === 1) {
             // 获取成功，设置滑板车信息
             const scooter = res.data;
-            this.scooterCode = `SC${scooter.scooterId}`;
-            this.otherInfo = `Electric Scooter, Battery: ${scooter.batteryLevel}%, Price: ¥${scooter.price}/day`;
+            this.scooterCode = `SC${scooter.scooter_id}`;
+            this.otherInfo = `Electric Scooter, Battery: ${scooter.battery_level}%, Price: $${scooter.price}/hour`;
+            this.batteryLevel = scooter.battery_level;
+            this.price = scooter.price;
           } else {
             // 获取失败
             this.apiError = res.msg || 'Failed to get scooter information';
@@ -206,12 +208,13 @@ export default {
       // 构建创建订单请求
       const orderData = {
         user_id: this.userId,
-        scooter_id: this.scooterId || 1, // 如果没有ID则使用默认值1
+        scooter_id: this.scooterId,
         pickup_address: this.address,
         start_time: startDateTime,
         end_time: endDateTime
       };
       
+      console.log('Creating order with data:', orderData);
       
       // 调用创建订单API
       orderApi.createOrder(orderData)
@@ -220,9 +223,7 @@ export default {
             // 订单创建成功
             const order = res.data;
             
-            // 使用后端返回的价格和折扣信息
-            const cost = order.cost || 0;
-            const discountAmount = order.discount_amount || 0;
+            console.log('Order created successfully:', order);
             
             // 计算租用天数
             const startDate = new Date(startDateTime);
@@ -235,8 +236,8 @@ export default {
               orderId: order.order_id,
               scooterCode: this.scooterCode,
               address: this.address,
-              cost: cost,
-              discountAmount: discountAmount,
+              cost: order.cost,
+              discountAmount: order.discount_amount || 0,
               startDate: this.startDate,
               startTime: this.startTime,
               endDate: this.endDate,
