@@ -128,7 +128,7 @@ export const orderApi = {
      */
     getAvailableTimeSlots(orderId: number): Promise<ApiResponse<AvailableTimeSlotsResponse>> {
         return request<AvailableTimeSlotsResponse>({
-            url: `/orders/${orderId}/available-time-slots`,
+            url: `/orders/${orderId}/available-slots`,
             method: 'GET',
             needToken: true
         });
