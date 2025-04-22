@@ -75,7 +75,7 @@ export const orderApi = {
      */
     extendOrder(data: ExtendOrderRequest): Promise<ApiResponse<OrderResponse>> {
         return request<OrderResponse>({
-            url: `/orders/{orderId}/extend`,
+            url: `/orders/${data.order_id}/extend`,
             method: 'POST',
             data: data,
             needToken: true

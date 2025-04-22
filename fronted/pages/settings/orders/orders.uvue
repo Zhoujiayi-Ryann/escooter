@@ -154,8 +154,8 @@
 	  round
 	>
 	  <van-picker-group 
-	    title="选择延长时间" 
-	    :tabs="['选择日期', '选择时间']"
+	    title="Select Extension Time" 
+	    :tabs="['Select Date', 'Select Time']"
 	    @confirm="onDateTimePickerConfirm" 
 	    @cancel="onDateTimePickerCancel"
 	  >
@@ -249,8 +249,8 @@ export default {
 				content: 'Are you sure to delete this order?',
 				success: (res) => {
 					if (res.confirm) {
-						// 调用删除订单API  MODIFY
-						orderApi.deleteOrder(Number(orderId))
+						// 调用软删除订单API
+						orderApi.softDeleteOrder(Number(orderId))
 							.then(res => {
 								if (res.code === 1) {
 									// API调用成功，更新本地数据
@@ -331,25 +331,41 @@ export default {
 		  this.currentExtendOrder = order;
 		  this.selectedExtendDate = '';
 		  
-		  // 获取订单结束时间并显示日期选择器
-		  orderApi.getOrderDetail(Number(order.id))
+		  // 使用getAvailableTimeSlots接口获取可用时间段
+		  orderApi.getAvailableTimeSlots(Number(order.id))
 		    .then(res => {
-		      if (res.code === 1 && res.data && res.data.end_time) {
+			  console.log(res)
+		      if (res.code === 1 && res.data) {
 		        // 使用订单的结束时间作为最小可选日期
-		        this.minDate = new Date(res.data.end_time);
+		        this.minDate = new Date(res.data.current_end_time);
+		        
+		        // 设置最大可选日期
+		        if (res.data.next_start_time) {
+		          // 如果有下一个订单，使用下一个订单的开始时间作为最大可选日期
+		          this.maxDate = new Date(res.data.next_start_time);
+		        } else if (res.data.max_extended_hours > 0) {
+		          // 如果没有下一个订单但有最大延长时间，计算最大可选日期
+		          const maxDate = new Date(res.data.current_end_time);
+		          maxDate.setHours(maxDate.getHours() + res.data.max_extended_hours);
+		          this.maxDate = maxDate;
+		        } else {
+		          // 默认情况下最大可延长一年
+		          this.maxDate = new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate());
+		        }
+		        
 		        // 显示日期选择器
 		        this.showDateTimePicker();
 		      } else {
 		        uni.showToast({
-		          title: '获取订单详情失败',
+		          title: 'Failed to get available time slots',
 		          icon: 'none'
 		        });
 		      }
 		    })
 		    .catch(err => {
-		      console.error('获取订单结束时间失败:', err);
+		      console.error('获取可用时间段失败:', err);
 		      uni.showToast({
-		        title: '网络错误，请稍后重试',
+		        title: 'Network error, please try again later',
 		        icon: 'none'
 		      });
 		    });
@@ -364,7 +380,7 @@ export default {
 		
 		// 初始化日期和时间列 - 使用订单结束时间
 		initDateTimeColumns() {
-		  // 使用已经设置好的minDate(订单结束时间)
+		  // 使用已经设置好的minDate(当前订单结束时间)
 		  // 确保初始值不早于最小日期
 		  this.setDateTimeValues(this.minDate);
 		},
@@ -397,25 +413,33 @@ export default {
 		  this.selectedExtendDate = `${year}-${month}-${day} ${hour}:${minute}`;
 		  this.showTimePicker = false;
 		  
-		  // 获取当前订单信息，然后跳转到支付页面
+		  // 获取当前订单信息，然后调用extendOrder API
 		  if (this.currentExtendOrder) {
-		    // 获取订单详情
-		    orderApi.getOrderDetail(Number(this.currentExtendOrder.id))
+		    // 构造API请求参数
+		    const extendOrderRequest = {
+		      order_id: Number(this.currentExtendOrder.id),
+		      new_end_time: `${year}-${month}-${day}T${hour}:${minute}:00` // 将空格替换为"T"
+		    };
+		    console.log(extendOrderRequest)
+		    // 调用延长订单API
+		    orderApi.extendOrder(extendOrderRequest)
 		      .then(res => {
+				console.log(res)
 		        if (res.code === 1 && res.data) {
-		          // 构建订单信息对象
-				  console.log(res);
+		          // API调用成功，直接使用extendOrder的返回数据
+		          const orderData = res.data;
+		          // 构建订单信息对象，添加空值检查防止toString()错误
 		          const orderInfo = {
-		            orderId: this.currentExtendOrder.id,
-		            scooterCode: res.data.scooter_code || this.currentExtendOrder.type,
-		            address: res.data.pickup_address || "未知地点",
-		            cost: this.calculateExtensionCost(), // 计算延长费用
-		            discountAmount: 0, // 折扣金额默认为0
-		            startDate: this.formatDatePart(new Date(res.data.end_time)), // 使用原订单的结束日期作为延长的开始日期
-		            startTime: this.formatTimePart(new Date(res.data.end_time)), // 使用原订单的结束时间作为延长的开始时间
-		            endDate: `${year}-${month}-${day}`, // 新选择的结束日期
-		            endTime: `${hour}:${minute}`, // 新选择的结束时间
-		            days: this.calculateDays(new Date(res.data.end_time), new Date(`${year}-${month}-${day} ${hour}:${minute}`)) // 计算正确的天数差
+		            orderId: orderData.order_id ? orderData.order_id.toString() : "",
+		            scooterCode: orderData.scooter_id ? orderData.scooter_id.toString() : this.currentExtendOrder.type,
+		            address: orderData.pickup_address || "未知地点",
+		            cost: orderData.extended_cost !== null && orderData.extended_cost !== undefined ? orderData.extended_cost.toString() : "0",
+		            discountAmount: orderData.discount_amount !== null && orderData.discount_amount !== undefined ? orderData.discount_amount.toString() : "0",
+		            startDate: orderData.start_time ? this.formatDatePart(new Date(orderData.start_time)) : "",
+		            startTime: orderData.start_time ? this.formatTimePart(new Date(orderData.start_time)) : "",
+		            endDate: orderData.end_time ? this.formatDatePart(new Date(orderData.end_time)) : "",
+		            endTime: orderData.end_time ? this.formatTimePart(new Date(orderData.end_time)) : "",
+		            days: orderData.extended_duration ? orderData.extended_duration / 24 : 1
 		          };
 		          // 编码并跳转到支付页面
 		          const orderInfoStr = encodeURIComponent(JSON.stringify(orderInfo));
@@ -424,15 +448,15 @@ export default {
 		          });
 		        } else {
 		          uni.showToast({
-		            title: res.msg || '获取订单详情失败',
+		            title: res.msg || 'Failed to extend order',
 		            icon: 'none'
 		          });
 		        }
 		      })
 		      .catch(err => {
-		        console.error('获取订单详情出错:', err);
+		        console.error('延长订单出错:', err);
 		        uni.showToast({
-		          title: '网络错误，请稍后重试',
+		          title: 'Network error, please try again later',
 		          icon: 'none'
 		        });
 		      });
@@ -477,27 +501,6 @@ export default {
 		  return `${hour}:${minute}`;
 		},
 		
-		// 计算延长租期的费用
-		calculateExtensionCost() {
-		  // 这里可以根据实际业务逻辑计算费用
-		  // 例如：根据延长的天数或小时数乘以单价
-		  
-		  if (!this.currentExtendOrder || !this.selectedExtendDate) {
-		    return "0.00";
-		  }
-		  
-		  // 每天12.00的价格计算
-		  const days = this.calculateDays(new Date(), new Date(this.selectedExtendDate));
-		  return (days * 12.00).toFixed(2);
-		},
-		
-		// 计算两个日期之间的天数
-		calculateDays(startDate, endDate) {
-		  const diffTime = Math.abs(endDate - startDate);
-		  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-		  return Math.max(1, diffDays); // 至少1天
-		},
-		
 		onRefresh() {
 			console.log('开始刷新');
 			this.fetchOrders(); // 使用API重新获取数据
@@ -526,7 +529,7 @@ export default {
 						console.log(this.orders);
 					} else {
 						uni.showToast({
-							title: res.msg || '获取订单失败',
+							title: res.msg || 'Failed to get orders',
 							icon: 'none'
 						});
 					}
