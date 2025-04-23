@@ -124,7 +124,8 @@
 			"path" : "pages/help/help",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Help"
+				"navigationBarTitleText" : "Help",
+				"navigationStyle": "custom"
 			}
 		},
 		{

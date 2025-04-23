@@ -241,7 +241,12 @@
 
 <style>
 	.feedback-container {
-		padding: 20px;
+	  padding: 20px;
+	  background: linear-gradient(to bottom, #e0f0ff, #ffffff);
+	  min-height: 100vh;
+	  display: flex;
+	  flex-direction: column;
+	  gap: 18rpx;
 	}
 	
 	.section {
@@ -385,14 +390,6 @@
 		background-color: #007AFF;
 		color: #fff;
 		border-radius: 4px;
-	}
-	.feedback-container {
-	  padding: 40rpx;
-	  background: linear-gradient(to bottom, #e0f0ff, #ffffff);
-	  min-height: 100vh;
-	  display: flex;
-	  flex-direction: column;
-	  gap: 18rpx;
 	}
 	
 	.section {
