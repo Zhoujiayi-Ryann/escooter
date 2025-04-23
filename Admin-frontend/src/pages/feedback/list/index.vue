@@ -123,7 +123,7 @@ import {
   FEEDBACK_STATUS_OPTIONS,
   FEEDBACK_TYPES,
   FEEDBACK_TYPE_OPTIONS,
-} from '@/constants';
+} from '@/pages/feedback/list/index.ts';
 
 export default {
   name: 'list-table',
