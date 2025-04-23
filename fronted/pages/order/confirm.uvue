@@ -221,34 +221,46 @@ export default {
         .then(res => {
           if (res.code === 1) {
             // 订单创建成功
-            const order = res.data;
+            const orderId = res.data.order_id;
+            console.log('Order created successfully:', orderId);
             
-            console.log('Order created successfully:', order);
-            
-            // 计算租用天数
-            const startDate = new Date(startDateTime);
-            const endDate = new Date(endDateTime);
-            const diffTime = Math.abs(endDate - startDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            // 订单对象
-            const orderInfo = {
-              orderId: order.order_id,
-              scooterCode: this.scooterCode,
-              address: this.address,
-              cost: order.cost,
-              discountAmount: order.discount_amount || 0,
-              startDate: this.startDate,
-              startTime: this.startTime,
-              endDate: this.endDate,
-              endTime: this.endTime,
-              days: diffDays || 1
-            };
-            
-            // 跳转到支付页面并传递订单信息
-            uni.navigateTo({
-              url: '/pages/order/payment?orderInfo=' + encodeURIComponent(JSON.stringify(orderInfo))
-            });
+            // 获取订单详情
+            orderApi.getOrderDetail(orderId)
+              .then(detailRes => {
+                if (detailRes.code === 1) {
+                  const orderDetail = detailRes.data;
+                  
+                  // 构建订单信息对象
+                  const orderInfo = {
+                    orderId: orderDetail.order_id,
+                    scooterCode: `SC${this.scooterId}`,
+                    address: orderDetail.pickup_address,
+                    cost: orderDetail.cost,
+                    startDate: this.startDate,
+                    startTime: this.startTime,
+                    endDate: this.endDate,
+                    endTime: this.endTime,
+                    duration: orderDetail.duration || 0
+                  };
+                  
+                  // 跳转到支付页面并传递订单信息
+                  uni.navigateTo({
+                    url: '/pages/order/payment?orderInfo=' + encodeURIComponent(JSON.stringify(orderInfo))
+                  });
+                } else {
+                  uni.showToast({
+                    title: detailRes.msg || '获取订单详情失败',
+                    icon: 'none'
+                  });
+                }
+              })
+              .catch(err => {
+                uni.showToast({
+                  title: '获取订单详情异常',
+                  icon: 'none'
+                });
+                console.error('Get order detail exception:', err);
+              });
           } else {
             // 创建失败
             uni.showToast({

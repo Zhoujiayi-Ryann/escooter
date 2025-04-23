@@ -198,13 +198,6 @@ export const orderApi = {
  *     }
  * });
  * 
- * // 获取可用优惠券
- * orderApi.getAvailableCoupons(1).then(res => {
- *     if (res.code === 1) {
- *         console.log('可用优惠券:', res.data);
- *     }
- * });
- * 
  * // 使用优惠券支付
  * const couponRequest = {
  *     couponId: 1,

@@ -96,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
 
         // 4. 计算使用时长（小时）
         Duration duration = Duration.between(request.getStart_time(), request.getEnd_time());
-        float durationHours = duration.toMinutes() / 60.0f;
+        float durationHours = (float) Math.ceil(duration.toMinutes() / 60.0);
         log.info("Rental duration: {} hours", durationHours);
 
         // 创建订单时不计算价格

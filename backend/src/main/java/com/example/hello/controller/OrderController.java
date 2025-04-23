@@ -43,8 +43,8 @@ public class OrderController {
         try {
             // 使用Java 8 Optional处理可能的空值
             return orderService.createOrder(request)
-                    .map(response -> Result.success(response, "订单创建成功，请继续完成支付"))
-                    .orElseGet(() -> Result.error("订单创建失败"));
+                    .map(response -> Result.success(response, "Order created successfully, please continue to pay"))
+                    .orElseGet(() -> Result.error("Order creation failed"));
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }
@@ -304,14 +304,14 @@ public class OrderController {
             log.info("Getting available coupons for user: userId={}", userId);
             
             Optional<AvailableCouponsResponse> response = orderService.getAvailableCoupons(userId);
-            return response.map(r -> Result.success(r, "查询成功"))
-                    .orElseGet(() -> Result.error("无可用优惠券"));
+            return response.map(r -> Result.success(r, "success"))
+                    .orElseGet(() -> Result.error("No available coupons"));
         } catch (OrderException e) {
             log.warn("Failed to get available coupons: {}", e.getMessage());
             return Result.error(e.getMessage());
         } catch (Exception e) {
             log.error("Failed to get available coupons: system error", e);
-            return Result.error("查询失败：系统错误");
+            return Result.error("Failed to get available coupons: system error");
         }
     }
 }

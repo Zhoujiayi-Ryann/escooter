@@ -27,7 +27,7 @@
 				</scroll-view>
 			</template>
 			</van-cell>
-			<van-cell title="Rental Days" :value="`${orderInfo.days} ${orderInfo.days === 1 ? 'day' : 'days'}`" />
+			<van-cell title="Rental Time" :value="`${orderInfo.duration} hours`" />
 			<van-cell title="Pickup address" :value="orderInfo.address" />
 		</van-cell-group>
 
@@ -37,11 +37,12 @@
 			  :coupons="coupons"
 			  :chosen-coupon="chosenCoupon"
 			  @click="showList = true"
-			  currency="$"
+			  currency="£"
+			  :enable-amount="false"
 			>
 			  <template #value>
 				<text v-if="chosenCoupon !== -1">
-				  -${{ (coupons[chosenCoupon].denominations / 100).toFixed(2) }}
+				  -£{{ (coupons[chosenCoupon].denominations / 100).toFixed(2) }}
 				</text>
 				<text v-else>None</text>
 			  </template>
@@ -51,17 +52,17 @@
 		<van-cell-group inset class="amount-card">
 			<van-cell title="Base Amount" class="base-amount">
 				<template #value>
-					<text class="currency base-price">${{ calculateBaseTotalAmount() }}</text>
+					<text class="currency base-price">£{{ orderInfo.cost }}</text>
 				</template>
 			</van-cell>
 			<van-cell title="Coupon Discount" v-if="calculateCouponDiscount() > 0" class="coupon-discount">
 				<template #value>
-					<text class="currency discount-price">-${{ calculateCouponDiscount() }}</text>
+					<text class="currency discount-price">-£{{ calculateCouponDiscount() }}</text>
 				</template>
 			</van-cell>
 			<van-cell title="Payment Amount" class="amount">
 				<template #value>
-					<text class="currency">$</text>
+					<text class="currency">£</text>
 					<text class="price">{{ totalAmount }}</text>
 				</template>
 			</van-cell>
@@ -93,7 +94,7 @@
 		<van-popup v-model:show="showPassword" position="bottom" round :style="{ padding: '24px' }">
 			<view class="password-popup">
 				<text class="popup-title">Enter Payment Password</text>
-				<text class="popup-amount">${{ totalAmount }}</text>
+				<text class="popup-amount">£{{ totalAmount }}</text>
 
 				<van-password-input 
 					:value="password" 
@@ -130,6 +131,7 @@
 			:disabled-coupons="disabledCoupons"
 			@change="onChange"
 			@exchange="onExchange"
+			:enable-amount="false"
 		  />
 		</van-popup>
 
@@ -191,6 +193,7 @@
 <script>
 	import { orderApi, creditCardApi } from '@/utils/api';
 	import { userApi } from '@/utils/api/user';
+	import { couponApi } from '@/utils/api/coupon';
 	import { dateUtils } from '@/utils/dateUtils';
 	import { Locale } from 'vant';
 	import enUS from 'vant/es/locale/lang/en-US';
@@ -200,33 +203,17 @@
 	export default {
 		data() {
 			return {
-				orderId: 'OD' + Date.now(),
+				orderId: '',
 				orderInfo: {},
-				totalAmount: 0, 
-				unitPrice: 12.00,
-				paymentMethod: 'bankcard',
+				totalAmount: 0,
 				showPassword: false,
 				showKeyboard: false,
 				password: '',
 				passwordFocus: false,
 				showList: false,
-				chosenCoupon: -1, // -1 未选择优惠券
+				chosenCoupon: -1,
 				coupons: [],
-				disabledCoupons: [
-					{
-						id: 3,
-						condition: 'Min $100',
-						discount: 20,
-						denominations: 2000, // 单位为分
-						originCondition: 10000,
-						name: '$20 off on $100',
-						startAt: Date.now() / 1000 - 86400 * 60,
-						endAt: Date.now() / 1000 - 86400,
-						valueDesc: '$20',
-						unitDesc: '',
-						description: 'Expired'
-					}
-				],
+				disabledCoupons: [],
 				bankCardSelected: false,
 				showCardList: false,
 				creditCards: [],
@@ -238,21 +225,13 @@
 		onLoad(options) {
 			if (options.orderInfo) {
 				this.orderInfo = JSON.parse(decodeURIComponent(options.orderInfo));
-				// 使用后端返回的价格信息
-				this.totalAmount = this.orderInfo.cost;
-				
-				// 设置订单ID
 				this.orderId = this.orderInfo.orderId;
+				this.totalAmount = this.orderInfo.cost;
 				
 				console.log('订单信息:', this.orderInfo);
 				
 				// 加载订单可用的优惠券
 				this.loadAvailableCoupons();
-				
-				// 优惠券加载完成后再计算总价
-				setTimeout(() => {
-					this.calculateTotal();
-				}, 500);
 			}
 			
 			// 加载用户银行卡
@@ -338,7 +317,7 @@
 							// 构建成功消息，包含优惠券信息
 							let successMessage = 'Payment successful';
 							if (res.data && res.data.coupon_amount) {
-								successMessage += ` (Saved $${res.data.coupon_amount})`;
+								successMessage += ` (Saved £${res.data.coupon_amount})`;
 							}
 							
 							uni.showToast({
@@ -399,12 +378,12 @@
 						id: this.coupons.length + 1,
 						condition: 'No minimum',
 						discount: 15,
-						denominations: 1500,
+						denominations: 15 * 100, // 乘以100来抵消组件的自动除法
 						originCondition: 0,
-						name: 'New $15 Coupon',
+						name: 'New £15 Coupon',
 						startAt: Date.now() / 1000,
 						endAt: Date.now() / 1000 + 86400 * 30,
-						valueDesc: '$15',
+						valueDesc: '£15',
 						unitDesc: '',
 						description: 'Redeemed'
 					});
@@ -419,95 +398,40 @@
 					});
 				}
 			},
-			// 计算订单基础金额（不含优惠券折扣）
-			calculateBaseTotalAmount() {
-				return this.orderInfo.cost.toFixed(2);
-			},
 			// 计算优惠券折扣金额
 			calculateCouponDiscount() {
 				let couponDiscount = 0;
 				
-				// 优惠券折扣
 				if (this.chosenCoupon !== -1 && this.coupons.length > this.chosenCoupon) {
 					const coupon = this.coupons[this.chosenCoupon];
-					console.log('选择的优惠券:', coupon);
-					
-					// 检查是否满足优惠券使用条件
 					const baseAmount = parseFloat(this.orderInfo.cost || 0);
-					if (baseAmount * 100 >= (coupon.originCondition || 0)) {
-						couponDiscount = (coupon.denominations || 0) / 100;
+					if (baseAmount >= (coupon.originCondition || 0)) {
+						couponDiscount = coupon.denominations / 100; // 因为denominations已经是乘以100的值，所以这里需要除以100
+					} else {
+						console.log('订单金额不满足优惠券使用条件:', {
+							baseAmount: baseAmount,
+							minAmount: coupon.originCondition || 0
+						});
 					}
 				}
 				
 				return couponDiscount.toFixed(2);
 			},
 			calculateTotal() {
-				console.log('开始计算总价, 基础价格:', this.orderInfo.cost);
-				
-				// 基础价格
 				let basePrice = parseFloat(this.orderInfo.cost || 0);
-				
-				// 减去优惠券折扣
 				const couponDiscount = parseFloat(this.calculateCouponDiscount());
-				console.log('优惠券折扣:', couponDiscount);
+				
+				console.log('计算总价:', {
+					basePrice,
+					couponDiscount
+				});
 				
 				if (couponDiscount > 0) {
 					basePrice = Math.max(0, basePrice - couponDiscount);
 				}
 				
-				// 确保价格是两位小数
 				this.totalAmount = basePrice.toFixed(2);
 				console.log('最终计算价格:', this.totalAmount);
-				
-				// 更新优惠券可用状态
-				this.updateCouponsAvailability();
-			},
-			updateCouponsAvailability() {
-				console.log('更新优惠券可用性');
-				
-				// 获取当前订单基本金额
-				const baseAmountInCents = this.orderInfo.totalAmount ? Math.round(this.orderInfo.totalAmount * 100) : 0;
-				console.log('当前订单基本金额(分):', baseAmountInCents);
-				
-				// 清空不可用优惠券列表
-				this.disabledCoupons = [];
-				
-				// 遍历所有优惠券检查可用性
-				this.coupons.forEach((coupon, index) => {
-					// 检查优惠券是否满足订单金额要求
-					const originCondition = coupon.originCondition || coupon.threshold * 100 || 0;
-					
-					// 检查优惠券是否在有效期内
-					const now = Date.now() / 1000;
-					const startTime = coupon.startAt || new Date(coupon.startTime).getTime() / 1000;
-					const endTime = coupon.endAt || new Date(coupon.endTime).getTime() / 1000;
-					const isTimeValid = now >= startTime && now <= endTime;
-					
-					// 如果不满足条件或过期，移至不可用列表
-					if (baseAmountInCents < originCondition || !isTimeValid) {
-						const disabledCoupon = {...coupon};
-						if (baseAmountInCents < originCondition) {
-							disabledCoupon.description = '订单金额不满足要求';
-						} else {
-							disabledCoupon.description = '优惠券已过期或未生效';
-						}
-						
-						this.disabledCoupons.push(disabledCoupon);
-						this.coupons.splice(index, 1);
-					}
-				});
-				
-				console.log('可用优惠券数量:', this.coupons.length);
-				console.log('不可用优惠券数量:', this.disabledCoupons.length);
-				
-				// 如果之前选中的优惠券变成不可用，需要重置选择
-				if (this.chosenCoupon) {
-					const stillAvailable = this.coupons.some(coupon => coupon.id === this.chosenCoupon.id);
-					if (!stillAvailable) {
-						console.log('之前选中的优惠券不再可用，重置选择');
-						this.chosenCoupon = null;
-					}
-				}
 			},
 			// 加载用户银行卡
 			loadUserCreditCards() {
@@ -586,79 +510,88 @@
 					url: '/pages/user/add_card'
 				});
 			},
+			// 加载可用优惠券
 			async loadAvailableCoupons() {
-				console.log('开始加载可用优惠券');
 				try {
-					// 清除之前的优惠券
-					this.coupons = [];
+					// 获取用户ID
+					const userId = userApi.getUserId(1);
+					console.log('正在获取用户优惠券，用户ID:', userId);
 					
-					const result = await this.$apis.coupon.getAvailableCoupons();
-					console.log('API返回的优惠券数据:', result);
+					// 获取所有优惠券
+					const result = await couponApi.getAvailableCoupons(userId);
+					console.log('优惠券API返回结果:', result);
 					
-					if (result && result.data && Array.isArray(result.data)) {
-						// 确保所有优惠券数据格式化正确
-						this.coupons = result.data.map(coupon => {
-							return {
-								...coupon,
-								// 确保日期格式正确
-								startTime: coupon.startTime || new Date().toISOString(),
-								endTime: coupon.endTime || new Date().toISOString()
+					if (result.code === 1 && result.data) {
+						// 获取订单金额
+						const orderAmount = parseFloat(this.orderInfo.cost || 0);
+						console.log('当前订单金额:', orderAmount);
+						
+						// 筛选优惠券
+						const availableCoupons = [];
+						const unavailableCoupons = [];
+						
+						const coupons = Array.isArray(result.data) ? result.data : (result.data.coupons || []);
+						
+						coupons.forEach(coupon => {
+							console.log('处理优惠券:', coupon);
+							
+							// 转换为van-coupon组件需要的格式
+							const formattedCoupon = {
+								id: coupon.couponId,
+								name: coupon.couponName || 'Discount Coupon',
+								condition: `Min. spend £${coupon.minSpend}`,
+								description: `Valid from ${new Date(coupon.validFrom).toLocaleDateString()} to ${new Date(coupon.validTo).toLocaleDateString()}`,
+								startAt: new Date(coupon.validFrom).getTime(),
+								endAt: new Date(coupon.validTo).getTime(),
+								valueDesc: `£${coupon.couponAmount}`,
+								unitDesc: 'OFF',
+								denominations: coupon.couponAmount * 100, // 乘以100来抵消组件的自动除法
+								originCondition: coupon.minSpend
 							};
+							
+							console.log('格式化后的优惠券:', formattedCoupon);
+							
+							const now = Date.now();
+							const isValid = now >= formattedCoupon.startAt && now <= formattedCoupon.endAt;
+							const meetsThreshold = orderAmount >= coupon.minSpend;
+							
+							// 检查优惠券是否可用
+							// 优惠券必须：1. 状态为可用 2. 在有效期内 3. 满足最低消费要求
+							if (coupon.status === 'able' && isValid && meetsThreshold) {
+								availableCoupons.push(formattedCoupon);
+								console.log('优惠券可用:', {
+									id: coupon.couponId,
+									minSpend: coupon.minSpend,
+									orderAmount: orderAmount
+								});
+							} else {
+								unavailableCoupons.push(formattedCoupon);
+								console.log('优惠券不可用:', {
+									id: coupon.couponId,
+									status: coupon.status,
+									isValid: isValid,
+									meetsThreshold: meetsThreshold,
+									minSpend: coupon.minSpend,
+									orderAmount: orderAmount
+								});
+							}
 						});
 						
-						console.log('格式化后的优惠券数据:', this.coupons);
+						this.coupons = availableCoupons;
+						this.disabledCoupons = unavailableCoupons;
+						
+						console.log('最终可用优惠券数量:', this.coupons.length);
+						console.log('最终不可用优惠券数量:', this.disabledCoupons.length);
 					} else {
-						console.log('没有可用的优惠券或返回数据格式不正确');
+						console.warn('获取优惠券失败:', result.message);
 						this.coupons = [];
+						this.disabledCoupons = [];
 					}
-					
-					// 更新优惠券可用性并重新计算总价
-					this.$nextTick(() => {
-						this.updateCouponsAvailability();
-						this.calculateTotal();
-					});
 				} catch (error) {
-					console.error('加载优惠券失败:', error);
+					console.error('加载优惠券时出错:', error);
 					this.coupons = [];
+					this.disabledCoupons = [];
 				}
-			},
-			// 计算优惠券折扣后的总价
-			calculateTotalWithCoupon() {
-				console.log('计算优惠券折扣后的总价');
-				
-				// 获取基础订单金额（以分为单位）
-				const baseAmountInCents = this.orderInfo.totalAmount ? Math.round(this.orderInfo.totalAmount * 100) : 0;
-				let finalAmountInCents = baseAmountInCents;
-				
-				// 如果选择了优惠券，应用折扣
-				if (this.chosenCoupon) {
-					console.log('应用优惠券折扣:', this.chosenCoupon.name);
-					
-					// 获取优惠券面值（以分为单位）
-					const couponValueInCents = this.chosenCoupon.denominations || 0;
-					
-					// 应用折扣（确保不会出现负数）
-					finalAmountInCents = Math.max(0, baseAmountInCents - couponValueInCents);
-					
-					console.log('订单基本金额(分):', baseAmountInCents);
-					console.log('优惠券折扣金额(分):', couponValueInCents);
-					console.log('折扣后金额(分):', finalAmountInCents);
-				} else {
-					console.log('没有选择优惠券，使用原始价格');
-				}
-				
-				// 更新订单的最终金额（转换回元）
-				this.finalAmount = (finalAmountInCents / 100).toFixed(2);
-				console.log('最终价格(元):', this.finalAmount);
-			},
-			// 选择优惠券
-			chooseCoupon(coupon) {
-				console.log('选择优惠券:', coupon ? coupon.name : '不使用优惠券');
-				this.chosenCoupon = coupon;
-				this.showCouponPicker = false;
-				
-				// 重新计算总价
-				this.calculateTotalWithCoupon();
 			},
 		}
 	}
