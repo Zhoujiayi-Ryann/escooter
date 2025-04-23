@@ -46,6 +46,21 @@ export default [
       },
     ],
   },
+  {
+    path: '/feedback',
+    name: 'feedback',
+    component: Layout,
+    redirect: '/feedback/list',
+    meta: { title: 'Feedback', icon: 'chat-double' },
+    children: [
+      {
+        path: 'list',
+        name: 'FeedbackList',
+        component: () => import('@/pages/feedback/list/index.vue'),
+        meta: { title: 'Feedback List' },
+      },
+    ],
+  }
   // 三级菜单配置
   // {
   //   path: '/menu',
