@@ -117,7 +117,8 @@
 			"path" : "pages/notification/notification",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Notification"
+				"navigationBarTitleText" : "Notification",
+				"navigationStyle": "custom"
 			}
 		},
 		{
