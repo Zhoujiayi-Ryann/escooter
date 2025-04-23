@@ -1,4 +1,4 @@
-import { CartIcon, DashboardIcon } from 'tdesign-icons-vue';
+import { CartIcon, DashboardIcon ,UserIcon} from 'tdesign-icons-vue';
 import Layout from '@/layouts/index.vue';
 
 export default [
@@ -61,6 +61,27 @@ export default [
       },
     ],
   },
+  {
+    path: '/user-management',
+    name: 'user-management',
+    component: Layout,
+    meta: { title: 'User Management', icon: UserIcon },
+    children: [
+      {
+        path: 'manage',
+        name: 'UserManage',
+        component: () => import('@/pages/user-management/manage/index.vue'),
+        meta: { title: 'User List' },
+      },
+      {
+        path: 'details/:id',  
+        name: 'UserDetail',
+        component: () => import('@/pages/user-management/details/index.vue'),
+        meta: { title: 'User Details', hidden: true, activeMenu: '/user-management/manage' }, 
+      },
+    ],
+  },
+
   {
     path: '/income',
     name: 'income',
