@@ -51,12 +51,12 @@ public class OrderController {
     }
 
     /**
-     * 获取订单详情接口
+     * 获取订单详情接口（支付时使用）
      * 
      * @param orderId 订单ID
      * @return 订单详情信息，包含滑板车信息
      */
-    @GetMapping("/orders/{order_id}")
+    @GetMapping("/orders/{order_id}/rent")
     public Result<OrderDetailResponse> getOrderDetail(@PathVariable("order_id") Integer orderId) {
         try {
             // 使用Java 8 Optional和Lambda表达式处理结果
@@ -312,6 +312,32 @@ public class OrderController {
         } catch (Exception e) {
             log.error("Failed to get available coupons: system error", e);
             return Result.error("Failed to get available coupons: system error");
+        }
+    }
+
+    /**
+     * 获取订单所有信息接口
+     * 不同于getOrderDetail，此接口用于通用业务查询，不涉及支付流程
+     * 只返回数据库里的原始信息，不进行价格计算等额外处理
+     * 
+     * @param orderId 订单ID
+     * @return 订单所有信息
+     */
+    @GetMapping("/orders/{order_id}")
+    public Result<OrderDetailResponse> getOrderInfo(@PathVariable("order_id") Integer orderId) {
+        try {
+            log.info("Getting raw order information: orderId={}", orderId);
+            
+            // 使用专门的服务方法，不复用getOrderDetail
+            return orderService.getOrderRawInfo(orderId)
+                    .map(response -> Result.success(response, "Order information retrieved successfully"))
+                    .orElseGet(() -> Result.error("Order does not exist"));
+        } catch (OrderException e) {
+            log.warn("Failed to get order information: orderId={}, error={}", orderId, e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to get order information: orderId={}, error={}", orderId, e);
+            return Result.error("Failed to get order information: System error");
         }
     }
 }

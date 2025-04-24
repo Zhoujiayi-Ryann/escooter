@@ -119,4 +119,14 @@ public interface OrderService {
      * @return 优惠券列表
      */
     Optional<AvailableCouponsResponse> getAvailableCoupons(Integer userId);
+
+    /**
+     * 获取订单原始信息
+     * 不同于getOrderDetail，此方法不进行价格计算等额外处理
+     * 只返回数据库中的原始信息
+     *
+     * @param orderId 订单ID
+     * @return 订单原始信息
+     */
+    Optional<OrderDetailResponse> getOrderRawInfo(Integer orderId);
 }

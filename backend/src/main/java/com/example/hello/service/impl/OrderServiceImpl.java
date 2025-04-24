@@ -884,4 +884,70 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderException("Failed to get user orders: " + e.getMessage());
         }
     }
+
+    /**
+     * 获取订单原始信息
+     * 不同于getOrderDetail，此方法不进行价格计算等额外处理
+     * 只返回数据库中的原始信息
+     *
+     * @param orderId 订单ID
+     * @return 订单原始信息
+     */
+    @Override
+    public Optional<OrderDetailResponse> getOrderRawInfo(Integer orderId) {
+        log.info("Getting raw order information: orderId={}", orderId);
+        
+        // 查询订单详情（包含滑板车信息）
+        Map<String, Object> detailMap = orderMapper.getOrderDetail(orderId);
+
+        // 如果订单不存在，返回空
+        if (detailMap == null || detailMap.isEmpty()) {
+            log.warn("Order {} does not exist", orderId);
+            return Optional.empty();
+        }
+
+        // 构建响应对象
+        OrderDetailResponse response = new OrderDetailResponse();
+
+        // 获取基础数据
+        LocalDateTime startTime = (LocalDateTime) detailMap.get("start_time");
+        LocalDateTime endTime = (LocalDateTime) detailMap.get("end_time");
+        BigDecimal hourlyPrice = (BigDecimal) detailMap.get("price");
+        
+        // 设置订单基本信息 - 直接使用数据库中的原始值，不进行计算
+        response.setOrder_id((Integer) detailMap.get("order_id"));
+        response.setUser_id((Integer) detailMap.get("user_id"));
+        response.setScooter_id((Integer) detailMap.get("scooter_id"));
+        response.setStart_time(startTime);
+        response.setEnd_time(endTime);
+        response.setDuration((Float) detailMap.get("duration"));
+        response.setExtended_duration((Float) detailMap.get("extended_duration"));
+        response.setExtended_cost((BigDecimal) detailMap.get("extended_cost"));
+        // 直接使用数据库中的cost值，不重新计算
+        response.setCost((BigDecimal) detailMap.get("cost"));
+        response.setDiscount_amount((BigDecimal) detailMap.get("discount"));
+        response.setStatus((String) detailMap.get("status"));
+        response.setPickup_address((String) detailMap.get("address"));
+        response.setCreated_at((LocalDateTime) detailMap.get("create_at"));
+        response.setNew_end_time((LocalDateTime) detailMap.get("new_end_time"));
+        response.setPrevious_status((String) detailMap.get("previous_status"));
+        response.setIs_deleted((Boolean) detailMap.get("is_deleted"));
+
+        // 构建滑板车信息对象
+        OrderDetailResponse.ScooterInfoDto scooterInfo = new OrderDetailResponse.ScooterInfoDto();
+        scooterInfo.setLatitude((BigDecimal) detailMap.get("location_lat"));
+        scooterInfo.setLongitude((BigDecimal) detailMap.get("location_lng"));
+        scooterInfo.setBattery_level((Integer) detailMap.get("battery_level"));
+        scooterInfo.setPrice(hourlyPrice);
+        
+        // 设置滑板车型号和编号
+        scooterInfo.setStyle("Standard"); // 默认型号，可以从数据库读取
+        scooterInfo.setNumber("S" + detailMap.get("scooter_id")); // 生成编号
+        
+        // 设置滑板车信息
+        response.setScooter_info(scooterInfo);
+
+        log.info("Raw order information retrieved successfully: orderId={}", orderId);
+        return Optional.of(response);
+    }
 }
