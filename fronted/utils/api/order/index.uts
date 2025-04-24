@@ -32,11 +32,24 @@ export const orderApi = {
     },
 
     /**
-     * 获取订单详情
+     * 获取订单详情(支付时)
      * @param orderId 订单ID
      * @returns 订单详情，包含滑板车信息
      */
     getOrderDetail(orderId: number): Promise<ApiResponse<OrderDetailResponse>> {
+        return request<OrderDetailResponse>({
+            url: `/orders/${orderId}/rent`,
+            method: 'GET',
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 获取订单原始信息（通用查询）
+     * @param orderId 订单ID
+     * @returns 订单原始信息，包含滑板车信息，不进行额外计算
+     */
+    getOrderInfo(orderId: number): Promise<ApiResponse<OrderDetailResponse>> {
         return request<OrderDetailResponse>({
             url: `/orders/${orderId}`,
             method: 'GET',

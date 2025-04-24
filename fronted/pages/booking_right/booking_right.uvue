@@ -33,8 +33,21 @@ export default {
     };
   },
   onLoad(query) {
+    console.log('📦 booking_right 收到的参数:', query);
     this.orderId = query.orderId;
-    console.log('✅ 接收到的 orderId:', this.orderId);
+    // 添加更多调试信息
+    console.log('✅ 接收到的 orderId 值:', this.orderId);
+    console.log('✅ orderId 类型:', typeof this.orderId);
+    
+    // 如果orderId是字符串，尝试确保它是有效数字
+    if (typeof this.orderId === 'string') {
+      const numId = Number(this.orderId);
+      if (!isNaN(numId)) {
+        console.log('✅ orderId 已转换为数字:', numId);
+      } else {
+        console.warn('⚠️ orderId 不是有效数字:', this.orderId);
+      }
+    }
   },
   methods: {
     goToHome() {
@@ -45,8 +58,24 @@ export default {
         uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
         return;
       }
+      console.log('🔀 跳转到order_not_used, orderId =', this.orderId);
+      
+      // 转换为字符串，确保URL参数正确
+      const orderId = String(this.orderId);
+      
+      // 使用navigateTo而不是reLaunch，这样可以保留历史记录
       uni.navigateTo({
-        url: `/pages/order_not_used/order_not_used?orderId=${this.orderId}`
+        url: `/pages/order_not_used/order_not_used?orderId=${orderId}`,
+        success: () => {
+          console.log('✅ 跳转成功');
+        },
+        fail: (err) => {
+          console.error('❌ 跳转失败:', err);
+          // 尝试另一种跳转方法
+          uni.redirectTo({
+            url: `/pages/order_not_used/order_not_used?orderId=${orderId}`
+          });
+        }
       });
     }
   }

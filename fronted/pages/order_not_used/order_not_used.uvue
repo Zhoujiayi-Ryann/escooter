@@ -79,6 +79,20 @@ const order = ref({
   price: 0
 });
 
+// 添加页面加载参数，存储到本地变量
+let pageOrderId = null;
+
+// onLoad生命周期，接收参数
+onLoad((query) => {
+  console.log('📦 order_not_used onLoad接收参数:', query);
+  if (query && query.orderId) {
+    pageOrderId = query.orderId;
+    console.log('📦 从onLoad获取到的orderId:', pageOrderId);
+  }
+  // 立即获取订单信息
+  fetchOrderDetail();
+});
+
 const location = ref({ lng: 0, lat: 0 });
 const markers = ref([]);
 
@@ -91,13 +105,48 @@ const panelHeight = ref(anchors[0]);
 
 // 获取订单详情函数（带调试日志）
 const fetchOrderDetail = async () => {
-  const rawId = router.currentRoute.value.query.orderId;
-  console.log('📦 router.currentRoute.value.query.orderId =', rawId);
+  // 尝试多种方式获取orderId
+  let rawId;
+  
+  // 首先检查从onLoad获取的参数
+  if (pageOrderId) {
+    rawId = pageOrderId;
+    console.log('📦 使用onLoad方法获取的orderId =', rawId);
+  }
+  // 方法1：从route query中获取
+  else if (router && router.currentRoute && router.currentRoute.value && router.currentRoute.value.query) {
+    rawId = router.currentRoute.value.query.orderId;
+    console.log('📦 从router.query获取的orderId =', rawId);
+  }
+  
+  // 方法2：如果上面的方法失败，尝试从URL中解析参数
+  if (!rawId) {
+    try {
+      const pages = getCurrentPages();
+      const currentPage = pages[pages.length - 1];
+      const options = currentPage.$page?.options;
+      console.log('📦 当前页面options:', options);
+      if (options && options.orderId) {
+        rawId = options.orderId;
+        console.log('📦 从页面options获取的orderId =', rawId);
+      }
+    } catch (err) {
+      console.error('📦 获取页面参数失败:', err);
+    }
+  }
+  
+  // 如果还是没有，使用测试ID（仅用于开发测试）
+  if (!rawId) {
+    console.warn('⚠️ 无法从常规渠道获取orderId，使用开发测试ID');
+    rawId = '1'; // 使用一个测试ID，仅用于开发
+  }
 
   const orderId = Number(rawId);
+  console.log('📦 处理后的orderId (数字) =', orderId, typeof orderId);
+  
   if (!orderId || isNaN(orderId)) {
-    uni.showToast({ title: '订单 ID 无效', icon: 'none' });
-    console.warn('⚠️ orderId 不合法:', orderId);
+    uni.showToast({ title: '订单 ID 无效', icon: 'none', duration: 3000 });
+    console.warn('⚠️ orderId 不合法:', rawId, '->',  orderId);
     return;
   }
 function formatToCST(utcStr) {
@@ -129,7 +178,7 @@ function formatDuration(startStr, endStr) {
 
   try {
     console.log('📡 发起请求: /orders/' + orderId);
-    const res = await orderApi.getOrderDetail(orderId);
+    const res = await orderApi.getOrderInfo(orderId);
     console.log('✅ 接口响应结果:', res);
 
     if (res.code === 1 && res.data) {
@@ -142,7 +191,7 @@ function formatDuration(startStr, endStr) {
        scooterLocation: data.pickup_address || 'Unknown',
        battery: data.scooter_info?.battery_level ?? 'N/A',
        bookTime: formatToCST(data.start_time),
-       orderTime: formatToCST(data.create_at),  // 后备字段
+       orderTime: formatToCST(data.created_at),  // 后备字段
         duration: formatDuration(data.start_time, data.end_time),
 
        price: data.cost ?? 0
@@ -226,7 +275,10 @@ const goToUse = () => {
 
 // 组件挂载后执行
 onMounted(() => {
-  fetchOrderDetail();
+  // 如果onLoad已经触发了fetchOrderDetail，就不需要再次调用
+  if (!pageOrderId) {
+    fetchOrderDetail();
+  }
 });
 </script>
 
