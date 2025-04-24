@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.math.BigDecimal;
+
 @Mapper
 public interface UserMapper {
     void insertUser(User user);
@@ -28,4 +30,9 @@ public interface UserMapper {
             "email = #{email}, phone_number = #{phoneNumber} " +
             "WHERE user_id = #{userId}")
     void updateUser(User user);
+
+    @Update("UPDATE Users SET total_usage_hours = total_usage_hours + #{totalUsageHours}, " +
+            "total_spent = total_spent + #{totalSpent} " +
+            "WHERE user_id = #{userId}")
+    void updateUserUsageStats(Integer userId, Float totalUsageHours, BigDecimal totalSpent);
 }

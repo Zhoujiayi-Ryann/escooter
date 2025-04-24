@@ -53,7 +53,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private EmailService emailService;
-    
+
     @Autowired
     private CouponMapper couponMapper;
 
@@ -147,7 +147,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Optional<OrderDetailResponse> getOrderDetail(Integer orderId) {
         log.info("Getting order detail: orderId={}", orderId);
-        
+
         // 查询订单详情（包含滑板车信息）
         Map<String, Object> detailMap = orderMapper.getOrderDetail(orderId);
 
@@ -166,14 +166,14 @@ public class OrderServiceImpl implements OrderService {
         Float duration = (Float) detailMap.get("duration");
         BigDecimal hourlyPrice = (BigDecimal) detailMap.get("price");
         BigDecimal baseCost = (BigDecimal) detailMap.get("cost");
-        
+
         // 计算租赁天数
         long days = 0;
         if (startTime != null && endTime != null) {
             Duration between = java.time.Duration.between(startTime, endTime);
             days = (long) Math.ceil(between.toHours() / 24.0);
         }
-        
+
         // 计算价格（单价*小时数）
         BigDecimal calculatedCost = BigDecimal.ZERO;
         if (hourlyPrice != null && duration != null) {
@@ -207,11 +207,11 @@ public class OrderServiceImpl implements OrderService {
         scooterInfo.setLongitude((BigDecimal) detailMap.get("location_lng"));
         scooterInfo.setBattery_level((Integer) detailMap.get("battery_level"));
         scooterInfo.setPrice(hourlyPrice);
-        
+
         // 设置滑板车型号和编号
         scooterInfo.setStyle("Standard"); // 默认型号，可以从数据库读取
         scooterInfo.setNumber("S" + detailMap.get("scooter_id")); // 生成编号
-        
+
         // 设置滑板车信息
         response.setScooter_info(scooterInfo);
 
@@ -223,7 +223,7 @@ public class OrderServiceImpl implements OrderService {
      * 支付订单
      * 将订单状态从pending更新为paid
      *
-     * @param orderId 订单ID
+     * @param orderId       订单ID
      * @param couponRequest 优惠券请求（可选）
      * @return 支付结果
      */
@@ -254,93 +254,94 @@ public class OrderServiceImpl implements OrderService {
                 log.warn("Payment failed: Scooter {} has no price", order.getScooterId());
                 throw new OrderException("滑板车价格不存在");
             }
-            
+
             // 获取实际租赁时长（小时）
             float durationHours = order.getDuration();
-            
+
             // 计算基础价格
             BigDecimal basePrice = hourlyPrice.multiply(BigDecimal.valueOf(durationHours))
-                .setScale(2, RoundingMode.HALF_UP);
-            
-            log.info("Calculated order base price: orderId={}, hourlyPrice={}, duration={}, basePrice={}", 
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            log.info("Calculated order base price: orderId={}, hourlyPrice={}, duration={}, basePrice={}",
                     orderId, hourlyPrice, durationHours, basePrice);
-                    
+
             // 更新订单的基础价格
             orderMapper.updateOrderCostAndDiscount(orderId, basePrice, order.getDiscount());
             order.setCost(basePrice);
-            
+
             // 5. 处理优惠券（如果有）
             BigDecimal discountAmount = BigDecimal.ZERO;
-            
+
             if (couponRequest != null && couponRequest.getCouponId() != null) {
-                log.info("开始处理优惠券: couponId={}, orderId={}, 订单基础金额={}", 
-                    couponRequest.getCouponId(), orderId, order.getCost());
-                
+                log.info("开始处理优惠券: couponId={}, orderId={}, 订单基础金额={}",
+                        couponRequest.getCouponId(), orderId, order.getCost());
+
                 // 5.1 查询优惠券
                 Coupon coupon = couponMapper.findById(couponRequest.getCouponId());
-                
+
                 if (coupon == null) {
                     log.warn("支付失败: 优惠券{}不存在", couponRequest.getCouponId());
                     throw new OrderException("优惠券不存在");
                 }
-                
+
                 // 5.2 验证优惠券是否可用
                 if (!coupon.getIsActive()) {
                     log.warn("支付失败: 优惠券{}已失效", couponRequest.getCouponId());
                     throw new OrderException("优惠券已失效");
                 }
-                
+
                 // 5.3 验证优惠券是否在有效期内
                 LocalDateTime now = LocalDateTime.now();
-                if (coupon.getValidFrom().isAfter(now.toLocalDate()) || coupon.getValidTo().isBefore(now.toLocalDate())) {
-                    log.warn("支付失败: 优惠券{}不在有效期内 (有效期: {} 至 {})", 
-                        couponRequest.getCouponId(), 
-                        coupon.getValidFrom(),
-                        coupon.getValidTo());
+                if (coupon.getValidFrom().isAfter(now.toLocalDate())
+                        || coupon.getValidTo().isBefore(now.toLocalDate())) {
+                    log.warn("支付失败: 优惠券{}不在有效期内 (有效期: {} 至 {})",
+                            couponRequest.getCouponId(),
+                            coupon.getValidFrom(),
+                            coupon.getValidTo());
                     throw new OrderException("优惠券不在有效期内");
                 }
-                
+
                 // 5.4 验证是否满足最低消费
                 if (coupon.getMinSpend() != null && order.getCost().compareTo(coupon.getMinSpend()) < 0) {
-                    log.warn("支付失败: 订单金额{}未达到优惠券最低消费要求{}", 
-                        order.getCost(), coupon.getMinSpend());
-                    throw new OrderException(String.format("订单金额%.2f未达到优惠券最低消费要求%.2f", 
-                        order.getCost().doubleValue(), 
-                        coupon.getMinSpend().doubleValue()));
+                    log.warn("支付失败: 订单金额{}未达到优惠券最低消费要求{}",
+                            order.getCost(), coupon.getMinSpend());
+                    throw new OrderException(String.format("订单金额%.2f未达到优惠券最低消费要求%.2f",
+                            order.getCost().doubleValue(),
+                            coupon.getMinSpend().doubleValue()));
                 }
-                
+
                 // 5.5 验证用户是否拥有该优惠券
                 boolean userOwnsCoupon = couponMapper.checkUserCoupon(order.getUserId(), coupon.getCouponId());
                 if (!userOwnsCoupon) {
                     log.warn("支付失败: 用户{}未拥有优惠券{}", order.getUserId(), coupon.getCouponId());
                     throw new OrderException("您未拥有该优惠券");
                 }
-                
+
                 // 5.6 使用优惠券
                 int updated = couponMapper.useCoupon(order.getUserId(), coupon.getCouponId(), orderId);
                 if (updated <= 0) {
-                    log.warn("支付失败: 优惠券{}已被使用或不属于用户{}", 
-                        coupon.getCouponId(), order.getUserId());
+                    log.warn("支付失败: 优惠券{}已被使用或不属于用户{}",
+                            coupon.getCouponId(), order.getUserId());
                     throw new OrderException("优惠券已使用或不属于该用户");
                 }
-                
+
                 // 5.7 计算折扣金额
                 discountAmount = coupon.getCouponAmount();
-                
+
                 // 5.8 更新订单折扣信息
                 BigDecimal finalCost = order.getCost().subtract(discountAmount);
                 if (finalCost.compareTo(BigDecimal.ZERO) < 0) {
-                    log.info("折扣金额{}大于订单金额{}，最终价格将被设置为0", 
-                        discountAmount, order.getCost());
+                    log.info("折扣金额{}大于订单金额{}，最终价格将被设置为0",
+                            discountAmount, order.getCost());
                     finalCost = BigDecimal.ZERO;
                 }
-                
+
                 orderMapper.updateOrderCostAndDiscount(orderId, finalCost, discountAmount);
                 order.setCost(finalCost);
                 order.setDiscount(discountAmount);
-                
-                log.info("优惠券应用成功: orderId={}, 原价={}, 折扣={}, 最终价格={}", 
-                    orderId, basePrice, discountAmount, finalCost);
+
+                log.info("优惠券应用成功: orderId={}, 原价={}, 折扣={}, 最终价格={}",
+                        orderId, basePrice, discountAmount, finalCost);
             }
 
             // 6. 更新订单状态
@@ -363,18 +364,18 @@ public class OrderServiceImpl implements OrderService {
             if (updated > 0) {
                 PayOrderResponse response = new PayOrderResponse();
                 response.setOrder_id(orderId);
-                response.setUser_id(order.getUserId()); 
+                response.setUser_id(order.getUserId());
                 response.setStatus(newStatus);
                 response.setCost(order.getCost());
-                
+
                 // 设置优惠券信息
                 if (couponRequest != null && couponRequest.getCouponId() != null) {
                     response.setCoupon_id(couponRequest.getCouponId());
                     response.setCoupon_amount(discountAmount);
                 }
-                
-                log.info("Order {} payment successful, cost={}, couponId={}, couponAmount={}", 
-                        orderId, order.getCost(), 
+
+                log.info("Order {} payment successful, cost={}, couponId={}, couponAmount={}",
+                        orderId, order.getCost(),
                         response.getCoupon_id(), response.getCoupon_amount());
 
                 // 9. 发送订单确认邮件
@@ -382,7 +383,7 @@ public class OrderServiceImpl implements OrderService {
                     // 查询用户信息获取邮箱
                     User user = userMapper.findById(order.getUserId().longValue());
                     if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
-                        log.info("Sending order confirmation email to user: {}, email: {}", 
+                        log.info("Sending order confirmation email to user: {}, email: {}",
                                 order.getUserId(), user.getEmail());
                         // 立即发送邮件，不使用异步方式
                         emailService.sendOrderConfirmationEmail(order, user.getEmail());
@@ -416,27 +417,27 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Optional<AvailableCouponsResponse> getAvailableCoupons(Integer userId) {
         log.info("Getting available coupons for user: userId={}", userId);
-        
+
         try {
             // 查询用户所有未使用的优惠券
             List<Coupon> allCoupons = couponMapper.findUserCoupons(userId);
-            
+
             // 筛选未使用的优惠券
             List<Coupon> availableCoupons = allCoupons.stream()
                     .filter(coupon -> !coupon.getIsUsed())
                     .peek(coupon -> {
                         // 验证有效期
                         LocalDateTime now = LocalDateTime.now();
-                        boolean isValid = !coupon.getValidFrom().isAfter(now.toLocalDate()) && 
-                                       !coupon.getValidTo().isBefore(now.toLocalDate());
-                        
+                        boolean isValid = !coupon.getValidFrom().isAfter(now.toLocalDate()) &&
+                                !coupon.getValidTo().isBefore(now.toLocalDate());
+
                         // 设置可用状态
                         coupon.setStatus(isValid ? "able" : "disabled");
                     })
                     .toList();
-            
+
             log.info("Found {} available coupons for user {}", availableCoupons.size(), userId);
-            
+
             return Optional.of(AvailableCouponsResponse.of(availableCoupons));
         } catch (Exception e) {
             log.error("Get available coupons failed: {}", e.getMessage(), e);
@@ -487,14 +488,19 @@ public class OrderServiceImpl implements OrderService {
             log.info("Updating order {} status to active", orderId);
             int updated = orderMapper.updateOrderStatus(orderId, OrderStatus.ACTIVE.getValue());
 
-            // 5. 如果更新成功，返回完整的订单信息
+            // 5. 更新滑板车状态为使用中
+            Integer scooterId = (Integer) detailMap.get("scooter_id");
+            log.info("Updating scooter {} status to in_use", scooterId);
+            scooterMapper.updateScooterStatus(scooterId, Scooter.Status.in_use.name());
+
+            // 6. 如果更新成功，返回完整的订单信息
             if (updated > 0) {
                 ChangeOrderStatusResponse response = new ChangeOrderStatusResponse();
 
                 // 设置订单基本信息
                 response.setOrder_id((Integer) detailMap.get("order_id"));
                 response.setUser_id((Integer) detailMap.get("user_id"));
-                response.setScooter_id((Integer) detailMap.get("scooter_id"));
+                response.setScooter_id(scooterId);
                 response.setStart_time(startTime);
                 response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
                 response.setCost((BigDecimal) detailMap.get("cost"));
@@ -546,17 +552,36 @@ public class OrderServiceImpl implements OrderService {
             log.info("Updating order {} status to completed", orderId);
             int updated = orderMapper.updateOrderStatus(orderId, OrderStatus.COMPLETED.getValue());
 
-            // 4. 如果更新成功，返回完整的订单信息
+            // 4. 更新滑板车状态为空闲
+            Integer scooterId = (Integer) detailMap.get("scooter_id");
+            log.info("Updating scooter {} status to free", scooterId);
+            scooterMapper.updateScooterStatus(scooterId, Scooter.Status.free.name());
+
+            // 5. 更新用户使用时间和总金额
+            Integer userId = (Integer) detailMap.get("user_id");
+            Float duration = (Float) detailMap.get("duration");
+            Float extendedDuration = (Float) detailMap.get("extended_duration");
+            BigDecimal cost = (BigDecimal) detailMap.get("cost");
+
+            // 计算总使用时间
+            Float totalDuration = duration + (extendedDuration != null ? extendedDuration : 0.0f);
+
+            // 更新用户使用统计
+            userMapper.updateUserUsageStats(userId, totalDuration, cost);
+            log.info("Updated user {} usage stats: added_usage_hours={}, added_spent={}",
+                    userId, totalDuration, cost);
+
+            // 6. 如果更新成功，返回完整的订单信息
             if (updated > 0) {
                 ChangeOrderStatusResponse response = new ChangeOrderStatusResponse();
 
                 // 设置订单基本信息
                 response.setOrder_id((Integer) detailMap.get("order_id"));
-                response.setUser_id((Integer) detailMap.get("user_id"));
-                response.setScooter_id((Integer) detailMap.get("scooter_id"));
+                response.setUser_id(userId);
+                response.setScooter_id(scooterId);
                 response.setStart_time((LocalDateTime) detailMap.get("start_time"));
                 response.setEnd_time((LocalDateTime) detailMap.get("end_time"));
-                response.setCost((BigDecimal) detailMap.get("cost"));
+                response.setCost(cost);
                 response.setStatus(OrderStatus.COMPLETED.getValue());
                 response.setPickup_address((String) detailMap.get("address"));
 
@@ -896,7 +921,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Optional<OrderDetailResponse> getOrderRawInfo(Integer orderId) {
         log.info("Getting raw order information: orderId={}", orderId);
-        
+
         // 查询订单详情（包含滑板车信息）
         Map<String, Object> detailMap = orderMapper.getOrderDetail(orderId);
 
@@ -913,7 +938,7 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime startTime = (LocalDateTime) detailMap.get("start_time");
         LocalDateTime endTime = (LocalDateTime) detailMap.get("end_time");
         BigDecimal hourlyPrice = (BigDecimal) detailMap.get("price");
-        
+
         // 设置订单基本信息 - 直接使用数据库中的原始值，不进行计算
         response.setOrder_id((Integer) detailMap.get("order_id"));
         response.setUser_id((Integer) detailMap.get("user_id"));
@@ -939,11 +964,11 @@ public class OrderServiceImpl implements OrderService {
         scooterInfo.setLongitude((BigDecimal) detailMap.get("location_lng"));
         scooterInfo.setBattery_level((Integer) detailMap.get("battery_level"));
         scooterInfo.setPrice(hourlyPrice);
-        
+
         // 设置滑板车型号和编号
         scooterInfo.setStyle("Standard"); // 默认型号，可以从数据库读取
         scooterInfo.setNumber("S" + detailMap.get("scooter_id")); // 生成编号
-        
+
         // 设置滑板车信息
         response.setScooter_info(scooterInfo);
 
