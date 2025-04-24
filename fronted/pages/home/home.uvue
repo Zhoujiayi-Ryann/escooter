@@ -55,6 +55,7 @@
 		</view>
 		<view v-if="showSidebar" class="sidebar-overlay" @click="toggleSidebar"></view>
 		<van-floating-panel
+		v-show="!orderTipInfo.show"
 		v-model:height="height"
 		:anchors="anchors">
 			<view v-if="panelState === 'timeSelector'" class="time-selector-panel">
@@ -766,35 +767,72 @@ export default {
 						return status === 'paid';
 					});
 					if (pendingOrder) {
+						const orderMap = pendingOrder.toMap();
+						const orderId = orderMap.get('order_id');
+						
 						this.orderTipInfo = {
 							show: true,
 							message: 'You have an unpaid order.',
 							buttonText: 'Go to pay',
 							action: () => {
-								uni.navigateTo({
-									url: '/pages/settings/orders/orders'
+								// 先获取订单详情
+								orderApi.getOrderDetail(orderId).then(res => {
+									if (res.code === 1 && res.data) {
+										const orderDetail = res.data;
+										// 构造支付页面需要的orderInfo
+										const orderInfo = {
+											orderId: orderDetail.order_id,
+											scooterCode: `SC${orderDetail.scooter_id}`,
+											startDate: dateUtils.formatDate(new Date(orderDetail.start_time)),
+											startTime: dateUtils.formatTime(new Date(orderDetail.start_time)),
+											endDate: dateUtils.formatDate(new Date(orderDetail.end_time)),
+											endTime: dateUtils.formatTime(new Date(orderDetail.end_time)),
+											duration: orderDetail.duration,
+											cost: orderDetail.cost,
+											address: orderDetail.address
+										};
+										
+										uni.navigateTo({
+											url: `/pages/order/payment?orderInfo=${encodeURIComponent(JSON.stringify(orderInfo))}`
+										});
+									} else {
+										uni.showToast({
+											title: 'Failed to get order details',
+											icon: 'none'
+										});
+									}
+								}).catch(err => {
+									console.error('获取订单详情失败:', err);
+									uni.showToast({
+										title: 'Network request exception',
+										icon: 'none'
+									});
 								});
 							}
 						};
 					} else if (activeOrder) {
+						const orderMap = activeOrder.toMap();
+						const orderId = orderMap.get('order_id');
 						this.orderTipInfo = {
 							show: true,
 							message: 'You have an active order.',
 							buttonText: 'Check details',
 							action: () => {
 								uni.navigateTo({
-									url: '/pages/settings/orders/orders'
+									url: `/pages/order_in_progress/order_in_progress?order_id=${orderId}`
 								});
 							}
 						};
 					} else if (paidOrder) {
+						const orderMap = paidOrder.toMap();
+						const orderId = orderMap.get('order_id');
 						this.orderTipInfo = {
 							show: true,
 							message: 'You have already had an order.',
 							buttonText: 'Go to use',
 							action: () => {
 								uni.navigateTo({
-									url: '/pages/settings/orders/orders'
+									url: `/pages/order_not_used/order_not_used?order_id=${orderId}`
 								});
 							}
 						};

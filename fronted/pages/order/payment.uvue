@@ -2,7 +2,7 @@
 	<view class="payment-page">
 		<!-- 订单信息 -->
 		<view class="header">
-			<view class="back-btn" @click="navitohome">
+			<view class="back-btn" @click="handleBack">
 			  <van-icon name="arrow-left" class="back-icon"/>
 			</view>
 			<text class="header-title"> Payment Confirm</text>
@@ -238,10 +238,13 @@
 			this.loadUserCreditCards();
 		},
 		methods: {
-			navitohome(){
-				uni.navigateTo({
-				  url: '/pages/order/confirm'
-				});
+			handleBack(){
+				const pages = getCurrentPages();
+			    if (pages.length > 1) {
+			    	uni.navigateBack();
+			  	} else {
+			    	uni.reLaunch({ url: '/pages/home/home' });
+				}
 			},
 			togglePayment(method) {
 				this.paymentMethod = method;
