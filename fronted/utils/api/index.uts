@@ -4,6 +4,7 @@ import { userApi } from './user';
 import { scooterApi } from './scooter';
 import { orderApi } from './order';
 import { creditCardApi } from './creditCard';
+import { couponApi } from './coupon';
 
 // 导出所有API模块
 export {
@@ -16,7 +17,8 @@ export {
     userApi,
     scooterApi,
     orderApi,
-    creditCardApi
+    creditCardApi,
+	couponApi
 }
 
 /**

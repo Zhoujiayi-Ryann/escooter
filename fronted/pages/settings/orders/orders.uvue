@@ -57,7 +57,7 @@
 									
 									<!-- 未使用订单显示"修改订单"和"取消订单"按钮 -->
 									<template v-else-if="order.statusCode === 2">
-										<van-button
+										<!-- <van-button
 											size="small" 
 											type="danger"
 											plain
@@ -65,7 +65,7 @@
 											style="margin-right: auto;"
 										>
 											Cancel
-										</van-button>
+										</van-button> -->
 										<van-button 
 											size="small" 
 											type="primary"

@@ -23,7 +23,7 @@
 								<text class="coupon-condition">{{ coupon.condition }}</text>
 							</view>
 							<view class="coupon-right">
-								<text class="coupon-name">{{ coupon.name }}</text>
+								<text class="coupon-name">{{ coupon.coupon_name }}</text>
 								<text class="coupon-desc">{{ coupon.description }}</text>
 								<text class="coupon-date">Valid until: {{ formatDate(coupon.endAt) }}</text>
 							</view>
@@ -71,62 +71,107 @@
 </template>
 
 <script>
+import { couponApi } from '@/utils/api/coupon';
+import { userApi } from '@/utils/api/user';
+
 export default {
 	data() {
 		return {
 			activeTab: 0, // 默认显示可用优惠券
-			coupons: [
-				{
-					id: 1,
-					condition: 'No minimum',
-					discount: 5,
-					denominations: 500, // 单位为分
-					originCondition: 0,
-					name: '$5 Coupon',
-					startAt: Date.now() / 1000 - 86400,
-					endAt: Date.now() / 1000 + 86400 * 30,
-					valueDesc: '$5',
-					unitDesc: '',
-					description: 'Rental Coupon'
-				},
-				{
-					id: 2,
-					condition: 'Min $50',
-					discount: 10,
-					denominations: 1000, // 单位为分
-					originCondition: 5000,
-					name: '$10 Coupon',
-					startAt: Date.now() / 1000 - 86400,
-					endAt: Date.now() / 1000 + 86400 * 30,
-					valueDesc: '$10',
-					unitDesc: '',
-					description: 'Rental Coupon'
-				}
-			],
-			disabledCoupons: [
-				{
-					id: 3,
-					condition: 'Min $100',
-					discount: 20,
-					denominations: 2000, // 单位为分
-					originCondition: 10000,
-					name: '$20 Coupon',
-					startAt: Date.now() / 1000 - 86400 * 60,
-					endAt: Date.now() / 1000 - 86400,
-					valueDesc: '$20',
-					unitDesc: '',
-					description: 'Expired'
-				}
-			]
+			coupons: [],
+			disabledCoupons: [],
+			loading: false
 		}
+	},
+	onLoad() {
+		this.fetchCoupons();
 	},
 	methods: {
 		navigateBack() {
-			uni.navigateBack();
+			const pages = getCurrentPages();
+			if (pages.length > 1) {
+				// 如果有上级页面，返回上级页面
+				uni.navigateBack({
+					delta: 1
+				});
+			} else {
+				// 如果没有上级页面，返回主页
+				uni.navigateTo({
+					url: '/pages/home/home'
+				});
+			}
 		},
 		formatDate(timestamp) {
 			const date = new Date(timestamp * 1000);
 			return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+		},
+		async fetchCoupons() {
+			this.loading = true;
+			// 从userApi获取当前用户ID，如果未登录则使用默认值0
+			const userId = userApi.getUserId(0);
+			
+			if (userId === 0) {
+				// 用户未登录，可以显示提示或跳转到登录页
+				uni.showToast({
+					title: '请先登录',
+					icon: 'none'
+				});
+				this.loading = false;
+				return;
+			}
+			
+			try {
+				console.log(userId);
+				const response = await couponApi.getAvailableCoupons(userId);
+				console.log(response);
+				
+				if (response.code === 1 && response.data) {
+					// 修改这里的筛选逻辑
+					const now = new Date();
+					
+					this.coupons = response.data.coupons.filter(coupon => 
+						new Date(coupon.validTo) > now && 
+						coupon.isActive === true &&
+						coupon.isUsed === false &&
+						coupon.status === "able"
+					).map(coupon => this.formatCouponData(coupon));
+					
+					this.disabledCoupons = response.data.coupons.filter(coupon => 
+						new Date(coupon.validTo) <= now || 
+						coupon.isActive !== true ||
+						coupon.isUsed === true ||
+						coupon.status !== "able"
+					).map(coupon => this.formatCouponData(coupon));
+					console.log(this.coupons);
+				} else {
+					uni.showToast({
+						title: '获取优惠券失败',
+						icon: 'none'
+					});
+				}
+			} catch (error) {
+				console.error('获取优惠券失败:', error);
+				uni.showToast({
+					title: '获取优惠券失败，请重试',
+					icon: 'none'
+				});
+			} finally {
+				this.loading = false;
+			}
+		},
+		formatCouponData(coupon) {
+			return {
+				id: coupon.couponId,
+				coupon_name: coupon.couponName,
+				name: coupon.couponName,
+				denominations: (coupon.couponAmount || 0) * 100,
+				condition: coupon.minSpend > 0 ? `最低消费 £${coupon.minSpend}` : '无最低消费',
+				originCondition: (coupon.minSpend || 0) * 100,
+				startAt: coupon.validFrom ? new Date(coupon.validFrom).getTime() / 1000 : Date.now() / 1000,
+				endAt: coupon.validTo ? new Date(coupon.validTo).getTime() / 1000 : (Date.now() / 1000 + 86400 * 30),
+				valueDesc: `£${coupon.couponAmount || 0}`,
+				description: coupon.description || '租赁优惠券'
+			};
 		}
 	}
 }

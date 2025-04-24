@@ -250,6 +250,13 @@
 				this.paymentMethod = method;
 			},
 			showPasswordInput() {
+				if (!this.selectedCard) {
+					uni.showToast({
+						title: 'Please select a payment card',
+						icon: 'none'
+					});
+					return;
+				}
 				this.showPassword = true;
 				this.showKeyboard = true;
 				this.passwordFocus = true;
@@ -279,16 +286,6 @@
 				if (!orderId) {
 					uni.showToast({
 						title: 'Incomplete order information',
-						icon: 'none'
-					});
-					this.closePasswordInput();
-					return;
-				}
-				
-				// 验证是否选择了银行卡
-				if (!this.selectedCard) {
-					uni.showToast({
-						title: 'Please select a payment card',
 						icon: 'none'
 					});
 					this.closePasswordInput();
