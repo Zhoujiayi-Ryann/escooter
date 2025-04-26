@@ -23,34 +23,11 @@
         </t-table>
       </t-card>
     </t-col>
-    <t-col :xs="12" :xl="6">
-      <t-card title="采购订单排名" class="dashboard-rank-card" :bordered="false">
-        <template #actions>
-          <t-radio-group default-value="dateVal">
-            <t-radio-button value="dateVal">本周</t-radio-button>
-            <t-radio-button value="monthVal">近三个月</t-radio-button>
-          </t-radio-group>
-        </template>
-        <t-table :data="buyTendList" :columns="buyColumns" rowKey="productName">
-          <template #index="{ rowIndex }">
-            <span :class="getRankClass(rowIndex)">
-              {{ rowIndex + 1 }}
-            </span>
-          </template>
-          <span slot="growUp" slot-scope="{ row }">
-            <trend :type="row.growUp > 0 ? 'up' : 'down'" :describe="Math.abs(row.growUp)" />
-          </span>
-          <template #operation="slotProps">
-            <a class="link" @click="rehandleClickOp(slotProps)">详情</a>
-          </template>
-        </t-table>
-      </t-card>
-    </t-col>
   </t-row>
 </template>
 <script>
 import Trend from '@/components/trend/index.vue';
-import { SALE_TEND_LIST, BUY_TEND_LIST, SALE_COLUMNS, BUY_COLUMNS } from '@/service/service-base';
+import { SALE_TEND_LIST, SALE_COLUMNS } from '@/service/service-base';
 
 export default {
   name: 'RankList',
@@ -59,10 +36,8 @@ export default {
   },
   data() {
     return {
-      buyTendList: BUY_TEND_LIST,
       saleTendList: SALE_TEND_LIST,
       saleColumns: SALE_COLUMNS,
-      buyColumns: BUY_COLUMNS,
     };
   },
   methods: {
