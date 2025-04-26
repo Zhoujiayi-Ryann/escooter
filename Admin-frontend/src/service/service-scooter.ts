@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-const BASE_URL = '/api';
+const BASE_URL = 'http://localhost:8080/api';
 
 // 滑板车状态映射
 export const SCOOTER_STATUS = {

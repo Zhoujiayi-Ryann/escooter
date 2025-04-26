@@ -8,7 +8,8 @@
         :class="{ 'dashboard-item': true, 'dashboard-item--main-color': index == 0 }"
       >
         <div class="dashboard-item-top">
-          <span :style="{ fontSize: `${resizeTime * 36}px` }">{{ item.number }}</span>
+          <span v-if="!isLoading || index !== 1" :style="{ fontSize: `${resizeTime * 36}px` }">{{ item.number }}</span>
+          <t-loading v-else size="small" />
         </div>
         <div class="dashboard-item-left">
           <div
@@ -60,6 +61,7 @@ import Trend from '@/components/trend/index.vue';
 import { constructInitDashboardDataset } from '../index';
 import { changeChartsTheme } from '@/utils/color';
 import { PANE_LIST } from '@/service/service-base';
+import { scooterService } from '@/service/service-scooter';
 
 echarts.use([LineChart, BarChart, CanvasRenderer]);
 
@@ -74,7 +76,8 @@ export default {
   data() {
     return {
       resizeTime: 1,
-      panelList: PANE_LIST,
+      panelList: [...PANE_LIST],
+      isLoading: true,
     };
   },
   computed: {
@@ -97,10 +100,26 @@ export default {
     });
 
     window.addEventListener('resize', this.updateContainer, false);
+    this.fetchVehicleCount();
     this.renderCharts();
   },
 
   methods: {
+    async fetchVehicleCount() {
+      try {
+        const scooters = await scooterService.getAllScooters();
+        if (this.panelList[1]) {
+          this.panelList[1].number = scooters.length;
+          this.panelList[1].upTrend = '5%';
+          delete this.panelList[1].downTrend;
+        }
+        this.isLoading = false;
+      } catch (error) {
+        console.error('获取车辆数据失败:', error);
+        this.isLoading = false;
+      }
+    },
+
     updateContainer() {
       if (document.documentElement.clientWidth >= 1400 && document.documentElement.clientWidth < 1920) {
         this.resizeTime = (document.documentElement.clientWidth / 2080).toFixed(2);
