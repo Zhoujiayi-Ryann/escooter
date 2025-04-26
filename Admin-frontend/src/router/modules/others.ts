@@ -36,13 +36,13 @@ export default [
     name: 'vehicle',
     component: Layout,
     redirect: '/vehicle/manage',
-    meta: { title: '车辆管理', icon: CartIcon },
+    meta: { title: 'Vehicle Management', icon: CartIcon },
     children: [
       {
         path: 'manage',
         name: 'VehicleManage',
         component: () => import('@/pages/vehicle/manage/index.vue'),
-        meta: { title: '车辆列表' },
+        meta: { title: 'Vehicle List' },
       },
     ],
   },
