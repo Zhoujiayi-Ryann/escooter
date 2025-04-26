@@ -5,16 +5,18 @@ const BASE_URL = 'http://localhost:8080/api';
 
 // 滑板车状态映射
 export const SCOOTER_STATUS = {
-  free: 0,  // 空闲
-  in_use: 1, // 使用中
-  fault: 2,  // 故障
+  free: 0,        // 空闲
+  booked: 1,      // 已预订
+  in_use: 2,      // 使用中
+  maintenance: 3, // 维护中
 };
 
 // 滑板车状态的反向映射
 export const SCOOTER_STATUS_REVERSE = {
   0: 'free',
-  1: 'in_use',
-  2: 'fault',
+  1: 'booked',
+  2: 'in_use',
+  3: 'maintenance',
 };
 
 // 响应类型接口
@@ -65,10 +67,12 @@ const mapScooterToTableData = (scooter: ScooterResponse): TableScooter => {
 
   // 将状态字符串转换为数字
   let statusNumber = SCOOTER_STATUS.free;
-  if (scooter.status === 'in_use') {
+  if (scooter.status === 'booked') {
+    statusNumber = SCOOTER_STATUS.booked;
+  } else if (scooter.status === 'in_use') {
     statusNumber = SCOOTER_STATUS.in_use;
-  } else if (scooter.status === 'fault') {
-    statusNumber = SCOOTER_STATUS.fault;
+  } else if (scooter.status === 'maintenance') {
+    statusNumber = SCOOTER_STATUS.maintenance;
   }
 
   return {
