@@ -8,6 +8,8 @@ import com.example.hello.entity.User;
 import com.example.hello.mapper.UserMapper;
 import com.example.hello.service.UserService;
 import com.example.hello.utils.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,9 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     @Autowired
     private UserMapper userMapper;
@@ -136,5 +141,18 @@ public class UserServiceImpl implements UserService {
         // 清除密码后返回
         existingUser.setPassword(null);
         return existingUser;
+    }
+
+    @Override
+    public List<User> findFrequentUsers(float minHours) {
+        logger.info("开始查询使用时长超过 {} 小时的常用用户", minHours);
+        try {
+            List<User> users = userMapper.findFrequentUsers(minHours);
+            logger.info("查询到 {} 个常用用户", users.size());
+            return users;
+        } catch (Exception e) {
+            logger.error("查询常用用户时发生错误: {}", e.getMessage(), e);
+            return null;
+        }
     }
 }

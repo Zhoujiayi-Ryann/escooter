@@ -1,3 +1,6 @@
+import { http } from '@/utils/http'
+import type { Result } from '@/types/result'
+
 export const USER_INFO_LIST = [
   {
     title: '手机',
@@ -62,3 +65,20 @@ export const TEAM_MEMBERS = [
 ];
 
 export const PRODUCT_LIST = ['a', 'b', 'c', 'd'];
+
+// 常用用户信息类型
+interface FrequentUser {
+  user_id: number
+  username: string
+  total_usage_hours: number
+  total_spent: number
+  user_types: string[]
+  avatar_path: string | null
+}
+
+/**
+ * 查询常用用户（使用时长超过50小时）
+ */
+export function getFrequentUsers(): Promise<Result<FrequentUser[]>> {
+  return http.get('/api/users/frequent')
+}

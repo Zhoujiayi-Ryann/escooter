@@ -1,4 +1,5 @@
 com/example/hello/service/impl/FeedbackServiceImpl.class
+com/example/hello/dto/response/CouponDistributeResponse.class
 com/example/hello/mapper/ScooterMapper.class
 com/example/hello/service/impl/UserServiceImpl.class
 com/example/hello/config/WebConfig.class
@@ -40,6 +41,7 @@ com/example/hello/entity/Feedback$Priority.class
 com/example/hello/entity/User.class
 com/example/hello/dto/response/OrderDetailResponse.class
 com/example/hello/common/OrderStatus.class
+com/example/hello/service/CouponService.class
 com/example/hello/dto/response/AvailableCouponsResponse.class
 com/example/hello/mapper/CreditCardMapper.class
 com/example/hello/entity/CreditCard.class
@@ -51,16 +53,19 @@ com/example/hello/common/Result.class
 com/example/hello/entity/Order.class
 com/example/hello/dto/request/LoginRequest.class
 com/example/hello/scheduler/OrderTimeoutScheduler.class
+com/example/hello/dto/request/CouponDistributeRequest.class
 com/example/hello/dto/response/ChangeOrderStatusResponse.class
 com/example/hello/utils/JwtUtil.class
 com/example/hello/service/impl/EmailServiceImpl.class
 com/example/hello/handler/OrderStatusTypeHandler.class
+com/example/hello/service/impl/CouponServiceImpl.class
 com/example/hello/service/UserService.class
 com/example/hello/dto/request/AddCreditCardRequest.class
 com/example/hello/entity/UserCoupon.class
 com/example/hello/dto/response/FeedbackListResponse$FeedbackListResponseBuilder.class
 com/example/hello/dto/response/PayOrderResponse.class
 com/example/hello/config/DatabaseConfig.class
+com/example/hello/dto/response/CouponDistributeResponse$CouponDistributeResponseBuilder.class
 com/example/hello/dto/response/OrderDetailResponse$ScooterInfoDto.class
 com/example/hello/HelloApplication.class
 com/example/hello/service/CreditCardService.class
@@ -72,6 +77,7 @@ com/example/hello/service/FeedbackService.class
 com/example/hello/entity/Feedback.class
 com/example/hello/controller/OrderController.class
 com/example/hello/exception/OrderException.class
+com/example/hello/controller/CouponController.class
 com/example/hello/config/SchedulingConfig.class
 com/example/hello/controller/PasswordController.class
 com/example/hello/dto/response/FeedbackListResponse$FeedbackImageDto.class
