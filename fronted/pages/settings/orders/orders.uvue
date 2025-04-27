@@ -282,7 +282,7 @@ export default {
 			// 跳转到订单详情页
 			console.log(orderId)
 			uni.navigateTo({
-				url: '/pages/order_details/order_details?id=' + orderId
+				url: `/pages/order_details/order_details?orderId=${orderId}`
 			});
 		},
 		
@@ -612,14 +612,14 @@ export default {
 		// 添加去使用订单的导航方法
 		goToUseOrder(orderId) {
 			uni.navigateTo({
-				url: '/pages/order_not_used/order_not_used?id=' + orderId
+				url: `/pages/order_not_used/order_not_used?orderId=${orderId}`
 			});
 		},
 		
 		// 添加去还车的导航方法
 		goToReturnBike(orderId) {
 			uni.navigateTo({
-				url: '/pages/order_in_progress/order_in_progress?id=' + orderId
+				url: `/pages/order_in_progress/order_in_progress?orderId=${orderId}`
 			});
 		},
 		
