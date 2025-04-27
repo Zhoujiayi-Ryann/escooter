@@ -9,6 +9,7 @@ import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
 import com.example.hello.dto.response.AvailableCouponsResponse;
 import com.example.hello.dto.request.CouponRequest;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -132,4 +133,26 @@ public interface OrderService {
     Optional<OrderDetailResponse> getOrderRawInfo(Integer orderId);
 
     List<OrderResponse> getAllOrders();
+
+    /**
+     * 获取系统总收入
+     * 计算所有非pending状态订单的cost总和
+     *
+     * @return 系统总收入
+     */
+    BigDecimal getTotalRevenue();
+
+    /**
+     * 获取当天的收入（不包括pending的订单）
+     * 
+     * @return 当天的收入总额
+     */
+    BigDecimal getDailyRevenue();
+
+    /**
+     * 获取最近一周的收入（不包括pending的订单）
+     * 
+     * @return 最近一周的收入总额
+     */
+    BigDecimal getWeeklyRevenue();
 }

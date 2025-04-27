@@ -321,7 +321,17 @@ public interface OrderMapper {
                         @Result(property = "address", column = "address"),
                         @Result(property = "createdAt", column = "create_at"),
                         @Result(property = "newEndTime", column = "new_end_time"),
-                        @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class)
+                        @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
+                        @Result(property = "isDeleted", column = "is_deleted")
         })
         List<Order> findAllOrders();
+
+        @Select("SELECT COALESCE(SUM(cost), 0) FROM Orders WHERE status != 'PENDING'")
+        BigDecimal getTotalRevenue();
+
+        @Select("SELECT COALESCE(SUM(cost), 0) FROM Orders WHERE status != 'PENDING' AND DATE(create_at) = CURDATE()")
+        BigDecimal getDailyRevenue();
+
+        @Select("SELECT COALESCE(SUM(cost), 0) FROM Orders WHERE status != 'PENDING' AND create_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)")
+        BigDecimal getWeeklyRevenue();
 }

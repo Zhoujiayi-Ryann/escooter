@@ -996,8 +996,57 @@ public class OrderServiceImpl implements OrderService {
                     response.setPickup_address(order.getAddress());
                     response.setStatus(order.getStatus().getValue());
                     response.setCreated_at(order.getCreatedAt());
+                    response.setIs_deleted(order.getIsDeleted());
                     return response;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public BigDecimal getTotalRevenue() {
+        log.info("Calculating total revenue");
+        BigDecimal totalRevenue = orderMapper.getTotalRevenue();
+        if (totalRevenue == null) {
+            totalRevenue = BigDecimal.ZERO;
+        }
+        log.info("Total revenue: {}", totalRevenue);
+        return totalRevenue;
+    }
+
+    @Override
+    public BigDecimal getDailyRevenue() {
+        return orderMapper.getDailyRevenue();
+    }
+
+    @Override
+    public BigDecimal getWeeklyRevenue() {
+        return orderMapper.getWeeklyRevenue();
+    }
+
+    /**
+     * 每分钟检查并记录总收入
+     */
+    @Scheduled(fixedRate = 60000)
+    public void checkTotalRevenue() {
+        BigDecimal totalRevenue = getTotalRevenue();
+        log.info("Current total revenue: {}", totalRevenue);
+    }
+
+    /**
+     * 每分钟检查并记录当天收入
+     */
+    @Scheduled(fixedRate = 60000)
+    public void checkDailyRevenue() {
+        BigDecimal dailyRevenue = getDailyRevenue();
+        log.info("Current daily revenue: {}", dailyRevenue);
+    }
+
+    /**
+     * 每分钟检查并记录最近一周收入
+     */
+    @Scheduled(fixedRate = 60000)
+    public void checkWeeklyRevenue() {
+        BigDecimal weeklyRevenue = getWeeklyRevenue();
+        log.info("Current weekly revenue: {}", weeklyRevenue);
     }
 }

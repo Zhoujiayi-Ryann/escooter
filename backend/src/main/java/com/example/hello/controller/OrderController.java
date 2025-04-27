@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -358,6 +359,41 @@ public class OrderController {
         } catch (Exception e) {
             log.error("Failed to get all orders: system error", e);
             return Result.error("Failed to get all orders: System error");
+        }
+    }
+
+    /**
+     * 获取系统总收入
+     * 
+     * @return 系统总收入
+     */
+    @GetMapping("/total-revenue")
+    public Result<BigDecimal> getTotalRevenue() {
+        try {
+            BigDecimal totalRevenue = orderService.getTotalRevenue();
+            return Result.success(totalRevenue, "Get total revenue successfully");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @GetMapping("/daily-revenue")
+    public Result<BigDecimal> getDailyRevenue() {
+        try {
+            BigDecimal dailyRevenue = orderService.getDailyRevenue();
+            return Result.success(dailyRevenue, "Get daily revenue successfully");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @GetMapping("/weekly-revenue")
+    public Result<BigDecimal> getWeeklyRevenue() {
+        try {
+            BigDecimal weeklyRevenue = orderService.getWeeklyRevenue();
+            return Result.success(weeklyRevenue, "Get weekly revenue successfully");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
         }
     }
 }
