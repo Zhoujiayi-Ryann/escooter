@@ -1,4 +1,4 @@
-import request from '@/utils/request';
+import axios from 'axios';
 
 export const USER_INFO_LIST = [
   {
@@ -65,6 +65,16 @@ export const TEAM_MEMBERS = [
 
 export const PRODUCT_LIST = ['a', 'b', 'c', 'd'];
 
+// API基础URL
+const BASE_URL = 'http://localhost:8080/api';
+
+// 响应类型接口
+interface ApiResponse<T> {
+  code: number;
+  data: T;
+  msg: string;
+}
+
 export interface IFrequentUser {
   user_id: number;
   username: string;
@@ -78,9 +88,16 @@ export interface IFrequentUser {
  * 查询常用用户（使用时长超过50小时）
  * @returns 常用用户列表
  */
-export const getFrequentUsers = () => {
-  return request<IFrequentUser[]>({
-    url: '/api/users/frequent',
-    method: 'GET'
-  });
+export const getFrequentUsers = async (): Promise<IFrequentUser[]> => {
+  try {
+    const response = await axios.get<ApiResponse<IFrequentUser[]>>(`${BASE_URL}/users/frequent`);
+    
+    if (response.data.code === 1 && response.data.data) {
+      return response.data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error('获取常用用户列表失败:', error);
+    return [];
+  }
 };
