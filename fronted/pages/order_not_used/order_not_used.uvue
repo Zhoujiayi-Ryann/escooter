@@ -263,16 +263,35 @@ const handleBack = () => {
     uni.reLaunch({ url: '/pages/home/home' });
   }
 };
-const goToUse = () => {
+const goToUse = async () => {
   if (!order.value.orderId) {
     uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
     return;
   }
-  uni.navigateTo({
-    url: `/pages/order_in_progress/order_in_progress?orderId=${order.value.orderId}`
-  });
+  
+  try {
+    // 调用 activateOrder 方法激活订单
+    const res = await orderApi.activateOrder(order.value.orderId);
+    if (res.code === 1) {
+      // 成功激活订单
+      uni.showToast({ title: '订单已激活，开始使用车辆', icon: 'success' });
+      
+      // 跳转到 "order_in_progress" 页面
+      uni.navigateTo({
+        url: `/pages/order_in_progress/order_in_progress?orderId=${order.value.orderId}`
+      });
+    } else {
+      // 如果激活订单失败
+      uni.showToast({ title: res.msg || '激活订单失败', icon: 'none' });
+    }
+  } catch (err) {
+    console.error('🚨 激活订单请求失败:', err);
+    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+  }
 };
 
+
+// 组件挂载后执行
 // 组件挂载后执行
 onMounted(() => {
   // 如果onLoad已经触发了fetchOrderDetail，就不需要再次调用

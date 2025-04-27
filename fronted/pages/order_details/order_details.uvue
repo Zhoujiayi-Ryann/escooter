@@ -197,7 +197,7 @@ const fetchOrderDetail = async () => {
   }
 
   try {
-    const res = await orderApi.getOrderDetail(orderId);
+    const res = await orderApi.getOrderInfo(orderId);
     if (res.code === 1 && res.data) {
       const data = res.data;
 

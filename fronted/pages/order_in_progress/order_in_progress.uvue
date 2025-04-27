@@ -48,9 +48,17 @@
           <view class="info-item"><text class="label">Price:</text><text class="value">￡{{ order.cost }}</text></view>
         </view>
 
-        <van-button class="feedback-btn" type="primary" @click="goToReturn">
+       <!-- <van-button class="feedback-btn" type="primary" @click="goToReturn">
           Go to return vehicle
-        </van-button>
+        </van-button> -->
+		<view class="button-group">
+		  <van-button class="half-button home-btn" type="default" @click="goHome">
+		    Return Home
+		  </van-button>
+		  <van-button class="half-button feedback-btn" type="primary" @click="goToReturn">
+		    Go to return vehicle
+		  </van-button>
+		</view>
       </view>
     </van-floating-panel>
   </view>
@@ -104,7 +112,7 @@ const fetchOrderDetail = async () => {
   }
 
   try {
-    const res = await orderApi.getOrderDetail(orderId);
+    const res = await orderApi.getOrderInfo(orderId);
     if (res.code === 1 && res.data) {
       const data = res.data;
 
@@ -179,14 +187,35 @@ const goToHelp = () => {
   uni.navigateTo({ url: '/pages/help/help' });
 };
 
-const goToReturn = () => {
+const goToReturn = async () => {
   if (!order.value.orderId) {
     uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
     return;
   }
-  uni.navigateTo({
-    url: `/pages/order_details/order_details?orderId=${order.value.orderId}`
-  });
+
+  try {
+    // 调用 activateOrder 方法激活订单
+    const res = await orderApi.completeOrder(order.value.orderId);
+    if (res.code === 1) {
+      // 成功激活订单，显示提示信息
+      uni.showToast({ title: '订单已完成，开始还车', icon: 'success' });
+
+      // 跳转到订单详情页，或根据需求跳转到其他页面
+      uni.navigateTo({
+        url: `/pages/order_details/order_details?orderId=${order.value.orderId}`
+      });
+    } else {
+      // 如果激活订单失败
+      uni.showToast({ title: res.msg || '激活订单失败', icon: 'none' });
+    }
+  } catch (err) {
+    console.error('🚨 激活订单请求失败:', err);
+    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+  }
+};
+
+const goHome = () => {
+  uni.reLaunch({ url: '/pages/home/home' });
 };
 
 onMounted(() => {
@@ -381,9 +410,8 @@ onMounted(() => {
 
 
 /* 反馈按钮 */
+/* 反馈按钮 */
 .feedback-btn {
-  margin-top: 20px;
-  width: 100%;
   border-radius: 25px;
   font-size: 34rpx;
   /* font-weight: bold; */
@@ -396,6 +424,36 @@ onMounted(() => {
 /* 按钮点击动画 */
 .feedback-btn:active {
   transform: scale(0.98);
+}
+
+.button-group {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 20px;
+}
+
+.half-button {
+  flex: 1;
+  height: 96rpx;
+  border-radius: 25px;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+.half-button:active {
+  transform: scale(0.98);
+}
+
+.home-btn{
+	border-radius: 25px;
+	font-size: 34rpx;
+	/* font-weight: bold; */
+	height: 96rpx;
+	background: #e7edf1;
+	color: #0084ff;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	border: 1px solid #82b1ff;
 }
 </style>
 
