@@ -1,134 +1,127 @@
 <template>
-  <t-config-provider :global-config="globalConfig">
-    <t-card :bordered="false">
-      <div class="vehicle-list-container">
-        <!-- 顶部操作区 -->
-        <t-row justify="space-between">
-          <div class="left-operation-container">
-            <t-button @click="handleAddVehicle">Add Vehicle</t-button>
-            <t-button variant="base" theme="default" :disabled="!selectedRowKeys.length" @click="handleBatchRepair">
-              Batch Repair
-            </t-button>
-            <p v-if="!!selectedRowKeys.length" class="selected-count">Selected {{ selectedRowKeys.length }} items</p>
-          </div>
-          <div class="search-area">
-            <t-select v-model="filterStatus" class="status-filter" placeholder="Status Filter">
-              <t-option v-for="status in statusOptions" :key="status.value" :value="status.value"
-                :label="status.label" />
-            </t-select>
-            <t-input v-model="searchValue" class="search-input" placeholder="Search by vehicle.no" clearable>
-              <template #suffix-icon><search-icon size="20px" /></template>
-            </t-input>
-          </div>
-        </t-row>
-
-        <!-- 表格组件 -->
-        <div class="table-container">
-          <t-table :data="data" :columns="columns" :rowKey="rowKey" :verticalAlign="verticalAlign" :hover="hover"
-            :pagination="pagination" :loading="dataLoading" :selected-row-keys="selectedRowKeys"
-            @select-change="handleSelectChange" @page-change="onPageChange" @change="handleChange"
-            :headerAffixedTop="true" :headerAffixProps="{ offsetTop, container: getContainer }">
-            <!-- 状态列自定义 -->
-            <template #status="{ row }">
-              <t-tag v-if="row.status === VEHICLE_STATUS.free" theme="success" variant="light">Free</t-tag>
-              <t-tag v-if="row.status === VEHICLE_STATUS.booked" theme="primary" variant="light">Booked</t-tag>
-              <t-tag v-if="row.status === VEHICLE_STATUS.in_use" theme="warning" variant="light">In Use</t-tag>
-              <t-tag v-if="row.status === VEHICLE_STATUS.maintenance" theme="danger" variant="light">Maintenance</t-tag>
-            </template>
-
-            <!-- 电量列自定义 -->
-            <template #battery="{ row }">
-              <t-progress :percentage="row.battery" :color="getBatteryColor(row.battery)" :label="false"
-                trackColor="#e8f4ff" />
-              <span style="margin-left: 4px">{{ row.battery }}%</span>
-            </template>
-
-            <!-- 价格列自定义 -->
-            <template #price="{ row }">
-              £{{ row.price }} / min
-            </template>
-
-            <!-- 操作列自定义 -->
-            <template #op="slotProps">
-              <a class="t-button-link" @click="handleEdit(slotProps.row)">Edit</a>
-              <a class="t-button-link" @click="handleRepair(slotProps.row)">
-                {{ slotProps.row.status === VEHICLE_STATUS.maintenance ? 'Restore' : 'Repair' }}
-              </a>
-              <a class="t-button-link" @click="handleDelete(slotProps)">Delete</a>
-            </template>
-          </t-table>
+  <t-card :bordered="false">
+    <div class="vehicle-list-container">
+      <!-- 顶部操作区 -->
+      <t-row justify="space-between">
+        <div class="left-operation-container">
+          <t-button @click="handleAddVehicle">添加车辆</t-button>
+          <t-button variant="base" theme="default" :disabled="!selectedRowKeys.length" @click="handleBatchRepair">
+            批量报修
+          </t-button>
+          <p v-if="!!selectedRowKeys.length" class="selected-count">已选{{ selectedRowKeys.length }}项</p>
         </div>
+        <div class="search-area">
+          <t-select v-model="filterStatus" class="status-filter" placeholder="状态筛选">
+            <t-option v-for="status in statusOptions" :key="status.value" :value="status.value" :label="status.label" />
+          </t-select>
+          <t-input v-model="searchValue" class="search-input" placeholder="请输入车辆编号搜索" clearable>
+            <template #suffix-icon><search-icon size="20px" /></template>
+          </t-input>
+        </div>
+      </t-row>
 
-        <!-- 添加/编辑车辆弹窗 -->
-        <t-drawer :visible.sync="formVisible" :header="formTitle" :footer="false" :size="'500px'" :close-btn="true"
-          :on-close="onDialogClose">
-          <t-form :data="vehicleForm" :rules="rules" ref="vehicleFormRef" :label-width="100" @submit="onFormSubmit">
-            <t-form-item v-if="isEdit" label="Vehicle No.">
-              <t-input v-model="vehicleForm.scooterCode" disabled />
-            </t-form-item>
-            <t-form-item label="Location" name="location">
-              <t-input v-model="vehicleForm.location" placeholder="Please enter location" />
-            </t-form-item>
-            <t-form-item label="Battery" name="battery">
-              <t-input-number v-model="vehicleForm.battery" :min="0" :max="100" />
-              <span style="margin-left: 8px">%</span>
-            </t-form-item>
-            <t-form-item label="Status" name="status">
-              <t-select v-model="vehicleForm.status" :options="VEHICLE_STATUS_OPTIONS"
-                placeholder="Please select status" />
-            </t-form-item>
-            <t-form-item label="Price" name="price">
-              <t-input-number v-model="vehicleForm.price" :min="0" :step="0.1" />
-              £<span style="margin-left: 8px"> / min</span>
-            </t-form-item>
-            <t-form-item class="centerSubmit">
-              <t-space>
-                <t-button theme="primary" type="submit">Submit</t-button>
-                <t-button theme="default" variant="base" @click="onDialogClose">Cancel</t-button>
-              </t-space>
-            </t-form-item>
-          </t-form>
-        </t-drawer>
+      <!-- 表格组件 -->
+      <div class="table-container">
+        <t-table :data="data" :columns="columns" :rowKey="rowKey" :verticalAlign="verticalAlign" :hover="hover"
+          :pagination="pagination" :loading="dataLoading" :selected-row-keys="selectedRowKeys"
+          @select-change="handleSelectChange" @page-change="onPageChange" @change="handleChange"
+          :headerAffixedTop="true" :headerAffixProps="{ offsetTop, container: getContainer }">
+          <!-- 状态列自定义 -->
+          <template #status="{ row }">
+            <t-tag v-if="row.status === VEHICLE_STATUS.free" theme="success" variant="light">空闲</t-tag>
+            <t-tag v-if="row.status === VEHICLE_STATUS.in_use" theme="warning" variant="light">使用中</t-tag>
+            <t-tag v-if="row.status === VEHICLE_STATUS.fault" theme="danger" variant="light">故障</t-tag>
+          </template>
 
-        <!-- 删除确认弹窗 -->
-        <t-dialog header="Confirm Delete Vehicle?" :body="confirmBody" :visible.sync="confirmVisible"
-          @confirm="onConfirmDelete" @cancel="onCancel">
-        </t-dialog>
+          <!-- 电量列自定义 -->
+          <template #battery="{ row }">
+            <t-progress :percentage="row.battery" :color="getBatteryColor(row.battery)" :label="false"
+              trackColor="#e8f4ff" />
+            <span style="margin-left: 4px">{{ row.battery }}%</span>
+          </template>
 
-        <!-- 批量报修弹窗 -->
-        <t-dialog header="Batch Repair" :visible.sync="batchRepairVisible" @confirm="onBatchRepairConfirm"
-          @cancel="batchRepairVisible = false">
-          <p>Confirm marking {{ selectedRowKeys.length }} selected vehicles as faulty?</p>
-        </t-dialog>
+          <!-- 价格列自定义 -->
+          <template #price="{ row }">
+            {{ row.price }} 元/分钟
+          </template>
+
+          <!-- 操作列自定义 -->
+          <template #op="slotProps">
+            <a class="t-button-link" @click="handleEdit(slotProps.row)">编辑</a>
+            <a class="t-button-link" @click="handleRepair(slotProps.row)">
+              {{ slotProps.row.status === VEHICLE_STATUS.fault ? '恢复' : '报修' }}
+            </a>
+            <a class="t-button-link" @click="handleDelete(slotProps)">删除</a>
+          </template>
+        </t-table>
       </div>
-    </t-card>
-  </t-config-provider>
+
+      <!-- 添加/编辑车辆弹窗 -->
+      <t-drawer :visible.sync="formVisible" :header="formTitle" :footer="false" :size="'500px'" :close-btn="true"
+        :on-close="onDialogClose">
+        <t-form :data="vehicleForm" :rules="rules" ref="vehicleFormRef" :label-width="100" @submit="onFormSubmit">
+          <t-form-item v-if="isEdit" label="车辆编号">
+            <t-input v-model="vehicleForm.scooterCode" disabled />
+          </t-form-item>
+          <t-form-item label="具体位置" name="location">
+            <t-input v-model="vehicleForm.location" placeholder="请输入具体位置" />
+          </t-form-item>
+          <t-form-item label="电量" name="battery">
+            <t-input-number v-model="vehicleForm.battery" :min="0" :max="100" />
+            <span style="margin-left: 8px">%</span>
+          </t-form-item>
+          <t-form-item label="车辆状态" name="status">
+            <t-select v-model="vehicleForm.status" :options="VEHICLE_STATUS_OPTIONS" placeholder="请选择车辆状态" />
+          </t-form-item>
+          <t-form-item label="价格" name="price">
+            <t-input-number v-model="vehicleForm.price" :min="0" :step="0.1" />
+            <span style="margin-left: 8px">元/分钟</span>
+          </t-form-item>
+          <t-form-item class="centerSubmit">
+            <t-space>
+              <t-button theme="primary" type="submit">提交</t-button>
+              <t-button theme="default" variant="base" @click="onDialogClose">取消</t-button>
+            </t-space>
+          </t-form-item>
+        </t-form>
+      </t-drawer>
+
+      <!-- 删除确认弹窗 -->
+      <t-dialog header="确认删除该车辆？" :body="confirmBody" :visible.sync="confirmVisible" @confirm="onConfirmDelete"
+        @cancel="onCancel">
+      </t-dialog>
+
+      <!-- 批量报修弹窗 -->
+      <t-dialog header="批量报修" :visible.sync="batchRepairVisible" @confirm="onBatchRepairConfirm"
+        @cancel="batchRepairVisible = false">
+        <p>确认将选中的 {{ selectedRowKeys.length }} 辆车标记为故障状态？</p>
+      </t-dialog>
+    </div>
+  </t-card>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
 import { SearchIcon } from 'tdesign-icons-vue';
 import { scooterService, SCOOTER_STATUS, TableScooter } from '@/service/service-scooter';
-import enConfig from 'tdesign-vue/es/locale/en_US'; // 
 
 // 车辆状态常量
 const VEHICLE_STATUS = SCOOTER_STATUS;
 
 // 车辆状态选项
 const VEHICLE_STATUS_OPTIONS = [
-  { label: 'Free', value: VEHICLE_STATUS.free },
-  { label: 'Booked', value: VEHICLE_STATUS.booked },
-  { label: 'In Use', value: VEHICLE_STATUS.in_use },
-  { label: 'Maintenance', value: VEHICLE_STATUS.maintenance },
+  { label: '空闲', value: VEHICLE_STATUS.free },
+  { label: '使用中', value: VEHICLE_STATUS.in_use },
+  { label: '故障', value: VEHICLE_STATUS.fault },
 ];
 
 // 城市选项（示例数据）
 const CITY_OPTIONS = [
-  { label: 'Beijing', value: 'Beijing' },
-  { label: 'Shanghai', value: 'Shanghai' },
-  { label: 'Guangzhou', value: 'Guangzhou' },
-  { label: 'Shenzhen', value: 'Shenzhen' },
-  { label: 'Hangzhou', value: 'Hangzhou' },
+  { label: '北京', value: '北京' },
+  { label: '上海', value: '上海' },
+  { label: '广州', value: '广州' },
+  { label: '深圳', value: '深圳' },
+  { label: '杭州', value: '杭州' },
 ];
 
 export default Vue.extend({
@@ -149,9 +142,6 @@ export default Vue.extend({
     };
 
     return {
-      // 添加语言配置
-      globalConfig: enConfig,
-
       VEHICLE_STATUS,
       VEHICLE_STATUS_OPTIONS,
       CITY_OPTIONS,
@@ -169,14 +159,14 @@ export default Vue.extend({
       selectedRowKeys: [] as number[],
       columns: [
         { colKey: 'row-select', type: 'multiple', width: 64, fixed: 'left' },
-        { title: 'Vehicle No.', colKey: 'scooterCode', width: 120, fixed: 'left' },
-        { title: 'City', colKey: 'city', width: 120 },
-        { title: 'Location', colKey: 'location', width: 180, ellipsis: true },
-        { title: 'Battery', colKey: 'battery', width: 150, cell: { col: 'battery' } },
-        { title: 'Status', colKey: 'status', width: 120, cell: { col: 'status' } },
-        { title: 'Last Rental Time', colKey: 'lastRentTime', width: 180 },
-        { title: 'Price(£/min)', colKey: 'price', width: 120 },
-        { title: 'Actions', colKey: 'op', fixed: 'right', width: 180 },
+        { title: '车辆编号', colKey: 'scooterCode', width: 120, fixed: 'left' },
+        { title: '所属城市', colKey: 'city', width: 120 },
+        { title: '具体位置', colKey: 'location', width: 180, ellipsis: true },
+        { title: '电量', colKey: 'battery', width: 150, cell: { col: 'battery' } },
+        { title: '当前状态', colKey: 'status', width: 120, cell: { col: 'status' } },
+        { title: '最近租用时间', colKey: 'lastRentTime', width: 180 },
+        { title: '价格(元/分钟)', colKey: 'price', width: 120 },
+        { title: '操作', colKey: 'op', fixed: 'right', width: 180 },
       ],
       pagination: {
         pageSize: 10,
@@ -189,16 +179,16 @@ export default Vue.extend({
 
       // 弹窗相关
       formVisible: false,
-      formTitle: 'Add Vehicle',
+      formTitle: '添加车辆',
       isEdit: false,
       vehicleForm: { ...defaultVehicleForm },
       defaultVehicleForm,
       rules: {
-        scooterCode: [{ required: true, message: 'Please enter vehicle number', type: 'error' }],
-        city: [{ required: true, message: 'Please select city', type: 'error' }],
-        battery: [{ required: true, message: 'Please enter battery', type: 'error' }],
-        status: [{ required: true, message: 'Please select status', type: 'error' }],
-        price: [{ required: true, message: 'Please enter price', type: 'error' }],
+        scooterCode: [{ required: true, message: '请输入车辆编号', type: 'error' }],
+        city: [{ required: true, message: '请选择所属城市', type: 'error' }],
+        battery: [{ required: true, message: '请输入电量', type: 'error' }],
+        status: [{ required: true, message: '请选择车辆状态', type: 'error' }],
+        price: [{ required: true, message: '请输入价格', type: 'error' }],
       },
       confirmVisible: false,
       deleteIdx: -1,
@@ -209,11 +199,10 @@ export default Vue.extend({
 
       // 添加状态选项
       statusOptions: [
-        { value: '', label: 'All' },
-        { value: VEHICLE_STATUS.free, label: 'Free' },
-        { value: VEHICLE_STATUS.booked, label: 'Booked' },
-        { value: VEHICLE_STATUS.in_use, label: 'In Use' },
-        { value: VEHICLE_STATUS.maintenance, label: 'Maintenance' },
+        { value: '', label: '全部' },
+        { value: VEHICLE_STATUS.free, label: '空闲' },
+        { value: VEHICLE_STATUS.in_use, label: '使用中' },
+        { value: VEHICLE_STATUS.fault, label: '故障' },
       ],
 
       // 新增的变量
@@ -225,7 +214,7 @@ export default Vue.extend({
     confirmBody() {
       if (this.deleteIdx > -1) {
         const vehicle = this.data?.[this.deleteIdx];
-        return `After deletion, all information of vehicle ${vehicle.scooterCode} will be cleared and cannot be recovered`;
+        return `删除后，车辆 ${vehicle.scooterCode} 的所有信息将被清空，且无法恢复`;
       }
       return '';
     },
@@ -304,13 +293,13 @@ export default Vue.extend({
 
         // 保存完整的筛选后数据
         this.allData = filteredData;
-
+        
         // 分页处理
         this.pagination.total = filteredData.length;
         this.updatePageData();
       } catch (error) {
-        console.error('Failed to get vehicle data:', error);
-        this.$message.error('Failed to get vehicle data');
+        console.error('获取车辆数据失败:', error);
+        this.$message.error('获取车辆数据失败');
       } finally {
         this.dataLoading = false;
       }
@@ -369,7 +358,7 @@ export default Vue.extend({
 
     // 分页变化
     onPageChange(pageInfo) {
-      console.log('Page number changed:', pageInfo);
+      console.log('页码变化:', pageInfo);
       this.pagination = {
         ...this.pagination,
         current: pageInfo.current,
@@ -380,7 +369,7 @@ export default Vue.extend({
 
     // 表格变化
     handleChange(changeParams, triggerAndData) {
-      console.log('Table changed', changeParams, triggerAndData);
+      console.log('表格变化', changeParams, triggerAndData);
     },
 
     // 选择行变化
@@ -390,7 +379,7 @@ export default Vue.extend({
 
     // 添加车辆
     handleAddVehicle() {
-      this.formTitle = 'Add Vehicle';
+      this.formTitle = '添加车辆';
       this.vehicleForm = this.getDefaultVehicleForm();
       this.isEdit = false;
       this.formVisible = true;
@@ -398,8 +387,8 @@ export default Vue.extend({
 
     // 编辑车辆
     async handleEdit(row) {
-      console.log('Edit button clicked', row);
-      this.formTitle = 'Edit Vehicle';
+      console.log('编辑按钮被点击', row);
+      this.formTitle = '编辑车辆';
 
       // 获取最新的车辆详情
       try {
@@ -423,7 +412,7 @@ export default Vue.extend({
           this.vehicleForm = { ...row };
         }
       } catch (error) {
-        console.error('Failed to get vehicle details:', error);
+        console.error('获取车辆详情失败:', error);
         this.vehicleForm = { ...row };
       }
 
@@ -434,25 +423,25 @@ export default Vue.extend({
     // 报修
     async handleRepair(row) {
       // 根据当前状态决定操作类型
-      const isMaintenance = row.status === VEHICLE_STATUS.maintenance;
-      const actionText = isMaintenance ? 'Restore' : 'Repair';
-      const targetStatus = isMaintenance ? 'free' : 'maintenance'; // 确保这是后端期望的字符串格式
-
+      const isFault = row.status === VEHICLE_STATUS.fault;
+      const actionText = isFault ? '恢复' : '报修';
+      const targetStatus = isFault ? 'free' : 'fault'; // 确保这是后端期望的字符串格式
+      
       this.$dialog.confirm({
-        header: `Confirm ${actionText}`,
-        body: `Are you sure to ${isMaintenance ? 'restore vehicle' : 'mark vehicle'} ${row.scooterCode} ${isMaintenance ? 'to free status' : 'as maintenance status'}?`,
+        header: `确认${actionText}`,
+        body: `确定将车辆 ${row.scooterCode} ${isFault ? '恢复为空闲状态' : '标记为故障状态'}？`,
         onConfirm: async () => {
           try {
             // 获取当前车辆详情
             const scooterDetail = await scooterService.getScooterById(row.id);
             if (!scooterDetail) {
-              this.$message.error('Failed to get vehicle details');
+              this.$message.error('获取车辆详情失败');
               return;
             }
 
             // 打印日志，确认状态值
-            console.log('Current status:', row.status);
-            console.log('Target status:', targetStatus);
+            console.log('当前状态:', row.status);
+            console.log('目标状态:', targetStatus);
 
             // 更新车辆状态
             const updateResult = await scooterService.updateScooter(row.id, {
@@ -463,21 +452,21 @@ export default Vue.extend({
               price: scooterDetail.price,
             });
 
-            console.log('API response:', updateResult);
+            console.log('API 响应:', updateResult);
 
             if (updateResult) {
               // 更新本地数据
               const idx = this.data.findIndex(item => item.id === row.id);
               if (idx > -1) {
-                this.data[idx].status = isMaintenance ? VEHICLE_STATUS.free : VEHICLE_STATUS.maintenance;
-                this.$message.success(`Vehicle has been ${isMaintenance ? 'restored to free status' : 'marked as maintenance status'}`);
+                this.data[idx].status = isFault ? VEHICLE_STATUS.free : VEHICLE_STATUS.fault;
+                this.$message.success(`已将车辆${isFault ? '恢复为空闲状态' : '标记为故障状态'}`);
               }
             } else {
-              this.$message.error(`Failed to update vehicle status`);
+              this.$message.error(`更新车辆状态失败`);
             }
           } catch (error) {
-            console.error(`${actionText} operation failed:`, error);
-            this.$message.error(`${actionText} operation failed`);
+            console.error(`${actionText}操作失败:`, error);
+            this.$message.error(`${actionText}操作失败`);
           }
         },
       });
@@ -505,7 +494,7 @@ export default Vue.extend({
             location_lat: scooterDetail.location_lat,
             location_lng: scooterDetail.location_lng,
             battery_level: scooterDetail.battery_level,
-            status: 'maintenance',
+            status: 'fault',
             price: scooterDetail.price,
           });
 
@@ -514,7 +503,7 @@ export default Vue.extend({
             // 更新本地数据
             const idx = this.data.findIndex(item => item.id === id);
             if (idx > -1) {
-              this.data[idx].status = VEHICLE_STATUS.maintenance;
+              this.data[idx].status = VEHICLE_STATUS.fault;
             }
           }
         }
@@ -522,13 +511,13 @@ export default Vue.extend({
         this.batchRepairVisible = false;
 
         if (successCount > 0) {
-          this.$message.success(`${successCount} vehicles have been marked as maintenance status`);
+          this.$message.success(`已将 ${successCount} 辆车标记为故障状态`);
         } else {
-          this.$message.warning('No vehicle status was updated');
+          this.$message.warning('没有车辆状态被更新');
         }
       } catch (error) {
-        console.error('Batch repair operation failed:', error);
-        this.$message.error('Batch repair operation failed');
+        console.error('批量报修操作失败:', error);
+        this.$message.error('批量报修操作失败');
         this.batchRepairVisible = false;
       }
     },
@@ -559,13 +548,13 @@ export default Vue.extend({
               this.selectedRowKeys.splice(selectedIdx, 1);
             }
 
-            this.$message.success('Delete successful');
+            this.$message.success('删除成功');
           } else {
-            this.$message.error('Delete failed');
+            this.$message.error('删除失败');
           }
         } catch (error) {
-          console.error('Failed to delete vehicle:', error);
-          this.$message.error('Failed to delete vehicle');
+          console.error('删除车辆失败:', error);
+          this.$message.error('删除车辆失败');
         }
       }
       this.confirmVisible = false;
@@ -615,10 +604,10 @@ export default Vue.extend({
               const idx = this.data.findIndex(item => item.id === this.vehicleForm.id);
               if (idx > -1) {
                 this.data[idx] = { ...this.vehicleForm };
-                this.$message.success('Edit successful');
+                this.$message.success('编辑成功');
               }
             } else {
-              this.$message.error('Failed to update vehicle');
+              this.$message.error('更新车辆失败');
             }
           } else {
             // 添加新车辆
@@ -643,18 +632,18 @@ export default Vue.extend({
             if (newScooterId) {
               // 重新获取数据以确保显示最新状态
               await this.fetchData();
-              this.$message.success('Add successful');
+              this.$message.success('添加成功');
             } else {
-              this.$message.error('Failed to add vehicle');
+              this.$message.error('添加车辆失败');
             }
           }
           this.formVisible = false;
         } catch (error) {
-          console.error('Submit vehicle form failed:', error);
-          this.$message.error('Operation failed, please try again');
+          console.error('提交车辆表单失败:', error);
+          this.$message.error('操作失败，请重试');
         }
       } else {
-        console.log('Form validation failed:', firstError);
+        console.log('表单校验失败:', firstError);
         this.$message.error(firstError);
       }
     },

@@ -1,5 +1,4 @@
-import { http } from '@/utils/http'
-import type { Result } from '@/types/result'
+import request from '@/utils/request';
 
 export const USER_INFO_LIST = [
   {
@@ -66,19 +65,22 @@ export const TEAM_MEMBERS = [
 
 export const PRODUCT_LIST = ['a', 'b', 'c', 'd'];
 
-// 常用用户信息类型
-interface FrequentUser {
-  user_id: number
-  username: string
-  total_usage_hours: number
-  total_spent: number
-  user_types: string[]
-  avatar_path: string | null
+export interface IFrequentUser {
+  user_id: number;
+  username: string;
+  total_usage_hours: number;
+  total_spent: number;
+  user_types: string[];
+  avatar_path: string;
 }
 
 /**
  * 查询常用用户（使用时长超过50小时）
+ * @returns 常用用户列表
  */
-export function getFrequentUsers(): Promise<Result<FrequentUser[]>> {
-  return http.get('/api/users/frequent')
-}
+export const getFrequentUsers = () => {
+  return request<IFrequentUser[]>({
+    url: '/api/users/frequent',
+    method: 'GET'
+  });
+};
