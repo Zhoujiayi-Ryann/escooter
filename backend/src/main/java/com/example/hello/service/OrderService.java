@@ -37,7 +37,7 @@ public interface OrderService {
      * 支付订单
      * 将订单状态从pending更新为paid
      *
-     * @param orderId 订单ID
+     * @param orderId       订单ID
      * @param couponRequest 优惠券请求（可选）
      * @return 支付结果
      */
@@ -115,6 +115,7 @@ public interface OrderService {
 
     /**
      * 获取用户所有未使用的优惠券
+     * 
      * @param userId 用户ID
      * @return 优惠券列表
      */
@@ -129,4 +130,6 @@ public interface OrderService {
      * @return 订单原始信息
      */
     Optional<OrderDetailResponse> getOrderRawInfo(Integer orderId);
+
+    List<OrderResponse> getAllOrders();
 }

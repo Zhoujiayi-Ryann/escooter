@@ -72,7 +72,7 @@ public class OrderController {
      * 支付订单接口
      * 将订单状态从pending更新为paid
      * 
-     * @param orderId 订单ID
+     * @param orderId       订单ID
      * @param couponRequest 优惠券请求（可选）
      * @return 支付结果
      */
@@ -294,6 +294,7 @@ public class OrderController {
 
     /**
      * 获取用户所有未使用的优惠券
+     * 
      * @param userId 用户ID
      * @return 优惠券列表
      */
@@ -302,7 +303,7 @@ public class OrderController {
             @PathVariable("user_id") Integer userId) {
         try {
             log.info("Getting available coupons for user: userId={}", userId);
-            
+
             Optional<AvailableCouponsResponse> response = orderService.getAvailableCoupons(userId);
             return response.map(r -> Result.success(r, "success"))
                     .orElseGet(() -> Result.error("No available coupons"));
@@ -327,8 +328,7 @@ public class OrderController {
     public Result<OrderDetailResponse> getOrderInfo(@PathVariable("order_id") Integer orderId) {
         try {
             log.info("Getting raw order information: orderId={}", orderId);
-            
-            // 使用专门的服务方法，不复用getOrderDetail
+
             return orderService.getOrderRawInfo(orderId)
                     .map(response -> Result.success(response, "Order information retrieved successfully"))
                     .orElseGet(() -> Result.error("Order does not exist"));
@@ -338,6 +338,26 @@ public class OrderController {
         } catch (Exception e) {
             log.error("Failed to get order information: orderId={}, error={}", orderId, e);
             return Result.error("Failed to get order information: System error");
+        }
+    }
+
+    /**
+     * 获取所有订单
+     * 
+     * @return 所有订单列表
+     */
+    @GetMapping("/orders")
+    public Result<List<OrderResponse>> getAllOrders() {
+        try {
+            log.info("Getting all orders");
+            List<OrderResponse> orders = orderService.getAllOrders();
+            return Result.success(orders, "success");
+        } catch (OrderException e) {
+            log.warn("Failed to get all orders: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to get all orders: system error", e);
+            return Result.error("Failed to get all orders: System error");
         }
     }
 }

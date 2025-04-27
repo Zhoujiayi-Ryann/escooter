@@ -297,11 +297,31 @@ public interface OrderMapper {
         /**
          * 更新订单费用和折扣
          *
-         * @param orderId 订单ID
-         * @param cost 订单费用
+         * @param orderId  订单ID
+         * @param cost     订单费用
          * @param discount 订单折扣
          * @return 影响的行数
          */
         @Update("UPDATE Orders SET cost = #{cost}, discount = #{discount} WHERE order_id = #{orderId}")
-        int updateOrderCostAndDiscount(@Param("orderId") Integer orderId, @Param("cost") BigDecimal cost, @Param("discount") BigDecimal discount);
+        int updateOrderCostAndDiscount(@Param("orderId") Integer orderId, @Param("cost") BigDecimal cost,
+                        @Param("discount") BigDecimal discount);
+
+        @Select("SELECT * FROM Orders ORDER BY create_at DESC")
+        @Results({
+                        @Result(property = "orderId", column = "order_id"),
+                        @Result(property = "userId", column = "user_id"),
+                        @Result(property = "scooterId", column = "scooter_id"),
+                        @Result(property = "startTime", column = "start_time"),
+                        @Result(property = "endTime", column = "end_time"),
+                        @Result(property = "duration", column = "duration"),
+                        @Result(property = "cost", column = "cost"),
+                        @Result(property = "status", column = "status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class),
+                        @Result(property = "extendedDuration", column = "extended_duration"),
+                        @Result(property = "discount", column = "discount"),
+                        @Result(property = "address", column = "address"),
+                        @Result(property = "createdAt", column = "create_at"),
+                        @Result(property = "newEndTime", column = "new_end_time"),
+                        @Result(property = "previousStatus", column = "previous_status", javaType = OrderStatus.class, typeHandler = OrderStatusTypeHandler.class)
+        })
+        List<Order> findAllOrders();
 }

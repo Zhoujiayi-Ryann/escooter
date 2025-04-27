@@ -34,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 订单服务实现类
@@ -974,5 +975,29 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("Raw order information retrieved successfully: orderId={}", orderId);
         return Optional.of(response);
+    }
+
+    @Override
+    public List<OrderResponse> getAllOrders() {
+        List<Order> orders = orderMapper.findAllOrders();
+        return orders.stream()
+                .map(order -> {
+                    OrderResponse response = new OrderResponse();
+                    response.setOrder_id(order.getOrderId());
+                    response.setUser_id(order.getUserId());
+                    response.setScooter_id(order.getScooterId());
+                    response.setStart_time(order.getStartTime());
+                    response.setEnd_time(order.getEndTime());
+                    response.setNew_end_time(order.getNewEndTime());
+                    response.setExtended_duration(order.getExtendedDuration());
+                    response.setExtended_cost(order.getExtendedCost());
+                    response.setCost(order.getCost());
+                    response.setDiscount_amount(order.getDiscount());
+                    response.setPickup_address(order.getAddress());
+                    response.setStatus(order.getStatus().getValue());
+                    response.setCreated_at(order.getCreatedAt());
+                    return response;
+                })
+                .collect(Collectors.toList());
     }
 }
