@@ -1,4 +1,4 @@
-import { CartIcon, DashboardIcon ,UserIcon, ShopIcon, PrintIcon} from 'tdesign-icons-vue';
+import { CartIcon, DashboardIcon, UserIcon, ShopIcon, PrintIcon } from 'tdesign-icons-vue';
 import Layout from '@/layouts/index.vue';
 
 export default [
@@ -44,10 +44,10 @@ export default [
         meta: { title: 'User List' },
       },
       {
-        path: 'details/:id',  
+        path: 'details/:id',
         name: 'UserDetail',
         component: () => import('@/pages/user-management/details/index.vue'),
-        meta: { title: 'User Details', hidden: true, activeMenu: '/user-management/manage' }, 
+        meta: { title: 'User Details', hidden: true, activeMenu: '/user-management/manage' },
       },
     ],
   },
@@ -84,7 +84,7 @@ export default [
     path: '/coupons',
     name: 'coupons',
     component: Layout,
-    meta: { title: 'Coupons Management', icon: PrintIcon},
+    meta: { title: 'Coupons Management', icon: PrintIcon },
     children: [
       {
         path: 'coupons_list',
@@ -109,24 +109,7 @@ export default [
       },
     ],
   },
-  
 
-  {
-    path: '/income',
-    name: 'income',
-    component: Layout,
-    redirect: '/income/chart',
-    meta: { title: 'Income', icon: DashboardIcon },
-    children: [
-      {
-        path: 'chart',
-        name: 'IncomeChart',
-        component: () => import('@/pages/income/chart/index.vue'),
-        meta: { title: 'Income Charts' },
-      },
-    ],
-  },
-  
   // 三级菜单配置
   // {
   //   path: '/menu',
