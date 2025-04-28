@@ -1,4 +1,4 @@
-import { CartIcon, DashboardIcon ,UserIcon} from 'tdesign-icons-vue';
+import { CartIcon, DashboardIcon ,UserIcon, ShopIcon, PrintIcon} from 'tdesign-icons-vue';
 import Layout from '@/layouts/index.vue';
 
 export default [
@@ -32,36 +32,6 @@ export default [
     ],
   },
   {
-    path: '/vehicle',
-    name: 'vehicle',
-    component: Layout,
-    redirect: '/vehicle/manage',
-    meta: { title: 'Vehicle Management', icon: CartIcon },
-    children: [
-      {
-        path: 'manage',
-        name: 'VehicleManage',
-        component: () => import('@/pages/vehicle/manage/index.vue'),
-        meta: { title: 'Vehicle List' },
-      },
-    ],
-  },
-  {
-    path: '/feedback',
-    name: 'feedback',
-    component: Layout,
-    redirect: '/feedback/list',
-    meta: { title: 'Feedback', icon: 'chat-double' },
-    children: [
-      {
-        path: 'list',
-        name: 'FeedbackList',
-        component: () => import('@/pages/feedback/list/index.vue'),
-        meta: { title: 'Feedback List' },
-      },
-    ],
-  },
-  {
     path: '/user-management',
     name: 'user-management',
     component: Layout,
@@ -81,6 +51,65 @@ export default [
       },
     ],
   },
+  {
+    path: '/vehicle',
+    name: 'vehicle',
+    component: Layout,
+    redirect: '/vehicle/manage',
+    meta: { title: 'Vehicle Management', icon: CartIcon },
+    children: [
+      {
+        path: 'manage',
+        name: 'VehicleManage',
+        component: () => import('@/pages/vehicle/manage/index.vue'),
+        meta: { title: 'Vehicle List' },
+      },
+    ],
+  },
+  {
+    path: '/Order',
+    name: 'Order',
+    component: Layout,
+    meta: { title: 'Order Management', icon: ShopIcon },
+    children: [
+      {
+        path: 'manage',
+        name: 'Order List',
+        component: () => import('@/pages/Order/manage/index.vue'),
+        meta: { title: 'Order List' },
+      }
+    ],
+  },
+  {
+    path: '/coupons',
+    name: 'coupons',
+    component: Layout,
+    meta: { title: 'Coupons Management', icon: PrintIcon},
+    children: [
+      {
+        path: 'coupons_list',
+        name: 'Coupon List',
+        component: () => import('@/pages/coupons/coupons_list/index.vue'),
+        meta: { title: 'Coupon List' },
+      }
+    ],
+  },
+  {
+    path: '/feedback',
+    name: 'feedback',
+    component: Layout,
+    redirect: '/feedback/list',
+    meta: { title: 'Feedback', icon: 'chat-double' },
+    children: [
+      {
+        path: 'list',
+        name: 'FeedbackList',
+        component: () => import('@/pages/feedback/list/index.vue'),
+        meta: { title: 'Feedback List' },
+      },
+    ],
+  },
+  
 
   {
     path: '/income',
@@ -97,6 +126,7 @@ export default [
       },
     ],
   },
+  
   // 三级菜单配置
   // {
   //   path: '/menu',
