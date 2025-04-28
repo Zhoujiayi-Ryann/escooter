@@ -55,6 +55,7 @@
                 {{ slotProps.row.status === VEHICLE_STATUS.maintenance ? 'Restore' : 'Repair' }}
               </a>
               <a class="t-button-link" @click="handleDelete(slotProps)">Delete</a>
+              <a class="t-button-link" @click="handleCheckDetails(slotProps.row)">Check Details</a>
             </template>
           </t-table>
         </div>
@@ -130,6 +131,126 @@ const CITY_OPTIONS = [
   { label: 'Shenzhen', value: 'Shenzhen' },
   { label: 'Hangzhou', value: 'Hangzhou' },
 ];
+
+// 地址缓存
+const addressCache = new Map<string, string>();
+// 从 localStorage 加载缓存
+const loadCacheFromStorage = () => {
+  try {
+    const cachedData = localStorage.getItem('addressCache');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      Object.entries(parsedData).forEach(([key, value]) => {
+        addressCache.set(key, value as string);
+      });
+    }
+  } catch (error) {
+    console.error('加载地址缓存失败:', error);
+  }
+};
+
+// 保存缓存到 localStorage
+const saveCacheToStorage = () => {
+  try {
+    const cacheObj = Object.fromEntries(addressCache);
+    localStorage.setItem('addressCache', JSON.stringify(cacheObj));
+  } catch (error) {
+    console.error('保存地址缓存失败:', error);
+  }
+};
+
+// 请求队列
+const requestQueue: Array<() => Promise<void>> = [];
+// 是否正在处理请求
+let isProcessing = false;
+// 上次请求时间
+let lastRequestTime = 0;
+// 最小请求间隔（毫秒）
+const MIN_REQUEST_INTERVAL = 200; // 修改为 200ms，支持每秒 5 个请求
+
+// 处理请求队列
+const processQueue = async () => {
+  if (isProcessing || requestQueue.length === 0) return;
+  
+  isProcessing = true;
+  const currentTime = Date.now();
+  const timeSinceLastRequest = currentTime - lastRequestTime;
+  
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+    await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+  }
+  
+  const request = requestQueue.shift();
+  if (request) {
+    try {
+      await request();
+    } finally {
+      lastRequestTime = Date.now();
+      isProcessing = false;
+      processQueue();
+    }
+  }
+};
+
+// 获取城市名称
+const getCityFromLocation = async (lat: number, lng: number): Promise<string> => {
+  const cacheKey = `${lat},${lng}`;
+  
+  // 检查缓存
+  if (addressCache.has(cacheKey)) {
+    return addressCache.get(cacheKey) || '未知城市';
+  }
+
+  return new Promise((resolve) => {
+    requestQueue.push(async () => {
+      try {
+        // 使用腾讯地图 WebService API
+        const response = await fetch(`https://apis.map.qq.com/ws/geocoder/v1/?location=${lat},${lng}&key=4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ`);
+        const data = await response.json();
+        
+        if (data.status === 0) {
+          const city = data.result.address_component.city || '未知城市';
+          // 存入缓存
+          addressCache.set(cacheKey, city);
+          // 保存到 localStorage
+          saveCacheToStorage();
+          resolve(city);
+        } else {
+          console.error('逆地址解析失败:', data.message);
+          resolve('未知城市');
+        }
+      } catch (error) {
+        console.error('逆地址解析请求失败:', error);
+        resolve('未知城市');
+      }
+    });
+    
+    processQueue();
+  });
+};
+
+// 加载腾讯地图 SDK
+const loadTMapSDK = () => {
+  return new Promise<void>((resolve, reject) => {
+    if (window.TMap) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://map.qq.com/api/gljs?v=1.exp&key=4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ';
+    script.onload = () => {
+      resolve();
+    };
+    script.onerror = (error) => {
+      reject(error);
+    };
+    document.head.appendChild(script);
+  });
+};
+
+// 在组件挂载时加载缓存
+loadCacheFromStorage();
 
 export default Vue.extend({
   name: 'VehicleManagement',
@@ -285,32 +406,58 @@ export default Vue.extend({
       this.dataLoading = true;
 
       try {
+        // 确保地图 SDK 已加载
+        await loadTMapSDK();
+
         // 从API获取数据
         const scooters = await scooterService.getAllScooters();
-        console.log(scooters)
+        
+        // 处理每个滑板车的数据
+        const processedData = await Promise.all(scooters.map(async (scooter) => {
+          // 提取经纬度
+          const locationMatch = scooter.location.match(/\(([^,]+),\s*([^)]+)\)/);
+          let city = '未知城市';
+          
+          if (locationMatch && locationMatch.length === 3) {
+            const lat = parseFloat(locationMatch[1]);
+            const lng = parseFloat(locationMatch[2]);
+            city = await getCityFromLocation(lat, lng);
+          }
 
-        // 状态筛选：当选择了特定状态时，只显示该状态的车辆
-        let filteredData = scooters;
+          return {
+            ...scooter,
+            city: city
+          };
+        }));
+
+        // 状态筛选
+        let filteredData = processedData;
         if (this.filterStatus !== '') {
           filteredData = filteredData.filter(item => item.status === this.filterStatus);
         }
 
-        // 搜索功能：根据车辆编号搜索
+        // 搜索功能
         if (this.searchValue) {
-          filteredData = filteredData.filter(item =>
-            item.scooterCode.toLowerCase().includes(this.searchValue.toLowerCase())
+          const searchLower = this.searchValue.toLowerCase();
+          filteredData = filteredData.filter(item => 
+            item.scooterCode.toLowerCase().includes(searchLower)
           );
         }
 
         // 保存完整的筛选后数据
         this.allData = filteredData;
 
-        // 分页处理
+        // 更新分页信息
         this.pagination.total = filteredData.length;
+        this.pagination.current = 1;
         this.updatePageData();
+
+        // 清空选中状态
+        this.selectedRowKeys = [];
+
       } catch (error) {
-        console.error('Failed to get vehicle data:', error);
-        this.$message.error('Failed to get vehicle data');
+        console.error('获取滑板车数据失败:', error);
+        this.$message.error('获取滑板车数据失败，请稍后重试');
       } finally {
         this.dataLoading = false;
       }
@@ -662,6 +809,27 @@ export default Vue.extend({
     // 关闭侧边栏
     onDialogClose() {
       this.formVisible = false;
+    },
+
+    // 检查详情
+    handleCheckDetails(row) {
+      // 从 location 中提取经纬度
+      const locationMatch = row.location.match(/\(([^,]+),\s*([^)]+)\)/);
+      if (locationMatch && locationMatch.length === 3) {
+        const lat = parseFloat(locationMatch[1]);
+        const lng = parseFloat(locationMatch[2]);
+        
+        // 使用 Vue Router 跳转到地图页面
+        this.$router.push({
+          path: '/vehicle/map',
+          query: {
+            lat: lat.toString(),
+            lng: lng.toString()
+          }
+        });
+      } else {
+        this.$message.error('Invalid location data');
+      }
     },
   },
 });

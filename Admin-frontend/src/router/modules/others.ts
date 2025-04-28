@@ -64,6 +64,12 @@ export default [
         component: () => import('@/pages/vehicle/manage/index.vue'),
         meta: { title: 'Vehicle List' },
       },
+      {
+        path: 'map',
+        name: 'VehicleMap',
+        component: () => import('@/pages/vehicle/map/index.vue'),
+        meta: { title: 'Vehicle Map' },
+      }
     ],
   },
   {
