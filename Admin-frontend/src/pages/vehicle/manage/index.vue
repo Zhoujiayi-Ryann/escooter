@@ -55,7 +55,7 @@
                 {{ slotProps.row.status === VEHICLE_STATUS.maintenance ? 'Restore' : 'Repair' }}
               </a>
               <a class="t-button-link" @click="handleDelete(slotProps)">Delete</a>
-              <a class="t-button-link" @click="handleCheckDetails(slotProps.row)">Check Details</a>
+              <a class="t-button-link" @click="handleDetails(slotProps.row)">Details</a>
             </template>
           </t-table>
         </div>
@@ -812,7 +812,7 @@ export default Vue.extend({
     },
 
     // 检查详情
-    handleCheckDetails(row) {
+    handleDetails(row) {
       // 从 location 中提取经纬度
       const locationMatch = row.location.match(/\(([^,]+),\s*([^)]+)\)/);
       if (locationMatch && locationMatch.length === 3) {

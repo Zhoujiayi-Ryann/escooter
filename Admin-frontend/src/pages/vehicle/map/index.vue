@@ -1,21 +1,67 @@
 <template>
   <div class="map-container">
     <div id="map" class="map"></div>
+    
+    <!-- 添加侧边弹窗 -->
+    <t-drawer
+      :visible.sync="drawerVisible"
+      :header="selectedScooter ? `Vehicle Details - ${selectedScooter.scooterCode}` : 'Vehicle Details'"
+      :footer="false"
+      :size="'400px'"
+      :close-btn="true"
+      :on-close="onDrawerClose"
+    >
+      <div v-if="selectedScooter" class="scooter-details">
+        <t-descriptions :column="1" bordered>
+          <t-descriptions-item label="Vehicle No.">{{ selectedScooter.scooterCode }}</t-descriptions-item>
+          <t-descriptions-item label="Status">
+            <t-tag v-if="selectedScooter.status === 0" theme="success" variant="light">Free</t-tag>
+            <t-tag v-if="selectedScooter.status === 1" theme="primary" variant="light">Booked</t-tag>
+            <t-tag v-if="selectedScooter.status === 2" theme="warning" variant="light">In Use</t-tag>
+            <t-tag v-if="selectedScooter.status === 3" theme="danger" variant="light">Maintenance</t-tag>
+          </t-descriptions-item>
+          <t-descriptions-item label="Battery">
+            <t-progress :percentage="selectedScooter.battery" :color="getBatteryColor(selectedScooter.battery)" :label="false" trackColor="#e8f4ff" />
+            <span style="margin-left: 4px">{{ selectedScooter.battery }}%</span>
+          </t-descriptions-item>
+          <t-descriptions-item label="Price">£{{ selectedScooter.price }} / min</t-descriptions-item>
+          <t-descriptions-item label="Location">{{ selectedScooter.location }}</t-descriptions-item>
+          <t-descriptions-item label="Last Rental Time">{{ selectedScooter.lastRentTime || '-' }}</t-descriptions-item>
+        </t-descriptions>
+      </div>
+    </t-drawer>
   </div>
 </template>
 
 <script>
 import Vue from 'vue';
 import { scooterService } from '@/service/service-scooter';
+import { 
+  Drawer as TDrawer,
+  Descriptions as TDescriptions,
+  DescriptionsItem as TDescriptionsItem,
+  Tag as TTag,
+  Progress as TProgress
+} from 'tdesign-vue';
 
 export default {
   name: 'ScooterMap',
+  components: {
+    TDrawer,
+    TDescriptions,
+    TDescriptionsItem,
+    TTag,
+    TProgress
+  },
   data() {
     return {
       map: null,
       markers: [],
       center: { lat: 39.909, lng: 116.39742 },
       zoom: 13,
+      drawerVisible: false,
+      selectedScooter: null,
+      allScooters: [], // 添加一个变量来存储所有滑板车数据
     };
   },
   methods: {
@@ -27,13 +73,37 @@ export default {
       this.map = new TMap.Map('map', {
         center: new TMap.LatLng(lat, lng),
         zoom: this.$route.query.lat && this.$route.query.lng ? 15 : 12,
-        key: '4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ'
+        key: '4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ',
+        // 添加地图控件
+        control: {
+          // 添加缩放控件
+          zoomControl: {
+            position: 'TOP_RIGHT',
+            zoomInText: '+',
+            zoomOutText: '-',
+            zoomInTitle: '放大',
+            zoomOutTitle: '缩小'
+          },
+          // 添加旋转控件
+          rotationControl: {
+            position: 'TOP_RIGHT'
+          },
+          // 添加比例尺控件
+          scaleControl: {
+            position: 'BOTTOM_LEFT'
+          }
+        },
+        // 启用双击缩放
+        doubleClickZoom: true,
+        // 启用滚轮缩放
+        scrollWheel: true
       });
     },
 
     async loadScooters() {
       try {
         const scooters = await scooterService.getAllScooters();
+        this.allScooters = scooters; // 保存所有滑板车数据
         this.markers.forEach(marker => marker.setMap(null));
         this.markers = [];
 
@@ -63,8 +133,35 @@ export default {
             }]
           });
 
+          // 添加点击事件
+          marker.on('click', (evt) => {
+            const clickedScooter = scooters.find(s => s.id.toString() === evt.geometry.id);
+            if (clickedScooter) {
+              this.selectedScooter = clickedScooter;
+              this.drawerVisible = true;
+              console.log('Selected scooter:', clickedScooter);
+            }
+          });
+
           this.markers.push(marker);
         });
+
+        // 如果有经纬度参数，自动打开对应车辆的侧边栏
+        if (this.$route.query.lat && this.$route.query.lng) {
+          const targetLat = Number(this.$route.query.lat);
+          const targetLng = Number(this.$route.query.lng);
+          
+          // 找到最接近的滑板车
+          const targetScooter = scooters.find(scooter => {
+            const [lat, lng] = scooter.location.match(/\(([^,]+),\s*([^)]+)\)/).slice(1).map(Number);
+            return Math.abs(lat - targetLat) < 0.0001 && Math.abs(lng - targetLng) < 0.0001;
+          });
+
+          if (targetScooter) {
+            this.selectedScooter = targetScooter;
+            this.drawerVisible = true;
+          }
+        }
       } catch (error) {
         console.error('加载滑板车数据失败:', error);
       }
@@ -79,6 +176,21 @@ export default {
         };
         this.zoom = 15; // 放大到更近的级别
       }
+    },
+
+    onDrawerClose() {
+      this.drawerVisible = false;
+      this.selectedScooter = null;
+    },
+
+    getBatteryColor(battery) {
+      if (battery <= 20) {
+        return '#e34d59';
+      }
+      if (battery <= 50) {
+        return '#ed7b2f';
+      }
+      return '#00a870';
     }
   },
   mounted() {
@@ -103,5 +215,17 @@ export default {
 .map {
   width: 100%;
   height: calc(100vh - 64px); /* 减去顶部导航栏的高度 */
+}
+
+.scooter-details {
+  padding: 16px;
+}
+
+:deep(.t-descriptions) {
+  margin-top: 16px;
+}
+
+:deep(.t-descriptions__label) {
+  width: 120px;
 }
 </style>
