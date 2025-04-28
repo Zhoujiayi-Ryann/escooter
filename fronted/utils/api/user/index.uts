@@ -17,10 +17,14 @@ export interface UserInfo {
 export interface UserDetailInfo {
     user_id: number;
     username: string;
+    password: string;
     email: string;
     phone_number: string;
-    created_at: string;
-    updated_at: string;
+    registration_date: string;
+    total_usage_hours: number;
+    total_spent: number;
+    user_types: string;
+    avatar_path: string;
 }
 
 /**
@@ -65,7 +69,7 @@ export const userApi = {
      */
     getUserDetail(userId: number): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
-            url: `/users/${userId}`,
+            url: `/api/users/profile/${userId}`,
             method: 'GET',
             needToken: true
         });
@@ -84,8 +88,8 @@ export const userApi = {
         password?: string;
     }): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
-            url: `/users/${userId}`,
-            method: 'PUT',
+            url: `/api/users/profile/${userId}`,
+            method: 'PATCH',
             data: data,
             needToken: true
         });
