@@ -4,6 +4,7 @@ import com.example.hello.dto.request.LoginRequest;
 import com.example.hello.dto.response.LoginResponse;
 import com.example.hello.dto.request.RegisterRequest;
 import com.example.hello.dto.request.UpdateUserRequest;
+import com.example.hello.dto.request.ChangePasswordRequest;
 import com.example.hello.entity.User;
 
 import java.util.List;
@@ -18,7 +19,17 @@ public interface UserService {
     User updateUser(Long id, UpdateUserRequest request);
 
     /**
+     * 修改用户密码
+     * 
+     * @param id      用户ID
+     * @param request 修改密码请求
+     * @return 更新后的用户信息
+     */
+    User changePassword(Long id, ChangePasswordRequest request);
+
+    /**
      * 查询常用用户（使用时长超过指定小时数）
+     * 
      * @param minHours 最小使用小时数
      * @return 符合条件的用户列表
      */

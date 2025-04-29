@@ -31,7 +31,8 @@ public interface UserMapper {
     User findByEmail(String email);
 
     @Update("UPDATE Users SET username = #{username}, password = #{password}, " +
-            "email = #{email}, phone_number = #{phoneNumber} " +
+            "email = #{email}, phone_number = #{phoneNumber}, " +
+            "avatar_path = #{avatarPath} " +
             "WHERE user_id = #{userId}")
     void updateUser(User user);
 
@@ -42,18 +43,19 @@ public interface UserMapper {
 
     /**
      * 查询使用时长超过指定小时数的用户
+     * 
      * @param hours 最小使用小时数
      * @return 符合条件的用户列表
      */
     @Select("SELECT * FROM Users WHERE total_usage_hours >= #{hours}")
     @Results({
-        @Result(property = "userId", column = "user_id"),
-        @Result(property = "phoneNumber", column = "phone_number"),
-        @Result(property = "registrationDate", column = "registration_date"),
-        @Result(property = "totalUsageHours", column = "total_usage_hours"),
-        @Result(property = "totalSpent", column = "total_spent"),
-        @Result(property = "userTypes", column = "user_types"),
-        @Result(property = "avatarPath", column = "avatar_path")
+            @Result(property = "userId", column = "user_id"),
+            @Result(property = "phoneNumber", column = "phone_number"),
+            @Result(property = "registrationDate", column = "registration_date"),
+            @Result(property = "totalUsageHours", column = "total_usage_hours"),
+            @Result(property = "totalSpent", column = "total_spent"),
+            @Result(property = "userTypes", column = "user_types"),
+            @Result(property = "avatarPath", column = "avatar_path")
     })
     List<User> findFrequentUsers(@Param("hours") float hours);
 }

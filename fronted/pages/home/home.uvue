@@ -109,6 +109,9 @@
 							</view>
 						</view>
 					</view>
+					<view class="time-limit-tip">
+						<text>Note: You can only reserve within the next 7 days</text>
+					</view>
 				</view>
 				<view class="next-button-area">
 					<van-button
@@ -130,18 +133,12 @@
 					:key="scooter.scooterId"
 					:class="{'selected': selected === scooter.scooterId}"
 					@click="selectEscooter(scooter.scooterId)">
-						<template #title>
-							<view class="cell-content">
-								<text class="scooter-id">SC{{scooter.scooterId}}</text>
-								<text class="battery">{{scooter.batteryLevel}}%</text>
-							</view>
-						</template>
-						<template #label>
-							<view v-if="selected === scooter.scooterId" class="detail">
-								<text>Status: {{scooter.status}}</text>
-								<text>Price: ￡{{scooter.price}}</text>
-							</view>
-						</template>
+						<view class="scooter-info">
+							<image class="scooter-image" src="/static/bikelogo/escooter_car2.png" mode="aspectFit"></image>
+							<text class="scooter-id">SC{{scooter.scooterId}}</text>
+							<text class="battery">{{scooter.batteryLevel}}%</text>
+							<text class="price">￡{{scooter.price}}/hour</text>
+						</view>
 					</van-cell>
 				</van-cell-group>
 				<view class="next-button-area">
@@ -177,7 +174,7 @@
 				<van-date-picker 
 				v-model="tempStartDate" 
 				:min-date="new Date()"
-				:max-date="new Date(new Date().getFullYear()+1, new Date().getMonth(), new Date().getDate())"/>
+				:max-date="new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)"/>
 				<van-time-picker 
 				v-model="tempStartTime" 
 				:min-hour="getMinHour(tempStartDate)"/>
@@ -512,15 +509,12 @@ export default {
 				now.getHours().toString().padStart(2, '0'),
 				now.getMinutes().toString().padStart(2, '0')
 			];
-			this.tempEndDate = [
-				now.getFullYear().toString(),
-				(now.getMonth() + 1).toString().padStart(2, '0'),
-				now.getDate().toString().padStart(2, '0')
-			];
-			this.tempEndTime = [
-				now.getHours().toString().padStart(2, '0'),
-				now.getMinutes().toString().padStart(2, '0')
-			];
+			this.tempEndDate = [...this.tempStartDate];
+			this.tempEndTime = [...this.tempStartTime];
+			this.startDate = now;
+			this.endDate = new Date(now);
+			this.startTime = `${this.tempStartTime[0]}:${this.tempStartTime[1]}`;
+			this.endTime = this.startTime;
 		},
 		formatDate(date) {
 			const month = date.getMonth() + 1;
@@ -534,7 +528,7 @@ export default {
 				date.getFullYear() === today.getFullYear()) {
 				return 'Today';
 			}
-			const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+			const weekdays = ['Sun.', 'Mon.', 'Tues.', 'Wed.', 'Thur.', 'Fri.', 'Sat.'];
 				return weekdays[date.getDay()];
 		},
 		getMinHour(date) {
@@ -563,22 +557,53 @@ export default {
 				Number(this.tempStartDate[2])
 			);
 			this.startTime = `${this.tempStartTime[0]}:${this.tempStartTime[1]}`;
-			const startDateTime = new Date(this.startDate);
-			startDateTime.setHours(Number(this.tempStartTime[0]), Number(this.tempStartTime[1]));
-			const endDateTime = new Date(this.endDate);
-			endDateTime.setHours(Number(this.tempEndTime[0]), Number(this.tempEndTime[1]));
-			if (endDateTime < startDateTime) {
-				this.endDate = new Date(this.startDate.getTime() + 24 * 60 * 60 * 1000);
+			
+			// 如果已经选择了快捷选项，则根据快捷选项计算结束时间
+			if (this.quickOptionSelected) {
+				const startDateTime = new Date(this.startDate);
+				const [startHour, startMinute] = this.startTime.split(':').map(Number);
+				startDateTime.setHours(startHour, startMinute);
+				
+				switch(this.quickOptionSelected) {
+					case '1h':
+						const oneHourLater = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+						this.endDate = oneHourLater;
+						this.endTime = `${oneHourLater.getHours().toString().padStart(2, '0')}:${oneHourLater.getMinutes().toString().padStart(2, '0')}`;
+						break;
+					case '4h':
+						const fourHoursLater = new Date(startDateTime.getTime() + 4 * 60 * 60 * 1000);
+						this.endDate = fourHoursLater;
+						this.endTime = `${fourHoursLater.getHours().toString().padStart(2, '0')}:${fourHoursLater.getMinutes().toString().padStart(2, '0')}`;
+						break;
+					case '1d':
+						const oneDayLater = new Date(startDateTime.getTime() + 24 * 60 * 60 * 1000);
+						this.endDate = oneDayLater;
+						this.endTime = this.startTime;
+						break;
+					case '1w':
+						const oneWeekLater = new Date(startDateTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+						this.endDate = oneWeekLater;
+						this.endTime = this.startTime;
+						break;
+				}
+			} else {
+				// 如果没有选择快捷选项，则同步结束时间
+				this.endDate = new Date(this.startDate);
 				this.endTime = this.startTime;
-				this.tempEndTime = [...this.tempStartTime];
-				this.tempEndDate = [
-					this.endDate.getFullYear().toString(),
-					(this.endDate.getMonth() + 1).toString().padStart(2, '0'),
-					this.endDate.getDate().toString().padStart(2, '0')
-				];
 			}
+			
+			// 更新临时日期和时间
+			this.tempEndTime = [
+				this.endTime.split(':')[0],
+				this.endTime.split(':')[1]
+			];
+			this.tempEndDate = [
+				this.endDate.getFullYear().toString(),
+				(this.endDate.getMonth() + 1).toString().padStart(2, '0'),
+				this.endDate.getDate().toString().padStart(2, '0')
+			];
+			
 			this.showStartPicker = false;
-			this.updateQuickOptionSelected();
 		},
 		onConfirmEndTime() {
 			const newEndDate = new Date(
@@ -608,7 +633,6 @@ export default {
 				this.endDate.getDate().toString().padStart(2, '0')
 			];
 			this.showEndPicker = false;
-			this.updateQuickOptionSelected();
 		},
 		setQuickOption(option) {
 			if (this.quickOptionSelected === option) {
@@ -698,14 +722,17 @@ export default {
 			
 			scooterApi.getAvailableScooters(startISOString, endISOString).then(res => {
 				if (res.code === 1) {
-					this.scooters = res.data.map(scooter => ({
-						scooterId: scooter.scooter_id,
-						locationLat: scooter.location_lat,
-						locationLng: scooter.location_lng,
-						status: scooter.status,
-						batteryLevel: scooter.battery_level,
-						price: scooter.price
-					}));
+					// 筛选出状态为 free 的滑板车
+					this.scooters = res.data
+						.filter(scooter => scooter.status === 'free')
+						.map(scooter => ({
+							scooterId: scooter.scooter_id,
+							locationLat: scooter.location_lat,
+							locationLng: scooter.location_lng,
+							status: scooter.status,
+							batteryLevel: scooter.battery_level,
+							price: scooter.price
+						}));
 					this.updateMarkers();
 					
 					if (this.scooters.length === 0) {
@@ -819,7 +846,7 @@ export default {
 							buttonText: 'Check details',
 							action: () => {
 								uni.navigateTo({
-									url: `/pages/order_in_progress/order_in_progress?order_id=${orderId}`
+									url: `/pages/order_in_progress/order_in_progress?orderId=${orderId}`
 								});
 							}
 						};
@@ -832,7 +859,7 @@ export default {
 							buttonText: 'Go to use',
 							action: () => {
 								uni.navigateTo({
-									url: `/pages/order_not_used/order_not_used?order_id=${orderId}`
+									url: `/pages/order_not_used/order_not_used?orderId=${orderId}`
 								});
 							}
 						};
@@ -907,18 +934,47 @@ export default {
 		background-color: #007aff !important;
 		border-color: #007aff !important;
 	}
-	.cell-content {
+	.scooter-info {
 		display: flex;
+		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
+		gap: 15px;
+		height: 60px;
+	}
+	.scooter-image {
+		width: 40px;
+		height: 40px;
+		margin-right: 10px;
 	}
 	.scooter-id {
 		font-size: 22px;
 		font-weight: bold;
+		flex: 1;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		color: #666666;
 	}
 	.battery {
 		color: #666;
 		font-size: 20px;
+		flex: 1;
+		text-align: center;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.price {
+		font-size: 20px;
+		color: #666;
+		flex: 1;
+		text-align: right;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
 	}
 	.selected {
 		border: 2px solid #007aff !important;
@@ -930,15 +986,8 @@ export default {
 		width: 95%;
 		margin: 5px auto;
 	}
-	.detail {
-		display: flex;
-		flex-direction: column;
-		font-size: 20px;
-		color: #666;
-		padding: 8px 0;
-	}
 	.time-section {
-		margin-top: 60px;
+		margin-top: 40px;
 		margin-bottom: 60px;
 		padding: 15px;
 	}
@@ -1187,5 +1236,11 @@ export default {
 	}
 	.use-button {
 		margin-left: 15px;
+	}
+	.time-limit-tip {
+		margin-top: 20px;
+		text-align: center;
+		font-size: 14px;
+		color: #666;
 	}
 </style> 
