@@ -19,7 +19,10 @@ public class Scooter {
         /** 使用中 */
         in_use,
         /** 维护中 */
-        maintenance
+        maintenance,
+        /** 充电中 */
+        charging
+
     }
     
     /** 滑板车ID */

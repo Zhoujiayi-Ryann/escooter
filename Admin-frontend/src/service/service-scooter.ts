@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = 'http://172.20.10.2:8080/api';
 
 // 滑板车状态映射
 export const SCOOTER_STATUS = {
@@ -9,6 +9,7 @@ export const SCOOTER_STATUS = {
   booked: 1,      // 已预订
   in_use: 2,      // 使用中
   maintenance: 3, // 维护中
+  charging: 4,    // 充电中
 };
 
 // 滑板车状态的反向映射
@@ -17,6 +18,7 @@ export const SCOOTER_STATUS_REVERSE = {
   1: 'booked',
   2: 'in_use',
   3: 'maintenance',
+  4: 'charging',
 };
 
 // 响应类型接口
@@ -73,6 +75,8 @@ const mapScooterToTableData = (scooter: ScooterResponse): TableScooter => {
     statusNumber = SCOOTER_STATUS.in_use;
   } else if (scooter.status === 'maintenance') {
     statusNumber = SCOOTER_STATUS.maintenance;
+  } else if (scooter.status === 'charging') {
+    statusNumber = SCOOTER_STATUS.charging;
   }
 
   return {
