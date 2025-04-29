@@ -8,7 +8,6 @@ import { ApiResponse, LoginResponseData, RegisterResponseData } from '../types';
 export interface UserInfo {
     user_id: number;
     username: string;
-    token?: string;
 }
 
 /**
@@ -25,6 +24,7 @@ export interface UserDetailInfo {
     total_spent: number;
     user_types: string;
     avatar_path: string;
+    is_disabled: boolean;
 }
 
 /**
@@ -70,8 +70,7 @@ export const userApi = {
     getUserDetail(userId: number): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
             url: `/api/users/profile/${userId}`,
-            method: 'GET',
-            needToken: true
+            method: 'GET'
         });
     },
 
@@ -86,12 +85,29 @@ export const userApi = {
         email?: string;
         phone_number?: string;
         password?: string;
+        avatar_path?: string;
     }): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
             url: `/api/users/profile/${userId}`,
             method: 'PATCH',
-            data: data,
-            needToken: true
+            data: data
+        });
+    },
+
+    /**
+     * 修改用户密码
+     * @param userId 用户ID
+     * @param data 修改密码信息
+     * @returns 更新后的用户信息
+     */
+    changePassword(userId: number, data: {
+        oldPassword: string;
+        newPassword: string;
+    }): Promise<ApiResponse<UserDetailInfo>> {
+        return request<UserDetailInfo>({
+            url: `/api/users/profile/${userId}/password`,
+            method: 'PATCH',
+            data: data
         });
     },
 

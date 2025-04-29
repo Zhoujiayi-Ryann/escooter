@@ -4,6 +4,7 @@ import com.example.hello.dto.request.LoginRequest;
 import com.example.hello.dto.response.LoginResponse;
 import com.example.hello.dto.request.RegisterRequest;
 import com.example.hello.dto.request.UpdateUserRequest;
+import com.example.hello.dto.request.ChangePasswordRequest;
 import com.example.hello.entity.User;
 import com.example.hello.mapper.UserMapper;
 import com.example.hello.service.UserService;
@@ -116,11 +117,6 @@ public class UserServiceImpl implements UserService {
             existingUser.setUsername(request.getUsername());
         }
 
-        // 更新密码（如果提供）
-        if (request.getPassword() != null) {
-            existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
-
         // 更新邮箱（如果提供）
         if (request.getEmail() != null && !request.getEmail().equals(existingUser.getEmail())) {
             // 检查新邮箱是否已存在
@@ -134,6 +130,36 @@ public class UserServiceImpl implements UserService {
         if (request.getPhone_number() != null) {
             existingUser.setPhoneNumber(request.getPhone_number());
         }
+
+        // 更新头像路径（如果提供）
+        if (request.getAvatar_path() != null) {
+            existingUser.setAvatarPath(request.getAvatar_path());
+        }
+
+        // 更新用户信息
+        userMapper.updateUser(existingUser);
+
+        // 清除密码后返回
+        existingUser.setPassword(null);
+        return existingUser;
+    }
+
+    @Override
+    @Transactional
+    public User changePassword(Long id, ChangePasswordRequest request) {
+        // 获取现有用户信息
+        User existingUser = userMapper.findById(id);
+        if (existingUser == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        // 验证原密码是否正确
+        if (!passwordEncoder.matches(request.getOldPassword(), existingUser.getPassword())) {
+            throw new RuntimeException("Old password is incorrect");
+        }
+
+        // 更新密码
+        existingUser.setPassword(passwordEncoder.encode(request.getNewPassword()));
 
         // 更新用户信息
         userMapper.updateUser(existingUser);
