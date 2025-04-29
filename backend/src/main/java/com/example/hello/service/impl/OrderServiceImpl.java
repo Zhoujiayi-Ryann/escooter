@@ -1019,8 +1019,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public BigDecimal getWeeklyRevenue() {
-        return orderMapper.getWeeklyRevenue();
+    public BigDecimal getRevenueByDateRange(String startDate, String endDate) {
+        log.info("Calculating revenue for date range: {} to {}", startDate, endDate);
+        BigDecimal revenue = orderMapper.getRevenueByDateRange(startDate, endDate);
+        if (revenue == null) {
+            revenue = BigDecimal.ZERO;
+        }
+        log.info("Revenue for date range {} to {}: {}", startDate, endDate, revenue);
+        return revenue;
     }
 
     /**
@@ -1039,14 +1045,5 @@ public class OrderServiceImpl implements OrderService {
     public void checkDailyRevenue() {
         BigDecimal dailyRevenue = getDailyRevenue();
         log.info("Current daily revenue: {}", dailyRevenue);
-    }
-
-    /**
-     * 每分钟检查并记录最近一周收入
-     */
-    @Scheduled(fixedRate = 60000)
-    public void checkWeeklyRevenue() {
-        BigDecimal weeklyRevenue = getWeeklyRevenue();
-        log.info("Current weekly revenue: {}", weeklyRevenue);
     }
 }

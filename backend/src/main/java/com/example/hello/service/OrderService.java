@@ -150,9 +150,11 @@ public interface OrderService {
     BigDecimal getDailyRevenue();
 
     /**
-     * 获取最近一周的收入（不包括pending的订单）
+     * 获取指定时间段的收入（不包括pending的订单）
      * 
-     * @return 最近一周的收入总额
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @return 指定时间段的收入总额
      */
-    BigDecimal getWeeklyRevenue();
+    BigDecimal getRevenueByDateRange(String startDate, String endDate);
 }

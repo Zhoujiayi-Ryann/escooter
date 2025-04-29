@@ -332,6 +332,6 @@ public interface OrderMapper {
         @Select("SELECT COALESCE(SUM(cost), 0) FROM Orders WHERE status != 'PENDING' AND DATE(create_at) = CURDATE()")
         BigDecimal getDailyRevenue();
 
-        @Select("SELECT COALESCE(SUM(cost), 0) FROM Orders WHERE status != 'PENDING' AND create_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)")
-        BigDecimal getWeeklyRevenue();
+        @Select("SELECT COALESCE(SUM(cost), 0) FROM Orders WHERE status != 'PENDING' AND DATE(create_at) BETWEEN #{startDate} AND #{endDate}")
+        BigDecimal getRevenueByDateRange(@Param("startDate") String startDate, @Param("endDate") String endDate);
 }

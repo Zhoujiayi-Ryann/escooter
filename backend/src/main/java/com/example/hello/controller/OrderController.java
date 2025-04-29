@@ -387,12 +387,16 @@ public class OrderController {
         }
     }
 
-    @GetMapping("/weekly-revenue")
-    public Result<BigDecimal> getWeeklyRevenue() {
+    @GetMapping("/revenue-by-date-range")
+    public Result<BigDecimal> getRevenueByDateRange(
+            @RequestParam("start_date") String startDate,
+            @RequestParam("end_date") String endDate) {
         try {
-            BigDecimal weeklyRevenue = orderService.getWeeklyRevenue();
-            return Result.success(weeklyRevenue, "Get weekly revenue successfully");
+            log.info("Received revenue request for date range: {} to {}", startDate, endDate);
+            BigDecimal revenue = orderService.getRevenueByDateRange(startDate, endDate);
+            return Result.success(revenue, "Get revenue by date range successfully");
         } catch (Exception e) {
+            log.error("Failed to get revenue by date range: {}", e.getMessage());
             return Result.error(e.getMessage());
         }
     }
