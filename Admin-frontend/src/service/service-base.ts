@@ -17,25 +17,25 @@ interface TendItem {
 
 export const PANE_LIST: Array<DashboardPanel> = [
   {
-    title: '总收入',
+    title: 'Total income',
     number: '¥ 28,425.00',
     upTrend: '20.5%',
     leftType: 'echarts-line',
   },
   {
-    title: '总车辆数',
+    title: 'Total number of vehicles',
     number: '¥ 768.00',
     downTrend: '20.5%',
     leftType: 'echarts-bar',
   },
   {
-    title: '总用户（个）',
+    title: 'Total users',
     number: '1126',
     downTrend: '20.5%',
     leftType: 'icon-usergroup',
   },
   {
-    title: '订单（个）',
+    title: 'Order',
     number: 527,
     downTrend: '20.5%',
     leftType: 'icon-file-paste',

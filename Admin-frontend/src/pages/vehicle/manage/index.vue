@@ -34,6 +34,7 @@
               <t-tag v-if="row.status === VEHICLE_STATUS.booked" theme="primary" variant="light">Booked</t-tag>
               <t-tag v-if="row.status === VEHICLE_STATUS.in_use" theme="warning" variant="light">In Use</t-tag>
               <t-tag v-if="row.status === VEHICLE_STATUS.maintenance" theme="danger" variant="light">Maintenance</t-tag>
+              <t-tag v-if="row.status === VEHICLE_STATUS.charging" theme="default" variant="light">Charging</t-tag>
             </template>
 
             <!-- 电量列自定义 -->
@@ -68,10 +69,10 @@
               <t-input v-model="vehicleForm.scooterCode" disabled />
             </t-form-item>
             <t-form-item label="Location" name="location">
-              <t-input v-model="vehicleForm.location" placeholder="Please enter location" />
+              <t-input v-model="vehicleForm.location" :disabled="isEdit" placeholder="Please enter location" />
             </t-form-item>
             <t-form-item label="Battery" name="battery">
-              <t-input-number v-model="vehicleForm.battery" :min="0" :max="100" />
+              <t-input-number v-model="vehicleForm.battery" :min="0" :max="100" :disabled="isEdit" />
               <span style="margin-left: 8px">%</span>
             </t-form-item>
             <t-form-item label="Status" name="status">
@@ -121,6 +122,7 @@ const VEHICLE_STATUS_OPTIONS = [
   { label: 'Booked', value: VEHICLE_STATUS.booked },
   { label: 'In Use', value: VEHICLE_STATUS.in_use },
   { label: 'Maintenance', value: VEHICLE_STATUS.maintenance },
+  { label: 'Charging', value: VEHICLE_STATUS.charging },
 ];
 
 // 城市选项（示例数据）
@@ -335,6 +337,7 @@ export default Vue.extend({
         { value: VEHICLE_STATUS.booked, label: 'Booked' },
         { value: VEHICLE_STATUS.in_use, label: 'In Use' },
         { value: VEHICLE_STATUS.maintenance, label: 'Maintenance' },
+        { value: VEHICLE_STATUS.charging, label: 'Charging' },
       ],
 
       // 新增的变量

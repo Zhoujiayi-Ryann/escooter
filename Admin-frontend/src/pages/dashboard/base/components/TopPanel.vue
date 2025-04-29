@@ -62,6 +62,8 @@ import { constructInitDashboardDataset } from '../index';
 import { changeChartsTheme } from '@/utils/color';
 import { PANE_LIST } from '@/service/service-base';
 import { scooterService } from '@/service/service-scooter';
+import { getTotalRevenue } from '@/service/service-revenue';
+import { getAllNonAdminUsers } from '@/service/service-user';
 
 echarts.use([LineChart, BarChart, CanvasRenderer]);
 
@@ -101,6 +103,8 @@ export default {
 
     window.addEventListener('resize', this.updateContainer, false);
     this.fetchVehicleCount();
+    this.fetchTotalRevenue();
+    this.fetchUserCount();
     this.renderCharts();
   },
 
@@ -117,6 +121,30 @@ export default {
       } catch (error) {
         console.error('获取车辆数据失败:', error);
         this.isLoading = false;
+      }
+    },
+
+    async fetchTotalRevenue() {
+      try {
+        const totalRevenue = await getTotalRevenue();
+        if (this.panelList[0]) {
+          this.panelList[0].number = `£ ${totalRevenue.data.toFixed(2)}`;
+          this.panelList[0].upTrend = '20.5%'; // 可以根据实际情况修改或从API获取
+        }
+      } catch (error) {
+        console.error('获取总收入数据失败:', error);
+      }
+    },
+
+    async fetchUserCount() {
+      try {
+        const users = await getAllNonAdminUsers();
+        if (this.panelList[2]) {
+          this.panelList[2].number = users.length;
+          this.panelList[2].downTrend = '5%'; // 可以根据实际情况修改或从API获取
+        }
+      } catch (error) {
+        console.error('获取用户数据失败:', error);
       }
     },
 
