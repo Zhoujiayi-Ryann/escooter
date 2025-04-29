@@ -73,4 +73,9 @@ public class OrderResponse {
      * 订单创建时间
      */
     private LocalDateTime created_at;
+
+    /**
+     * 订单是否删除: 0代表未删除，1代表已删除
+     */
+    private Integer is_deleted;
 }

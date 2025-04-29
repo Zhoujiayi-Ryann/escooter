@@ -996,7 +996,7 @@ public class OrderServiceImpl implements OrderService {
                     response.setPickup_address(order.getAddress());
                     response.setStatus(order.getStatus().getValue());
                     response.setCreated_at(order.getCreatedAt());
-                    response.setIs_deleted(order.getIsDeleted());
+                    response.setIs_deleted(order.getIsDeleted() ? 1 : 0);
                     return response;
                 })
                 .collect(Collectors.toList());
