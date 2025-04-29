@@ -623,11 +623,55 @@ export default {
 			});
 		},
 		
-		// 添加去支付订单的导航方法 TODO
+		// 添加去支付订单的导航方法
 		goToPayOrder(orderId) {
-			// uni.navigateTo({
-			// 	url: '/pages/order_payment/order_payment?id=' + orderId
-			// });
+			// 显示加载提示
+			uni.showLoading({
+				title: 'loading...'
+			});
+			
+			// 调用获取订单详情API
+			orderApi.getOrderDetail(Number(orderId))
+				.then(res => {
+					if (res.code === 1 && res.data) {
+						const orderData = res.data;
+						console.log(orderData);
+						// 构建订单信息对象
+						const orderInfo = {
+							orderId: orderData.order_id ? orderData.order_id.toString() : "",
+							scooterCode: orderData.scooter_id ? orderData.scooter_id.toString() : "",
+							address: orderData.pickup_address || "Unknown",
+							cost: orderData.cost !== null && orderData.cost !== undefined ? orderData.cost.toString() : "0",
+							discountAmount: orderData.discount_amount !== null && orderData.discount_amount !== undefined ? orderData.discount_amount.toString() : "0",
+							startDate: orderData.start_time ? this.formatDatePart(new Date(orderData.start_time)) : "",
+							startTime: orderData.start_time ? this.formatTimePart(new Date(orderData.start_time)) : "",
+							endDate: orderData.end_time ? this.formatDatePart(new Date(orderData.end_time)) : "",
+							endTime: orderData.end_time ? this.formatTimePart(new Date(orderData.end_time)) : "",
+							days: orderData.duration ? orderData.duration / 24 : 1
+						};
+						
+						// 编码并跳转到支付页面
+						const orderInfoStr = encodeURIComponent(JSON.stringify(orderInfo));
+						uni.navigateTo({
+							url: `/pages/order/payment?orderInfo=${orderInfoStr}`
+						});
+					} else {
+						uni.showToast({
+							title: res.msg || '获取订单详情失败',
+							icon: 'none'
+						});
+					}
+				})
+				.catch(err => {
+					console.error('获取订单详情出错:', err);
+					uni.showToast({
+						title: '网络错误，请稍后重试',
+						icon: 'none'
+					});
+				})
+				.finally(() => {
+					uni.hideLoading();
+				});
 		}
 	},
 	// 改为使用API获取数据
