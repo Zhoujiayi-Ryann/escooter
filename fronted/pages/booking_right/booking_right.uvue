@@ -65,7 +65,7 @@ export default {
       
       // 使用navigateTo而不是reLaunch，这样可以保留历史记录
       uni.navigateTo({
-        url: `/pages/order_not_used/order_not_used?orderId=${orderId}`,
+        url: `/pages/order_not_used/order_not_used_home?orderId=${orderId}`,
         success: () => {
           console.log('✅ 跳转成功');
         },
@@ -73,7 +73,7 @@ export default {
           console.error('❌ 跳转失败:', err);
           // 尝试另一种跳转方法
           uni.redirectTo({
-            url: `/pages/order_not_used/order_not_used?orderId=${orderId}`
+            url: `/pages/order_not_used/order_not_used_home?orderId=${orderId}`
           });
         }
       });

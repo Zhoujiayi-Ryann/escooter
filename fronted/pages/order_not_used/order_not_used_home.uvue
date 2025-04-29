@@ -257,11 +257,7 @@ const goToHelp = () => {
 };
 
 const handleBack = () => {
-  if (getCurrentPages().length > 1) {
-    uni.navigateBack();
-  } else {
     uni.reLaunch({ url: '/pages/home/home' });
-  }
 };
 const goToUse = async () => {
   if (!order.value.orderId) {

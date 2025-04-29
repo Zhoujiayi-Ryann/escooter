@@ -1,64 +1,79 @@
 <template>
   <view class="container">
-    <view class="back-btn" @click="handleBack">
-      <van-icon name="arrow-left" class="back-icon"/>
-    </view>
-    <view class="person-btn" @click="goToHelp">
-      <van-icon name="service-o" class="person-icon" />
-    </view>
+	<view class="back-btn" @click="handleBack">
+	  <van-icon name="arrow-left" class="back-icon"/>
+	</view>
+	  <view class="person-btn" @click="goToSettings" >
+	    <van-icon name="manager" class="person-icon" />
+	  </view>
 
-    <view class="map-container">
-<map
-  id="orderMap"
-  class="map"
-  :latitude="location.lat"
-  :longitude="location.lng"
-  :markers="markers"
-  :scale="16"
-  show-location
-  enable-3D
-  enable-poi
-  enable-overlooking
-/>
+<view class="map-container">
+  <!-- 地图先渲染 -->
+  <map
+    id="orderMap"
+    class="map"
+    :latitude="location.lat"
+    :longitude="location.lng"
+    :markers="markers"
+    :scale="16"
+    show-location
+    enable-3D
+    enable-poi
+    enable-overlooking
+  />
+  
+  <!-- 覆盖层后渲染，确保透明，不阻挡交互 -->
+  <cover-view class="map-overlay" />
+</view>
 
-    </view>
-    <cover-view class="map-overlay" />
-
+    <!-- 订单详情浮动面板 -->
     <van-floating-panel v-model:height="panelHeight" :anchors="anchors" class="floating-panel">
       <view class="order-details">
-		<view class="order-info">
-		  <text class="order-price">In Progress</text>
-		  <view class="order-tags">
-			<view class="badge">Order ID: {{ order.orderId }}</view>
-			<view class="status-tag">In Progress</view>
-		  </view>
-		</view>
+        <!-- 订单标题 -->
+    <view class="order-info">
+      <text class="order-price">Completed</text>
+      <view class="order-tags">
+        <view class="badge">Order ID: {{ order.orderId }}</view>
+        <view class="status-tag">Completed</view>
+      </view>
+    </view>
 
-
+        <!-- 订单信息 -->
         <view class="info-box">
-          <view class="info-item"><text class="label">Order ID:</text><text class="value">{{ order.orderId }}</text></view>
-          <view class="info-item"><text class="label">Scooter ID:</text><text class="value">SC{{ order.scooterId }}</text></view>
-          <view class="info-item">
-            <text class="label">Scooter Location:</text>
-            <view class="value address">{{ order.scooterLocation }}</view>
-          </view>
-          <view class="info-item"><text class="label">Battery:</text><text class="value">{{ order.battery }}%</text></view>
-          <view class="info-item"><text class="label">Usage Time:</text><text class="value">{{ order.duration }}</text></view>
-          <view class="divider"></view>
-          <view class="info-item"><text class="label">Price:</text><text class="value">￡{{ order.cost }}</text></view>
+				<view class="info-item">
+				  <text class="label">Scooter ID:</text>
+				  <text class="value">SC{{ order.scooterId }}</text>
+				</view>
+				<view class="info-item">
+				  <text class="label">Start Time:</text>
+				  <text class="value">{{ order.startTime }}</text>
+				</view>
+				<view class="info-item">
+				  <text class="label">End Time:</text>
+				  <text class="value">{{ order.endTime }}</text>
+				</view>
+				<view class="info-item">
+				  <text class="label">Duration:</text>
+				  <text class="value">{{ order.duration }}</text>
+				</view>
+				<view class="divider"></view>
+				<view class="info-item">
+				  <text class="label">Cost:</text>
+				  <text class="value">￡{{ order.cost }}</text>
+				</view>
+
+		  
         </view>
 
-       <!-- <van-button class="feedback-btn" type="primary" @click="goToReturn">
-          Go to return vehicle
-        </van-button> -->
-		<view class="button-group">
-		  <van-button class="half-button home-btn" type="default" @click="goHome">
-		    Return Home
-		  </van-button>
-		  <van-button class="half-button feedback-btn" type="primary" @click="goToReturn">
-		    Go to return vehicle
-		  </van-button>
-		</view>
+        <!-- 反馈按钮 -->
+        <view class="button-group">
+          <van-button class="half-button home-btn" type="default" @click="goHome">
+            Return Home
+          </van-button>
+          <van-button class="half-button feedback-btn" type="primary" @click="goToFeedback">
+            Give Feedback
+          </van-button>
+        </view>
       </view>
     </van-floating-panel>
   </view>
@@ -71,38 +86,108 @@ import { orderApi } from "@/utils/api/order";
 
 const router = useRouter();
 
+// 🚲 订单信息
 const order = ref({
   orderId: '',
   scooterId: '',
-  scooterLocation: '',
-  battery: '',
+  startTime: '',
+  endTime: '',
   duration: '',
-  cost: 0
+  cost: 0,
+  address: '',
 });
 
+// 📍 地图位置（偏移中心点）
 const location = ref({ lat: 0, lng: 0 });
+// 📌 地图标记
 const markers = ref([]);
+
+// 浮动面板高度锚点
 const anchors = [
   120,
-  Math.round(0.45 * window.innerHeight),
-  Math.round(0.6 * window.innerHeight)
+  Math.round(0.4 * window.innerHeight),
+  Math.round(0.55 * window.innerHeight),
 ];
 const panelHeight = ref(anchors[0]);
 
-function formatDuration(startStr) {
+// 时间格式化 yyyy-MM-dd HH:mm
+function formatToCST(utcStr) {
+  if (!utcStr) return 'N/A';
+  const date = new Date(utcStr);
+  if (isNaN(date.getTime())) return 'Invalid Date';
+
+  // 转为中国时间
+  const offsetMs = 8 * 60 * 60 * 1000;
+  const cstDate = new Date(date.getTime() + offsetMs);
+
+  return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;
+}
+
+// 计算持续时间（start -> end）
+function formatDuration(startStr, endStr) {
   const start = new Date(startStr);
-  const now = new Date();
+  const end = new Date(endStr);
+  if (isNaN(start) || isNaN(end)) return 'Unknown';
 
-  if (isNaN(start.getTime())) return 'Unknown';
-
-  const diffMs = now.getTime() - start.getTime();
+  const diffMs = end - start;
   const totalMinutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-
-  return `${hours}h ${minutes}m`;
+  return `${hours}h ${minutes}min`;
 }
 
+// ✅ 获取订单详情
+// const fetchOrderDetail = async () => {
+//   const rawId = router.currentRoute.value.query.orderId;
+//   const orderId = Number(rawId);
+
+//   try {
+//     const res = await orderApi.getOrderDetail(orderId);
+//     if (res.code === 1 && res.data) {
+//       const data = res.data;
+
+//       order.value = {
+//         orderId: data.order_id,
+//         scooterId: data.scooter_id,
+//         startTime: formatTime(data.start_time),
+//         endTime: formatTime(data.end_time),
+//         duration: formatDuration(data.start_time, data.end_time),
+//         cost: data.cost ?? 0,
+//         address: data.address || 'Unknown',
+//       };
+
+//       const lat = data.location_lat;
+//       const lng = data.location_lng;
+
+//       if (!lat || !lng) {
+//         uni.showToast({ title: '坐标无效', icon: 'none' });
+//         return;
+//       }
+
+//       location.value = { lat, lng };
+
+//       markers.value = [{
+//         id: 1,
+//         latitude: lat,
+//         longitude: lng,
+//         iconPath: "/static/order_details/maker.svg",
+//         width: 32,
+//         height: 32,
+//         callout: {
+//           content: order.value.address || `Scooter SC${order.value.scooterId}`,
+//           display: 'ALWAYS',
+//           fontSize: 15,
+//           borderRadius: 5,
+//           padding: 5,
+//           bgColor: "#ffffff",
+//           color: "#007aff",
+//         }
+//       }];
+//     }
+//   } catch (e) {
+//     uni.showToast({ title: '网络异常', icon: 'none' });
+//   }
+// };
 const fetchOrderDetail = async () => {
   const rawId = router.currentRoute.value.query.orderId;
   const orderId = Number(rawId);
@@ -129,10 +214,12 @@ const fetchOrderDetail = async () => {
       order.value = {
         orderId: data.order_id,
         scooterId: data.scooter_id,
-        scooterLocation: data.pickup_address || 'Unknown',
-        battery: data.scooter_info?.battery_level ?? 'N/A',
-        duration: formatDuration(data.start_time),
-        cost: data.cost ?? 0
+        startTime: formatToCST(data.start_time),
+        endTime: formatToCST(data.end_time),
+        duration: formatDuration(data.start_time, data.end_time),
+        cost: data.cost ?? 0,
+        address: data.address || 'Unknown',
+		scooterLocation: data.pickup_address || 'Unknown',
       };
 
       // ✅ 正确设置 location
@@ -164,7 +251,7 @@ const loadScooterLocation = () => {
     height: 32,
     callout: {
       // ✅ 改这里：使用与页面中一致的地址
-      content: order.value.scooterLocation || `Scooter SC${order.value.scooterId}`,
+      content: order.value.scooterLocation,
       display: 'ALWAYS',
       fontSize: 15,
       borderRadius: 5,
@@ -175,54 +262,29 @@ const loadScooterLocation = () => {
   }];
 };
 
+// 🔙 返回按钮
 const handleBack = () => {
-  if (getCurrentPages().length > 1) {
-    uni.navigateBack();
-  } else {
     uni.reLaunch({ url: '/pages/home/home' });
-  }
 };
 
-const goToHelp = () => {
-  uni.navigateTo({ url: '/pages/help/help' });
+// 👤 设置入口
+const goToSettings = () => {
+  uni.navigateTo({ url: '/pages/settings/my_settings/my_settings' });
 };
 
-const goToReturn = async () => {
-  if (!order.value.orderId) {
-    uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
-    return;
-  }
-
-  try {
-    // 调用 activateOrder 方法激活订单
-    const res = await orderApi.completeOrder(order.value.orderId);
-    if (res.code === 1) {
-      // 成功激活订单，显示提示信息
-      uni.showToast({ title: '订单已完成，开始还车', icon: 'success' });
-
-      // 跳转到订单详情页，或根据需求跳转到其他页面
-      uni.navigateTo({
-        url: `/pages/order_details/order_details_home?orderId=${order.value.orderId}`
-      });
-    } else {
-      // 如果激活订单失败
-      uni.showToast({ title: res.msg || '激活订单失败', icon: 'none' });
-    }
-  } catch (err) {
-    console.error('🚨 激活订单请求失败:', err);
-    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
-  }
+// 🗣 反馈跳转
+const goToFeedback = () => {
+  uni.navigateTo({ url: '/pages/feedback/feedback' });
 };
-
 const goHome = () => {
   uni.reLaunch({ url: '/pages/home/home' });
 };
-
+// 挂载时加载数据
 onMounted(() => {
   fetchOrderDetail();
 });
-
 </script>
+
 
 
 <style scoped>
@@ -265,8 +327,6 @@ onMounted(() => {
   font-size: 55rpx;  
   color: #0084ff;
 }
-
-
 /* 地图容器 */
 .map-container {
   width: 100%;
@@ -342,7 +402,6 @@ onMounted(() => {
   font-size: 12px;
   border-radius: 12px;
 }
-
 .order-price {
   font-size: 25px;
   font-weight: bold;
@@ -367,14 +426,12 @@ onMounted(() => {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* 每行信息 */
 .info-item {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   margin-bottom: 8px;
-  overflow: visible;
-  white-space: pre-wrap;      /* 保留换行符 */
-  word-break: break-word; 
 }
 
 /* 信息标签 */
@@ -391,15 +448,6 @@ onMounted(() => {
   color: #666;
   font-weight: 500;
 }
-
-.value.address {
-  font-size: 25rpx;
-  color: #666;
-  margin-top: 4rpx;
-  width: 160px;
-  text-align: right;           /* 右对齐文字 */
-  
-}
 /* 分割线 */
 .divider {
   width: 100%;
@@ -409,7 +457,6 @@ onMounted(() => {
 }
 
 
-/* 反馈按钮 */
 /* 反馈按钮 */
 .feedback-btn {
   border-radius: 25px;
@@ -422,9 +469,6 @@ onMounted(() => {
 }
 
 /* 按钮点击动画 */
-.feedback-btn:active {
-  transform: scale(0.98);
-}
 
 .button-group {
   display: flex;
@@ -456,4 +500,3 @@ onMounted(() => {
 	border: 1px solid #82b1ff;
 }
 </style>
-

@@ -178,6 +178,30 @@
 			}
 		},
 		{
+			"path" : "pages/order_in_progress/order_in_progress_home",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/order_not_used/order_not_used_home",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/order_details/order_details_home",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path" : "pages/settings/change_password/change_password",
 			"style" : 
 			{
