@@ -184,48 +184,73 @@ export function constructInitDataset({
 }
 
 export function getLineChartDataSet({
-  dateTime = [],
+  selectedDate,
   placeholderColor,
   borderColor,
-}: { dateTime?: Array<string> } & Record<string, string>) {
-  const divideNum = 10;
+}: { selectedDate?: string } & Record<string, string>) {
   const timeArray = [];
   const inArray = [];
   const outArray = [];
-  for (let i = 0; i < divideNum; i++) {
-    if (dateTime.length > 0) {
-      const dateAbsTime: number = (new Date(dateTime[1]).getTime() - new Date(dateTime[0]).getTime()) / divideNum;
-      const enhandTime: number = new Date(dateTime[0]).getTime() + dateAbsTime * i;
-      timeArray.push(dayjs(enhandTime).format('MM-DD'));
-    } else {
-      timeArray.push(
-        dayjs()
-          .subtract(divideNum - i, 'day')
-          .format('MM-DD'),
-      );
-    }
-
-    inArray.push(getRandomArray().toString());
-    outArray.push(getRandomArray().toString());
+  
+  // 修改为以周日为一周的开始
+  const startOfWeek = dayjs(selectedDate).startOf('week').subtract(1, 'day');
+  
+  // 修改星期显示顺序，从周日开始
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  // 生成周日到周六的数据
+  for (let i = 0; i < 7; i++) {
+    const currentDay = startOfWeek.add(i, 'day');
+    timeArray.push(currentDay.format('MM-DD') + ` (${weekDays[i]})`);
+    
+    // 根据日期生成该天的收入数据（这里使用一些模拟数据）
+    const baseValue = 1000 + Math.sin(i) * 500;
+    const dailyTotal = Math.floor(baseValue + Math.random() * 200);
+    outArray.push(dailyTotal.toString());
+    
+    // 生成上周同期数据作为对比
+    const lastWeekValue = Math.floor(dailyTotal * (0.8 + Math.random() * 0.4));
+    inArray.push(lastWeekValue.toString());
   }
+
+  // 不同时段的收入数据也相应调整
+  const hourlyRates = {
+    '1hr': outArray.map(v => Math.floor(Number(v) * 0.2)),
+    '4hr': outArray.map(v => Math.floor(Number(v) * 0.3)),
+    '1day': outArray.map(v => Math.floor(Number(v) * 0.5))
+  };
 
   const dataSet = {
     color: getChartListColor(),
     tooltip: {
-      trigger: 'item',
+      trigger: 'axis',
+      formatter: function(params: any) {
+        const day = params[0].name;
+        let html = `${day}<br/>`;
+        params.forEach((param: any) => {
+          const series = param.seriesName;
+          const value = param.value;
+          html += `${series}: £${value}<br/>`;
+        });
+        html += '<br/>Time Period Distribution:<br/>';
+        html += `1 Hour: £${hourlyRates['1hr'][params[0].dataIndex]}<br/>`;
+        html += `4 Hours: £${hourlyRates['4hr'][params[0].dataIndex]}<br/>`;
+        html += `1 Day: £${hourlyRates['1day'][params[0].dataIndex]}`;
+        return html;
+      }
     },
     grid: {
-      left: '0',
-      right: '20px',
-      top: '5px',
-      bottom: '36px',
+      left: '0px',
+      right: '0px',
+      top: '7px',
+      bottom: '30px',
       containLabel: true,
     },
     legend: {
       left: 'center',
       bottom: '0',
-      orient: 'horizontal', // legend 横向布局。
-      data: ['本月', '上月'],
+      orient: 'horizontal',
+      data: ['Current Week', 'Last Week'],
       textStyle: {
         fontSize: 12,
         color: placeholderColor,
@@ -234,9 +259,13 @@ export function getLineChartDataSet({
     xAxis: {
       type: 'category',
       data: timeArray,
-      boundaryGap: false,
+      boundaryGap: true,
       axisLabel: {
         color: placeholderColor,
+        align: 'center',
+      },
+      axisTick: {
+        alignWithLabel: true,
       },
       axisLine: {
         lineStyle: {
@@ -248,6 +277,7 @@ export function getLineChartDataSet({
       type: 'value',
       axisLabel: {
         color: placeholderColor,
+        formatter: '${value}'
       },
       splitLine: {
         lineStyle: {
@@ -257,7 +287,7 @@ export function getLineChartDataSet({
     },
     series: [
       {
-        name: '本月',
+        name: 'Current Week',
         data: outArray,
         type: 'line',
         smooth: false,
@@ -277,7 +307,7 @@ export function getLineChartDataSet({
         },
       },
       {
-        name: '上月',
+        name: 'Last Week',
         data: inArray,
         type: 'line',
         smooth: false,
@@ -294,6 +324,11 @@ export function getLineChartDataSet({
     ],
   };
   return dataSet;
+}
+
+// 辅助函数：生成指定范围内的随机数
+function getRandomArray(min = 100, max = 1000) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**

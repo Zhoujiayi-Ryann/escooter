@@ -1,17 +1,18 @@
 <template>
   <t-row :gutter="[16, 16]">
     <t-col :xs="12" :xl="9">
-      <t-card title="统计数据" subtitle="(万元)" class="dashboard-chart-card" :bordered="false">
+      <t-card title="Weekly Income" class="dashboard-chart-card" :bordered="false">
         <template #actions>
-          <div class="dashboard-chart-title-container">
-            <t-date-range-picker
-              class="card-date-picker-container"
-              theme="primary"
-              mode="date"
-              :default-value="LAST_7_DAYS"
-              @change="onCurrencyChange"
+          <t-space>
+            <t-date-picker
+              v-model="selectedWeek"
+              mode="week"
+              :max="maxDate"
+              format="YYYY-MM-DD"
+              :first-day-of-week="0"
+              @change="onWeekChange"
             />
-          </div>
+          </t-space>
         </template>
         <div
           id="monitorContainer"
@@ -21,7 +22,7 @@
       </t-card>
     </t-col>
     <t-col :xs="12" :xl="3">
-      <t-card title="销售渠道" :subtitle="currentMonth" class="dashboard-chart-card" :bordered="false">
+      <t-card title="Sales Channels" :subtitle="currentMonth" class="dashboard-chart-card" :bordered="false">
         <div
           id="countContainer"
           ref="countContainer"
@@ -37,12 +38,12 @@ import { PieChart, LineChart } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import * as echarts from 'echarts/core';
 import { mapState } from 'vuex';
+import dayjs from 'dayjs';
 
 import { LAST_7_DAYS } from '@/utils/date';
 
 import { getPieChartDataSet, getLineChartDataSet } from '../index';
 import { changeChartsTheme } from '@/utils/color';
-
 echarts.use([TooltipComponent, LegendComponent, PieChart, GridComponent, LineChart, CanvasRenderer]);
 
 export default {
@@ -52,6 +53,8 @@ export default {
       LAST_7_DAYS,
       resizeTime: 1,
       currentMonth: this.getThisMonth(),
+      selectedWeek: dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD'),
+      maxDate: dayjs().format('YYYY-MM-DD'),
     };
   },
   computed: {
@@ -66,6 +69,9 @@ export default {
         item.dispose();
       });
       this.renderCharts();
+    },
+    selectedWeek() {
+      this.updateChartData();
     },
   },
   mounted() {
@@ -90,14 +96,26 @@ export default {
       const startMonth = date.getMonth() + 1 > 9 ? date.getMonth() + 1 : `0${date.getMonth() + 1}`;
       const endMonth = date2.getMonth() + 1 > 9 ? date2.getMonth() + 1 : `0${date2.getMonth() + 1}`;
 
-      return `${date.getFullYear()}-${startMonth}  至  ${date2.getFullYear()}-${endMonth}`;
+      return `${date.getFullYear()}-${startMonth} to ${date2.getFullYear()}-${endMonth}`;
     },
-    /** 资金走趋选择 */
-    onCurrencyChange(checkedValues) {
+    /** 更新图表数据 */
+    updateChartData() {
       const { chartColors } = this.$store.state.setting;
-
-      this.currentMonth = this.getThisMonth(checkedValues);
-      this.monitorChart.setOption(getLineChartDataSet({ dateTime: checkedValues, ...chartColors }));
+      const chartData = getLineChartDataSet({ 
+        selectedDate: this.selectedWeek,
+        ...chartColors 
+      });
+      this.monitorChart.setOption(chartData);
+    },
+    onWeekChange(value) {
+      if (value) {
+        this.selectedWeek = value;
+        // 获取所选周的开始(周日)和结束(周六)日期
+        const weekStart = dayjs(value).startOf('week').format('YYYY-MM-DD');
+        const weekEnd = dayjs(value).endOf('week').format('YYYY-MM-DD');
+        console.log(`所选周的范围: ${weekStart} 至 ${weekEnd}`);
+        this.updateChartData();
+      }
     },
     updateContainer() {
       if (document.documentElement.clientWidth >= 1400 && document.documentElement.clientWidth < 1920) {
@@ -128,7 +146,9 @@ export default {
         this.monitorContainer = document.getElementById('monitorContainer');
       }
       this.monitorChart = echarts.init(this.monitorContainer);
-      this.monitorChart.setOption(getLineChartDataSet({ ...chartColors }));
+      
+      // 使用新的方法更新图表数据
+      this.updateChartData();
 
       // 销售合同占比
       if (!this.countContainer) {
@@ -154,5 +174,11 @@ export default {
     font-size: 20px;
     font-weight: 500;
   }
+}
+
+.dashboard-chart-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 </style>
