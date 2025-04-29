@@ -181,4 +181,12 @@ public class UserServiceImpl implements UserService {
             return null;
         }
     }
+
+    @Override
+    public List<User> findAllNonAdminUsers() {
+        List<User> users = userMapper.findAllNonAdminUsers();
+        // 出于安全考虑，清除所有用户的密码信息
+        users.forEach(user -> user.setPassword(null));
+        return users;
+    }
 }

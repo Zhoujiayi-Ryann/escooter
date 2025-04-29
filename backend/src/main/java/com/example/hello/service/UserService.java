@@ -34,4 +34,11 @@ public interface UserService {
      * @return 符合条件的用户列表
      */
     List<User> findFrequentUsers(float minHours);
+
+    /**
+     * 获取所有非管理员用户
+     * 
+     * @return 非管理员用户列表
+     */
+    List<User> findAllNonAdminUsers();
 }

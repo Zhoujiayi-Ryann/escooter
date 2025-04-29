@@ -10,7 +10,7 @@ export interface RevenueResponse {
 
 export const getTotalRevenue = async (): Promise<number> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/revenue/total`);
+        const response = await axios.get(`${API_BASE_URL}/total-revenue`);
         return response.data;
     } catch (error) {
         console.error('Error fetching total revenue:', error);
@@ -20,7 +20,7 @@ export const getTotalRevenue = async (): Promise<number> => {
 
 export const getDailyRevenue = async (): Promise<number> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/revenue/daily`);
+        const response = await axios.get(`${API_BASE_URL}/daily-revenue`);
         return response.data;
     } catch (error) {
         console.error('Error fetching daily revenue:', error);
@@ -30,7 +30,7 @@ export const getDailyRevenue = async (): Promise<number> => {
 
 export const getRevenueByDateRange = async (startDate: string, endDate: string): Promise<number> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/revenue/range`, {
+        const response = await axios.get(`${API_BASE_URL}/revenue-by-date-range`, {
             params: {
                 startDate,
                 endDate

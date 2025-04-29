@@ -115,4 +115,19 @@ public class UserController {
             return Result.error("System error, query failed");
         }
     }
+
+    /**
+     * 获取所有非管理员用户
+     * 
+     * @return 非管理员用户列表
+     */
+    @GetMapping("/non-admin")
+    public Result<List<User>> getAllNonAdminUsers() {
+        try {
+            List<User> users = userService.findAllNonAdminUsers();
+            return Result.success(users, "Get non-admin users successfully");
+        } catch (Exception e) {
+            return Result.error("Failed to get non-admin users: " + e.getMessage());
+        }
+    }
 }

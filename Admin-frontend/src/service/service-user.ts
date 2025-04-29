@@ -84,6 +84,19 @@ export interface IFrequentUser {
   avatar_path: string;
 }
 
+export interface IUser {
+  userId: number;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  registrationDate: string;
+  totalUsageHours: number;
+  totalSpent: number;
+  userTypes: string;
+  avatarPath: string;
+  isDisabled: boolean;
+}
+
 /**
  * 查询常用用户（使用时长超过50小时）
  * @returns 常用用户列表
@@ -91,13 +104,31 @@ export interface IFrequentUser {
 export const getFrequentUsers = async (): Promise<IFrequentUser[]> => {
   try {
     const response = await axios.get<ApiResponse<IFrequentUser[]>>(`${BASE_URL}/users/frequent`);
-    
+
     if (response.data.code === 1 && response.data.data) {
       return response.data.data;
     }
     return [];
   } catch (error) {
     console.error('获取常用用户列表失败:', error);
+    return [];
+  }
+};
+
+/**
+ * 获取所有非管理员用户
+ * @returns 非管理员用户列表
+ */
+export const getAllNonAdminUsers = async (): Promise<IUser[]> => {
+  try {
+    const response = await axios.get<ApiResponse<IUser[]>>(`${BASE_URL}/users/non-admin`);
+
+    if (response.data.code === 1 && response.data.data) {
+      return response.data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error('获取非管理员用户列表失败:', error);
     return [];
   }
 };
