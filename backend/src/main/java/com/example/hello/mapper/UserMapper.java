@@ -64,7 +64,7 @@ public interface UserMapper {
          * 
          * @return 非管理员用户列表
          */
-        @Select("SELECT * FROM Users WHERE user_types IS NULL OR user_types != 'admin'")
+        @Select("SELECT * FROM Users WHERE user_types IS NULL OR JSON_CONTAINS(user_types, '\"admin\"') = 0")
         @Results({
                         @Result(property = "userId", column = "user_id"),
                         @Result(property = "phoneNumber", column = "phone_number"),

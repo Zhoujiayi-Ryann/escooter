@@ -31,7 +31,7 @@
             <file-icon />
           </span>
         </div>
-        <template #footer>
+        <!-- <template #footer>
           <div class="dashboard-item-bottom">
             <div class="dashboard-item-block">
               自从上周以来
@@ -44,7 +44,7 @@
             </div>
             <chevron-right-icon />
           </div>
-        </template>
+        </template> -->
       </t-card>
     </t-col>
   </t-row>

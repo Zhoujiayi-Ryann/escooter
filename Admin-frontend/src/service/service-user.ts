@@ -66,7 +66,7 @@ export const TEAM_MEMBERS = [
 export const PRODUCT_LIST = ['a', 'b', 'c', 'd'];
 
 // API基础URL
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = 'http://172.20.10.2:8080/api';
 
 // 响应类型接口
 interface ApiResponse<T> {
@@ -92,7 +92,7 @@ export interface IUser {
   registrationDate: string;
   totalUsageHours: number;
   totalSpent: number;
-  userTypes: string;
+  userTypes: string[];
   avatarPath: string;
   isDisabled: boolean;
 }

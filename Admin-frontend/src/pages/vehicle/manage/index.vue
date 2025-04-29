@@ -55,8 +55,15 @@
               <a class="t-button-link" @click="handleRepair(slotProps.row)">
                 {{ slotProps.row.status === VEHICLE_STATUS.maintenance ? 'Restore' : 'Repair' }}
               </a>
-              <a class="t-button-link" @click="handleDelete(slotProps)">Delete</a>
               <a class="t-button-link" @click="handleDetails(slotProps.row)">Details</a>
+              <a class="t-button-link" v-if="slotProps.row.status === VEHICLE_STATUS.free" @click="handlePay(slotProps.row)">Pay</a>
+            </template>
+
+            <!-- 添加删除操作列 -->
+            <template #delete="slotProps">
+              <a class="t-button-link delete-icon" @click="handleDelete(slotProps)">
+                <t-icon name="delete" />
+              </a>
             </template>
           </t-table>
         </div>
@@ -102,6 +109,28 @@
           @cancel="batchRepairVisible = false">
           <p>Confirm marking {{ selectedRowKeys.length }} selected vehicles as faulty?</p>
         </t-dialog>
+
+        <!-- 添加支付侧边栏 -->
+        <t-drawer :visible.sync="payFormVisible" header="Create Order" :footer="false" :size="'500px'" :close-btn="true"
+          :on-close="onPayDialogClose">
+          <t-form :data="payForm" :rules="payRules" ref="payFormRef" :label-width="100" @submit="onPayFormSubmit">
+            <t-form-item label="Vehicle No.">
+              <t-input v-model="payForm.scooterCode" disabled />
+            </t-form-item>
+            <t-form-item label="Time Range" name="timeRange">
+              <t-date-range-picker v-model="payForm.timeRange" enable-time-picker />
+            </t-form-item>
+            <t-form-item label="Amount (£)" name="amount">
+              <t-input-number v-model="payForm.amount" :min="0" :step="0.1" />
+            </t-form-item>
+            <t-form-item class="centerSubmit">
+              <t-space>
+                <t-button theme="primary" type="submit">Submit</t-button>
+                <t-button theme="default" variant="base" @click="onPayDialogClose">Cancel</t-button>
+              </t-space>
+            </t-form-item>
+          </t-form>
+        </t-drawer>
       </div>
     </t-card>
   </t-config-provider>
@@ -109,7 +138,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import { SearchIcon } from 'tdesign-icons-vue';
+import { SearchIcon, DeleteIcon } from 'tdesign-icons-vue';
 import { scooterService, SCOOTER_STATUS, TableScooter } from '@/service/service-scooter';
 import enConfig from 'tdesign-vue/es/locale/en_US'; // 
 
@@ -258,6 +287,7 @@ export default Vue.extend({
   name: 'VehicleManagement',
   components: {
     SearchIcon,
+    DeleteIcon,
   },
   data() {
     const defaultVehicleForm = {
@@ -299,7 +329,8 @@ export default Vue.extend({
         { title: 'Status', colKey: 'status', width: 120, cell: { col: 'status' } },
         { title: 'Last Rental Time', colKey: 'lastRentTime', width: 180 },
         { title: 'Price(£/min)', colKey: 'price', width: 120 },
-        { title: 'Actions', colKey: 'op', fixed: 'right', width: 180 },
+        { title: 'Actions', colKey: 'op', width: 160 },
+        { title: '', colKey: 'delete', width: 60 }, // 添加删除列
       ],
       pagination: {
         pageSize: 10,
@@ -342,6 +373,19 @@ export default Vue.extend({
 
       // 新增的变量
       allData: [] as TableScooter[],
+
+      // 支付相关
+      payFormVisible: false,
+      payForm: {
+        scooterCode: '',
+        timeRange: [],
+        amount: 0,
+      },
+      payRules: {
+        scooterCode: [{ required: true, message: 'Please enter vehicle number', type: 'error' }],
+        timeRange: [{ required: true, message: 'Please select time range', type: 'error' }],
+        amount: [{ required: true, message: 'Please enter amount', type: 'error' }],
+      },
     };
   },
 
@@ -834,6 +878,55 @@ export default Vue.extend({
         this.$message.error('Invalid location data');
       }
     },
+
+    // 添加支付
+    handlePay(row) {
+      this.payForm.scooterCode = row.scooterCode;
+      this.payFormVisible = true;
+    },
+
+    // 提交支付表单
+    async onPayFormSubmit({ validateResult, firstError }) {
+      if (validateResult === true) {
+        try {
+          // 从表单数据中提取城市信息，并生成随机经纬度（实际应用中应有地图选点）
+          const lat = 31.2 + Math.random() * 0.1; // 上海附近的随机经纬度
+          const lng = 121.4 + Math.random() * 0.1;
+
+          // 构建请求数据
+          const requestData = {
+            location_lat: lat,
+            location_lng: lng,
+            battery_level: this.payForm.amount,
+            status: VEHICLE_STATUS.charging,
+            price: this.payForm.amount,
+          };
+
+          // 调用API添加车辆
+          const newScooterId = await scooterService.addScooter(requestData);
+
+          if (newScooterId) {
+            // 重新获取数据以确保显示最新状态
+            await this.fetchData();
+            this.$message.success('Add successful');
+          } else {
+            this.$message.error('Failed to add vehicle');
+          }
+          this.payFormVisible = false;
+        } catch (error) {
+          console.error('Submit pay form failed:', error);
+          this.$message.error('Operation failed, please try again');
+        }
+      } else {
+        console.log('Form validation failed:', firstError);
+        this.$message.error(firstError);
+      }
+    },
+
+    // 关闭支付侧边栏
+    onPayDialogClose() {
+      this.payFormVisible = false;
+    },
   },
 });
 </script>
@@ -890,5 +983,14 @@ export default Vue.extend({
 .centerSubmit {
   display: flex;
   justify-content: center;
+}
+
+// 添加删除图标样式
+.delete-icon {
+  color: var(--td-error-color);
+  
+  &:hover {
+    opacity: 0.8;
+  }
 }
 </style>
