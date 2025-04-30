@@ -208,7 +208,7 @@ const onSave = () => {
     card_number: cardNumberClean,
     security_code: cvv.value,
     expiry_date: expiryDate,
-    country: countryCodeToName[selectedCountry.value.code] || '中国'
+    country: selectedCountry.value.code
   };
   
   // 标记为正在保存
