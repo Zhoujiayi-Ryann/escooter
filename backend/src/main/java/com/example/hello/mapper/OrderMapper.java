@@ -7,6 +7,7 @@ import com.example.hello.dto.response.OrderDetailResponse;
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.type.EnumTypeHandler;
 import org.apache.ibatis.type.JdbcType;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -334,4 +335,51 @@ public interface OrderMapper {
 
         @Select("SELECT COALESCE(SUM(cost), 0) FROM Orders WHERE status != 'PENDING' AND DATE(create_at) BETWEEN #{startDate} AND #{endDate}")
         BigDecimal getRevenueByDateRange(@Param("startDate") String startDate, @Param("endDate") String endDate);
+
+        @Select("SELECT DATE(create_at) as date, SUM(cost) as revenue " +
+                        "FROM Orders " +
+                        "WHERE status != 'PENDING' AND DATE(create_at) BETWEEN #{startDate} AND #{endDate} " +
+                        "GROUP BY DATE(create_at)")
+        @Results({
+                        @Result(property = "date", column = "date"),
+                        @Result(property = "revenue", column = "revenue")
+        })
+        List<DailyRevenue> getDailyRevenueByDateRange(@Param("startDate") String startDate,
+                        @Param("endDate") String endDate);
+
+        @Select("SELECT DATE(create_at) as date, " +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) < 1 THEN cost ELSE 0 END) as less_than_one_hour, "
+                        +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) >= 1 AND (duration + COALESCE(extended_duration, 0)) <= 4 THEN cost ELSE 0 END) as one_to_four_hours, "
+                        +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) > 4 THEN cost ELSE 0 END) as more_than_four_hours "
+                        +
+                        "FROM Orders " +
+                        "WHERE status != 'PENDING' AND DATE(create_at) BETWEEN #{startDate} AND #{endDate} " +
+                        "GROUP BY DATE(create_at)")
+        @Results({
+                        @Result(property = "date", column = "date"),
+                        @Result(property = "lessThanOneHour", column = "less_than_one_hour"),
+                        @Result(property = "oneToFourHours", column = "one_to_four_hours"),
+                        @Result(property = "moreThanFourHours", column = "more_than_four_hours")
+        })
+        List<DurationRevenue> getDurationRevenueByDateRange(@Param("startDate") String startDate,
+                        @Param("endDate") String endDate);
+
+        @Select("SELECT COUNT(*) FROM Orders WHERE status != 'PENDING'")
+        int getTotalOrderCount();
+
+        @Data
+        public static class DailyRevenue {
+                private String date;
+                private BigDecimal revenue;
+        }
+
+        @Data
+        public static class DurationRevenue {
+                private String date;
+                private BigDecimal lessThanOneHour;
+                private BigDecimal oneToFourHours;
+                private BigDecimal moreThanFourHours;
+        }
 }

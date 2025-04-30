@@ -9,6 +9,7 @@ import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
 import com.example.hello.dto.response.AvailableCouponsResponse;
 import com.example.hello.dto.request.CouponRequest;
+import com.example.hello.dto.response.RevenueStatisticsResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -157,4 +158,24 @@ public interface OrderService {
      * @return 指定时间段的收入总额
      */
     BigDecimal getRevenueByDateRange(String startDate, String endDate);
+
+    /**
+     * 获取指定时间段的收入统计
+     * 包括：
+     * 1. 每天的总收入
+     * 2. 每天不同时长的订单收入（<1小时，1-4小时，>4小时）
+     * 3. 时间段内的总收入
+     * 
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @return 收入统计数据
+     */
+    RevenueStatisticsResponse getRevenueStatistics(String startDate, String endDate);
+
+    /**
+     * 获取总订单数量（不包括待处理订单）
+     * 
+     * @return 总订单数量
+     */
+    int getTotalOrderCount();
 }

@@ -10,16 +10,21 @@ import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
 import com.example.hello.dto.response.AvailableCouponsResponse;
 import com.example.hello.dto.request.CouponRequest;
+import com.example.hello.dto.response.RevenueStatisticsResponse;
 import com.example.hello.exception.OrderException;
 import com.example.hello.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.HashMap;
 
 /**
  * 订单控制器
@@ -398,6 +403,53 @@ public class OrderController {
         } catch (Exception e) {
             log.error("Failed to get revenue by date range: {}", e.getMessage());
             return Result.error(e.getMessage());
+        }
+    }
+
+    @GetMapping("/revenue-statistics")
+    public Result<RevenueStatisticsResponse> getRevenueStatistics(
+            @RequestParam(value = "start_date", required = true) String startDate,
+            @RequestParam(value = "end_date", required = true) String endDate) {
+        try {
+            log.info("Received revenue statistics request for date range: {} to {}", startDate, endDate);
+
+            // 验证日期参数
+            if (startDate == null || startDate.isEmpty() || endDate == null || endDate.isEmpty()) {
+                return Result.error("Start date and end date cannot be empty");
+            }
+
+            // 验证日期格式
+            try {
+                java.time.LocalDate.parse(startDate);
+                java.time.LocalDate.parse(endDate);
+            } catch (Exception e) {
+                return Result.error("Invalid date format, please use yyyy-MM-dd format");
+            }
+
+            RevenueStatisticsResponse statistics = orderService.getRevenueStatistics(startDate, endDate);
+            return Result.success(statistics, "Get revenue statistics successfully");
+        } catch (Exception e) {
+            log.error("Failed to get revenue statistics: {}", e.getMessage());
+            return Result.error("Failed to get revenue statistics: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/total-order-count")
+    public ResponseEntity<Map<String, Object>> getTotalOrderCount() {
+        log.info("Getting total order count");
+        try {
+            int count = orderService.getTotalOrderCount();
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 1);
+            response.put("msg", "Get total order count successfully");
+            response.put("data", count);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to get total order count", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 0);
+            response.put("msg", "Failed to get total order count");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }

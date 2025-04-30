@@ -10,6 +10,7 @@ import com.example.hello.dto.request.ExtendOrderRequest;
 import com.example.hello.dto.response.AvailableTimeSlotsResponse;
 import com.example.hello.dto.response.AvailableCouponsResponse;
 import com.example.hello.dto.request.CouponRequest;
+import com.example.hello.dto.response.RevenueStatisticsResponse;
 import com.example.hello.entity.Order;
 import com.example.hello.entity.Scooter;
 import com.example.hello.entity.Coupon;
@@ -31,10 +32,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.TreeMap;
 
 /**
  * 订单服务实现类
@@ -1045,5 +1050,92 @@ public class OrderServiceImpl implements OrderService {
     public void checkDailyRevenue() {
         BigDecimal dailyRevenue = getDailyRevenue();
         log.info("Current daily revenue: {}", dailyRevenue);
+    }
+
+    @Override
+    public RevenueStatisticsResponse getRevenueStatistics(String startDate, String endDate) {
+        log.info("Calculating revenue statistics for date range: {} to {}", startDate, endDate);
+
+        // 创建响应对象
+        RevenueStatisticsResponse response = new RevenueStatisticsResponse();
+        Map<String, BigDecimal> dailyRevenueMap = new TreeMap<>();
+        Map<String, RevenueStatisticsResponse.DurationRevenue> durationRevenueMap = new TreeMap<>();
+
+        // 获取日期范围内的所有日期
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        List<LocalDate> allDates = new ArrayList<>();
+        LocalDate current = start;
+        while (!current.isAfter(end)) {
+            allDates.add(current);
+            current = current.plusDays(1);
+        }
+
+        // 获取每天的收入统计
+        List<OrderMapper.DailyRevenue> dailyRevenues = orderMapper.getDailyRevenueByDateRange(startDate, endDate);
+        Map<String, BigDecimal> existingDailyRevenues = dailyRevenues.stream()
+                .collect(Collectors.toMap(
+                        OrderMapper.DailyRevenue::getDate,
+                        OrderMapper.DailyRevenue::getRevenue,
+                        (existing, replacement) -> existing,
+                        TreeMap::new));
+
+        // 获取每天不同时长的收入统计
+        List<OrderMapper.DurationRevenue> durationRevenues = orderMapper.getDurationRevenueByDateRange(startDate,
+                endDate);
+        Map<String, OrderMapper.DurationRevenue> existingDurationRevenues = durationRevenues.stream()
+                .collect(Collectors.toMap(
+                        OrderMapper.DurationRevenue::getDate,
+                        revenue -> revenue,
+                        (existing, replacement) -> existing,
+                        TreeMap::new));
+
+        // 计算总收入
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+
+        // 处理所有日期，包括没有收入的日期
+        for (LocalDate date : allDates) {
+            String dateStr = date.toString();
+
+            // 处理每日收入
+            BigDecimal dailyRevenue = existingDailyRevenues.getOrDefault(dateStr, BigDecimal.ZERO);
+            dailyRevenueMap.put(dateStr, dailyRevenue);
+            totalRevenue = totalRevenue.add(dailyRevenue);
+
+            // 处理不同时长的收入
+            RevenueStatisticsResponse.DurationRevenue durationRevenue = new RevenueStatisticsResponse.DurationRevenue();
+            OrderMapper.DurationRevenue existingDuration = existingDurationRevenues.get(dateStr);
+
+            if (existingDuration != null) {
+                durationRevenue.setLessThanOneHour(existingDuration.getLessThanOneHour());
+                durationRevenue.setOneToFourHours(existingDuration.getOneToFourHours());
+                durationRevenue.setMoreThanFourHours(existingDuration.getMoreThanFourHours());
+            } else {
+                durationRevenue.setLessThanOneHour(BigDecimal.ZERO);
+                durationRevenue.setOneToFourHours(BigDecimal.ZERO);
+                durationRevenue.setMoreThanFourHours(BigDecimal.ZERO);
+            }
+
+            durationRevenueMap.put(dateStr, durationRevenue);
+        }
+
+        response.setTotalRevenue(totalRevenue);
+        response.setDailyRevenue(dailyRevenueMap);
+        response.setDailyDurationRevenue(durationRevenueMap);
+
+        return response;
+    }
+
+    @Override
+    public int getTotalOrderCount() {
+        log.info("Getting total order count");
+        try {
+            int count = orderMapper.getTotalOrderCount();
+            log.info("Total order count: {}", count);
+            return count;
+        } catch (Exception e) {
+            log.error("Failed to get total order count", e);
+            throw new RuntimeException("Failed to get total order count");
+        }
     }
 }
