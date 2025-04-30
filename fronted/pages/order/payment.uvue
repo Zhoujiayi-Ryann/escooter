@@ -27,7 +27,7 @@
 				</scroll-view>
 			</template>
 			</van-cell>
-			<van-cell title="Rental Time" :value="`${orderInfo.days} ${orderInfo.days <= 1 ? 'day' : 'days'}`" />
+			<van-cell title="Rental Time" :value="calculateRentalTime()" />
 			<van-cell title="Pickup address" :value="orderInfo.address" />
 		</van-cell-group>
 
@@ -42,7 +42,7 @@
 			>
 			  <template #value>
 				<text v-if="chosenCoupon !== -1">
-				  -£{{ (coupons[chosenCoupon].denominations / 100).toFixed(2) }}
+				  -£{{ coupons[chosenCoupon].couponAmount }}
 				</text>
 				<text v-else>None</text>
 			  </template>
@@ -230,6 +230,29 @@
 				
 				console.log('订单信息:', this.orderInfo);
 				
+				// 检查订单数据格式
+				if (this.orderInfo.start_time && this.orderInfo.end_time) {
+					try {
+						// 尝试将ISO格式转换为更友好的显示格式
+						const startDateTime = new Date(this.orderInfo.start_time);
+						const endDateTime = new Date(this.orderInfo.end_time);
+						
+						this.orderInfo.startDate = startDateTime.toLocaleDateString();
+						this.orderInfo.startTime = startDateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+						this.orderInfo.endDate = endDateTime.toLocaleDateString();
+						this.orderInfo.endTime = endDateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+						
+						console.log('格式化后的时间:', {
+							startDate: this.orderInfo.startDate,
+							startTime: this.orderInfo.startTime,
+							endDate: this.orderInfo.endDate,
+							endTime: this.orderInfo.endTime
+						});
+					} catch (e) {
+						console.error('解析日期时间出错:', e);
+					}
+				}
+				
 				// 加载订单可用的优惠券
 				this.loadAvailableCoupons();
 			}
@@ -299,6 +322,7 @@
 						couponId: this.coupons[this.chosenCoupon].id,
 						orderId: orderId
 					};
+					console.log('使用优惠券支付，couponRequest:', couponRequest);
 				}
 				
 				// 根据是否有优惠券选择不同的API调用
@@ -406,7 +430,7 @@
 					const coupon = this.coupons[this.chosenCoupon];
 					const baseAmount = parseFloat(this.orderInfo.cost || 0);
 					if (baseAmount >= (coupon.originCondition || 0)) {
-						couponDiscount = coupon.denominations / 100; // 因为denominations已经是乘以100的值，所以这里需要除以100
+						couponDiscount = coupon.couponAmount; // 使用原始金额，不受乘以100的影响
 					} else {
 						console.log('订单金额不满足优惠券使用条件:', {
 							baseAmount: baseAmount,
@@ -535,43 +559,50 @@
 						coupons.forEach(coupon => {
 							console.log('处理优惠券:', coupon);
 							
+							// 转换日期为更易读的格式 - 使用正确的字段名 (snake_case)
+							const validFrom = coupon.valid_from ? new Date(coupon.valid_from) : null;
+							const validTo = coupon.valid_to ? new Date(coupon.valid_to) : null;
+							
 							// 转换为van-coupon组件需要的格式
 							const formattedCoupon = {
-								id: coupon.couponId,
-								name: coupon.couponName || 'Discount Coupon',
-								condition: `Min. spend £${coupon.minSpend}`,
-								description: `Valid from ${new Date(coupon.validFrom).toLocaleDateString()} to ${new Date(coupon.validTo).toLocaleDateString()}`,
-								startAt: new Date(coupon.validFrom).getTime(),
-								endAt: new Date(coupon.validTo).getTime(),
-								valueDesc: `£${coupon.couponAmount}`,
+								id: coupon.coupon_id,
+								name: coupon.coupon_name || 'Discount Coupon',
+								condition: `Min. spend £${coupon.min_spend || 0}`,
+								description: validFrom && validTo ? 
+									`Valid from ${validFrom.toLocaleDateString()} to ${validTo.toLocaleDateString()}` : 
+									'Valid dates unavailable',
+								startAt: validFrom ? validFrom.getTime() : Date.now(),
+								endAt: validTo ? validTo.getTime() : Date.now() + 86400 * 30 * 1000,
+								valueDesc: `£${coupon.coupon_amount || 0}`,
 								unitDesc: 'OFF',
-								denominations: coupon.couponAmount * 100, // 乘以100来抵消组件的自动除法
-								originCondition: coupon.minSpend
+								denominations: (coupon.coupon_amount || 0) * 100, // 乘以100来抵消组件的自动除法
+								originCondition: coupon.min_spend || 0,
+								couponAmount: coupon.coupon_amount || 0 // 保存原始金额，用于计算
 							};
 							
 							console.log('格式化后的优惠券:', formattedCoupon);
 							
 							const now = Date.now();
 							const isValid = now >= formattedCoupon.startAt && now <= formattedCoupon.endAt;
-							const meetsThreshold = orderAmount >= coupon.minSpend;
+							const meetsThreshold = orderAmount >= (coupon.min_spend || 0);
 							
 							// 检查优惠券是否可用
 							// 优惠券必须：1. 状态为可用 2. 在有效期内 3. 满足最低消费要求
 							if (coupon.status === 'able' && isValid && meetsThreshold) {
 								availableCoupons.push(formattedCoupon);
 								console.log('优惠券可用:', {
-									id: coupon.couponId,
-									minSpend: coupon.minSpend,
+									id: coupon.coupon_id,
+									minSpend: coupon.min_spend,
 									orderAmount: orderAmount
 								});
 							} else {
 								unavailableCoupons.push(formattedCoupon);
 								console.log('优惠券不可用:', {
-									id: coupon.couponId,
+									id: coupon.coupon_id,
 									status: coupon.status,
 									isValid: isValid,
 									meetsThreshold: meetsThreshold,
-									minSpend: coupon.minSpend,
+									minSpend: coupon.min_spend,
 									orderAmount: orderAmount
 								});
 							}
@@ -591,6 +622,73 @@
 					console.error('加载优惠券时出错:', error);
 					this.coupons = [];
 					this.disabledCoupons = [];
+				}
+			},
+			calculateRentalTime() {
+				try {
+					console.log('计算租赁时间, 原始数据:', {
+						startTime: this.orderInfo.start_time,
+						endTime: this.orderInfo.end_time,
+						startDate: this.orderInfo.startDate,
+						startTimeLocal: this.orderInfo.startTime,
+						endDate: this.orderInfo.endDate,
+						endTimeLocal: this.orderInfo.endTime
+					});
+					
+					let startDateTime, endDateTime;
+					
+					// 首先尝试使用start_time和end_time (ISO格式)
+					if (this.orderInfo.start_time && this.orderInfo.end_time) {
+						startDateTime = new Date(this.orderInfo.start_time);
+						endDateTime = new Date(this.orderInfo.end_time);
+					} 
+					// 如果不存在，则尝试使用startDate+startTime和endDate+endTime组合
+					else if (this.orderInfo.startDate && this.orderInfo.startTime && 
+							this.orderInfo.endDate && this.orderInfo.endTime) {
+						startDateTime = new Date(`${this.orderInfo.startDate} ${this.orderInfo.startTime}`);
+						endDateTime = new Date(`${this.orderInfo.endDate} ${this.orderInfo.endTime}`);
+					} else {
+						console.error('缺少必要的日期时间信息');
+						return 'N/A';
+					}
+					
+					// 检查日期是否有效
+					if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+						console.error('无效的日期格式:', startDateTime, endDateTime);
+						return 'N/A';
+					}
+					
+					console.log('计算租赁时间, 解析后的日期:', {
+						startDateTime,
+						endDateTime
+					});
+					
+					// 计算时间差（毫秒）
+					const diffMs = endDateTime.getTime() - startDateTime.getTime();
+					
+					// 转换为小时
+					const hours = Math.round(diffMs / (1000 * 60 * 60));
+					
+					console.log('计算租赁时间, 时间差:', {
+						diffMs,
+						hours
+					});
+					
+					// 如果小时数超过24，也可以显示天数
+					if (hours >= 24) {
+						const days = Math.floor(hours / 24);
+						const remainingHours = hours % 24;
+						if (remainingHours === 0) {
+							return `${days} ${days === 1 ? 'day' : 'days'}`;
+						} else {
+							return `${days} ${days === 1 ? 'day' : 'days'} ${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`;
+						}
+					} else {
+						return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+					}
+				} catch (error) {
+					console.error('计算租赁时间出错:', error);
+					return 'N/A';
 				}
 			},
 		}
