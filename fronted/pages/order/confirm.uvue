@@ -201,17 +201,29 @@ export default {
     createOrder() {
       this.isLoading = true;
       
-      // 将日期和时间转换为ISO格式的日期时间字符串
-      const startDateTime = new Date(`${this.startDate} ${this.startTime}`).toISOString();
-      const endDateTime = new Date(`${this.endDate} ${this.endTime}`).toISOString();
+      // 将日期和时间转换为本地时区的格式化字符串
+      const startDateTime = new Date(`${this.startDate} ${this.startTime}`);
+      const endDateTime = new Date(`${this.endDate} ${this.endTime}`);
+      
+      // 格式化为 YYYY-MM-DDTHH:MM:SS 格式并保留本地时区信息
+      const formatDateTime = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      };
       
       // 构建创建订单请求
       const orderData = {
         user_id: this.userId,
         scooter_id: this.scooterId,
         pickup_address: this.address,
-        start_time: startDateTime,
-        end_time: endDateTime
+        start_time: formatDateTime(startDateTime),
+        end_time: formatDateTime(endDateTime)
       };
       
       console.log('Creating order with data:', orderData);
