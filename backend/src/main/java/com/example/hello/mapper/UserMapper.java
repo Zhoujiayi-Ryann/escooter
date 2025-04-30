@@ -41,6 +41,9 @@ public interface UserMapper {
                         "WHERE user_id = #{userId}")
         void updateUserUsageStats(Integer userId, Float totalUsageHours, BigDecimal totalSpent);
 
+        @Update("UPDATE Users SET is_disabled = #{isDisabled} WHERE user_id = #{userId}")
+        void updateUserDisabledStatus(@Param("userId") Integer userId, @Param("isDisabled") Boolean isDisabled);
+
         /**
          * 查询使用时长超过指定小时数的用户
          * 

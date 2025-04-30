@@ -41,4 +41,12 @@ public interface UserService {
      * @return 非管理员用户列表
      */
     List<User> findAllNonAdminUsers();
+
+    /**
+     * 切换用户禁用状态
+     * 
+     * @param userId 用户ID
+     * @return 更新后的用户信息
+     */
+    User toggleUserDisabledStatus(Long userId);
 }

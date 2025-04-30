@@ -130,4 +130,14 @@ public class UserController {
             return Result.error("Failed to get non-admin users: " + e.getMessage());
         }
     }
+
+    @PatchMapping("/{id}/toggle-disabled")
+    public Result<User> toggleUserDisabledStatus(@PathVariable Long id) {
+        try {
+            User updatedUser = userService.toggleUserDisabledStatus(id);
+            return Result.success(updatedUser, "User status updated successfully");
+        } catch (Exception e) {
+            return Result.error("Failed to update user status: " + e.getMessage());
+        }
+    }
 }

@@ -189,4 +189,23 @@ public class UserServiceImpl implements UserService {
         users.forEach(user -> user.setPassword(null));
         return users;
     }
+
+    @Override
+    @Transactional
+    public User toggleUserDisabledStatus(Long id) {
+        // 获取现有用户信息
+        User existingUser = userMapper.findById(id);
+        if (existingUser == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        // 切换禁用状态
+        Boolean newStatus = !existingUser.getIsDisabled();
+        userMapper.updateUserDisabledStatus(id.intValue(), newStatus);
+        existingUser.setIsDisabled(newStatus);
+
+        // 清除密码后返回
+        existingUser.setPassword(null);
+        return existingUser;
+    }
 }

@@ -132,3 +132,22 @@ export const getAllNonAdminUsers = async (): Promise<IUser[]> => {
     return [];
   }
 };
+
+/**
+ * 切换用户禁用状态
+ * @param userId 用户ID
+ * @returns 更新后的用户信息
+ */
+export const toggleUserDisabledStatus = async (userId: number): Promise<IUser> => {
+  try {
+    const response = await axios.patch<ApiResponse<IUser>>(`${BASE_URL}/users/${userId}/toggle-disabled`);
+
+    if (response.data.code === 1 && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.msg || 'Failed to toggle user status');
+  } catch (error) {
+    console.error('Failed to toggle user status:', error);
+    throw error;
+  }
+};
