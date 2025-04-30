@@ -7,7 +7,7 @@ import org.apache.ibatis.type.EnumOrdinalTypeHandler;
 import java.util.List;
 
 /**
- * 反馈Mapper接口
+ * 反馈数据访问接口
  */
 @Mapper
 public interface FeedbackMapper {
@@ -43,7 +43,7 @@ public interface FeedbackMapper {
         @Result(property = "billNumber", column = "bill_number"),
         @Result(property = "createdAt", column = "created_at")
     })
-    Feedback getFeedbackById(Long id);
+    Feedback findById(Long id);
     
     /**
      * 根据订单号查询反馈ID
@@ -72,4 +72,22 @@ public interface FeedbackMapper {
         @Result(property = "createdAt", column = "created_at")
     })
     List<Feedback> findAllFeedback();
+    
+    /**
+     * 更新反馈信息
+     */
+    @Update("UPDATE feedback SET description = #{description}, status = #{status}, priority = #{priority} WHERE id = #{id}")
+    int updateFeedback(Feedback feedback);
+    
+    /**
+     * 删除反馈
+     */
+    @Delete("DELETE FROM feedback WHERE id = #{id}")
+    int deleteFeedback(Long id);
+    
+    /**
+     * 统计反馈关联的图片数量
+     */
+    @Select("SELECT COUNT(*) FROM feedback_images WHERE feedback_id = #{feedbackId}")
+    int countFeedbackImages(Long feedbackId);
 } 

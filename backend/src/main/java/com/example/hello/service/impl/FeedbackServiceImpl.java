@@ -1,6 +1,9 @@
 package com.example.hello.service.impl;
 
 import com.example.hello.dto.request.FeedbackRequest;
+import com.example.hello.dto.request.UpdateFeedbackRequest;
+import com.example.hello.dto.response.DeleteFeedbackResponse;
+import com.example.hello.dto.response.FeedbackDetailResponse;
 import com.example.hello.dto.response.FeedbackListResponse;
 import com.example.hello.dto.response.FeedbackResponse;
 import com.example.hello.entity.Feedback;
@@ -199,5 +202,143 @@ public class FeedbackServiceImpl implements FeedbackService {
         
         feedbackImageMapper.batchInsertImages(images);
         logger.info("Successfully save {} feedback images", images.size());
+    }
+
+    /**
+     * 获取反馈详情
+     */
+    @Override
+    public FeedbackDetailResponse getFeedbackDetail(Long id) {
+        logger.info("Get feedback detail, id: {}", id);
+        
+        try {
+            // 查询反馈记录
+            Feedback feedback = feedbackMapper.findById(id);
+            
+            if (feedback == null) {
+                logger.warn("Feedback not found, id: {}", id);
+                return null;
+            }
+            
+            // 查询图片URL列表
+            List<String> imageUrls = feedbackImageMapper.getFeedbackImageUrlsById(id);
+            logger.info("Get image URL list: {}", imageUrls);
+            
+            // 构建响应对象
+            FeedbackDetailResponse response = FeedbackDetailResponse.builder()
+                    .id(feedback.getId())
+                    .userId(feedback.getUserId())
+                    .feedbackType(feedback.getFeedbackType() != null ? feedback.getFeedbackType().name() : null)
+                    .description(feedback.getDescription())
+                    .status(feedback.getStatus() != null ? feedback.getStatus().name() : null)
+                    .priority(feedback.getPriority() != null ? feedback.getPriority().name() : null)
+                    .happeningTime(feedback.getHappeningTime() != null ? feedback.getHappeningTime().atStartOfDay() : null)
+                    .billNumber(feedback.getBillNumber())
+                    .createdAt(feedback.getCreatedAt())
+                    .images(imageUrls)  // 直接使用图片URL列表
+                    .build();
+            
+            // 补充用户信息（在实际应用中，你需要调用用户服务获取用户信息）
+            // TODO: 通过用户服务获取真实的用户信息
+            response.setUserInfo(FeedbackDetailResponse.UserInfo.builder()
+                    .username("user" + feedback.getUserId())
+                    .avatar("https://example.com/avatar" + feedback.getUserId() + ".jpg")
+                    .build());
+            
+            logger.info("Successfully get feedback detail, id: {}", id);
+            return response;
+        } catch (Exception e) {
+            logger.error("Get feedback detail failed, id: {}, error: {}", id, e.getMessage(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * 更新反馈
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public FeedbackDetailResponse updateFeedback(Long id, UpdateFeedbackRequest request) {
+        logger.info("Update feedback, id: {}, request: {}", id, request);
+        
+        try {
+            // 查询反馈记录
+            Feedback feedback = feedbackMapper.findById(id);
+            
+            if (feedback == null) {
+                logger.warn("Feedback not found, id: {}", id);
+                return null;
+            }
+            
+            // 更新描述（如果提供）
+            if (request.getDescription() != null) {
+                feedback.setDescription(request.getDescription());
+            }
+            
+            // 更新状态（如果提供）
+            if (request.getStatus() != null) {
+                feedback.setStatus(request.getStatusEnum());
+            }
+            
+            // 更新优先级（如果提供）
+            if (request.getPriority() != null) {
+                feedback.setPriority(request.getPriorityEnum());
+            }
+            
+            // 执行更新
+            int updated = feedbackMapper.updateFeedback(feedback);
+            
+            if (updated <= 0) {
+                logger.error("Update feedback failed, id: {}", id);
+                return null;
+            }
+            
+            // 返回更新后的详情
+            logger.info("Successfully update feedback, id: {}", id);
+            return getFeedbackDetail(id);
+        } catch (Exception e) {
+            logger.error("Update feedback failed, id: {}, error: {}", id, e.getMessage(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * 删除反馈
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DeleteFeedbackResponse deleteFeedback(Long id) {
+        logger.info("Delete feedback, id: {}", id);
+        
+        try {
+            // 查询反馈记录（确保存在）
+            Feedback feedback = feedbackMapper.findById(id);
+            
+            if (feedback == null) {
+                logger.warn("Feedback not found, id: {}", id);
+                return null;
+            }
+            
+            // 统计图片数量
+            int imagesCount = feedbackMapper.countFeedbackImages(id);
+            
+            // 删除图片（因为设置了外键级联删除，数据库会自动删除关联的图片）
+            // 但我们仍然记录删除的图片数量
+            
+            // 删除反馈
+            int deleted = feedbackMapper.deleteFeedback(id);
+            
+            if (deleted <= 0) {
+                logger.error("Delete feedback failed, id: {}", id);
+                return null;
+            }
+            
+            // 返回删除结果
+            logger.info("Successfully delete feedback, id: {}, deleted images count: {}", id, imagesCount);
+            return DeleteFeedbackResponse.of(id, imagesCount);
+        } catch (Exception e) {
+            logger.error("Delete feedback failed, id: {}, error: {}", id, e.getMessage(), e);
+            return null;
+        }
     }
 } 

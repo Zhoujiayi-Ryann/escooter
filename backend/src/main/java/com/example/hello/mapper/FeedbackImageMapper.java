@@ -6,48 +6,44 @@ import org.apache.ibatis.annotations.*;
 import java.util.List;
 
 /**
- * 反馈图片Mapper接口
+ * 反馈图片数据访问接口
  */
 @Mapper
 public interface FeedbackImageMapper {
     
     /**
-     * 批量插入反馈图片
-     * 
-     * @param images 反馈图片列表
-     * @return 影响的行数
+     * 批量插入图片
      */
-    @Insert({
-        "<script>",
-        "INSERT INTO feedback_images (feedback_id, image_url, upload_time) VALUES ",
-        "<foreach collection='list' item='image' separator=','>",
-        "(#{image.feedbackId}, #{image.imageUrl}, #{image.uploadTime})",
-        "</foreach>",
-        "</script>"
-    })
-    int batchInsertImages(List<FeedbackImage> images);
+    @Insert("<script>" +
+            "INSERT INTO feedback_images (feedback_id, image_url, upload_time) VALUES " +
+            "<foreach collection='images' item='image' separator=','>" +
+            "(#{image.feedbackId}, #{image.imageUrl}, #{image.uploadTime})" +
+            "</foreach>" +
+            "</script>")
+    void batchInsertImages(@Param("images") List<FeedbackImage> images);
     
     /**
-     * 根据反馈ID查询图片URL列表
-     * 
-     * @param feedbackId 反馈ID
-     * @return 图片URL列表
+     * 根据反馈ID获取所有图片
+     */
+    @Select("SELECT * FROM feedback_images WHERE feedback_id = #{feedbackId}")
+    List<FeedbackImage> getFeedbackImagesById(Long feedbackId);
+    
+    /**
+     * 根据反馈ID获取所有图片URL
+     * 直接返回image_url字段值列表
      */
     @Select("SELECT image_url FROM feedback_images WHERE feedback_id = #{feedbackId}")
-    List<String> getImageUrlsByFeedbackId(Long feedbackId);
+    List<String> getFeedbackImageUrlsById(Long feedbackId);
     
     /**
-     * 根据反馈ID查询完整的图片信息
-     * 
-     * @param feedbackId 反馈ID
-     * @return 图片实体列表
+     * 统计反馈图片数量
      */
-    @Select("SELECT * FROM feedback_images WHERE feedback_id = #{feedbackId} ORDER BY upload_time ASC")
-    @Results({
-        @Result(property = "id", column = "id"),
-        @Result(property = "feedbackId", column = "feedback_id"),
-        @Result(property = "imageUrl", column = "image_url"),
-        @Result(property = "uploadTime", column = "upload_time")
-    })
-    List<FeedbackImage> getFeedbackImagesById(Long feedbackId);
+    @Select("SELECT COUNT(*) FROM feedback_images WHERE feedback_id = #{feedbackId}")
+    int countImagesByFeedbackId(Long feedbackId);
+    
+    /**
+     * 删除反馈图片
+     */
+    @Delete("DELETE FROM feedback_images WHERE feedback_id = #{feedbackId}")
+    int deleteImagesByFeedbackId(Long feedbackId);
 } 

@@ -1,6 +1,9 @@
 package com.example.hello.service;
 
 import com.example.hello.dto.request.FeedbackRequest;
+import com.example.hello.dto.request.UpdateFeedbackRequest;
+import com.example.hello.dto.response.DeleteFeedbackResponse;
+import com.example.hello.dto.response.FeedbackDetailResponse;
 import com.example.hello.dto.response.FeedbackListResponse;
 import com.example.hello.dto.response.FeedbackResponse;
 
@@ -20,9 +23,34 @@ public interface FeedbackService {
     FeedbackResponse submitFeedback(FeedbackRequest request);
     
     /**
-     * 获取所有反馈记录（包含图片）
+     * 获取所有反馈记录
      * 
      * @return 反馈列表响应
      */
     List<FeedbackListResponse> getAllFeedback();
+    
+    /**
+     * 获取反馈详情
+     * 
+     * @param id 反馈ID
+     * @return 反馈详情
+     */
+    FeedbackDetailResponse getFeedbackDetail(Long id);
+    
+    /**
+     * 更新反馈
+     * 
+     * @param id 反馈ID
+     * @param request 更新请求
+     * @return 更新后的反馈详情
+     */
+    FeedbackDetailResponse updateFeedback(Long id, UpdateFeedbackRequest request);
+    
+    /**
+     * 删除反馈
+     * 
+     * @param id 反馈ID
+     * @return 删除结果
+     */
+    DeleteFeedbackResponse deleteFeedback(Long id);
 } 
