@@ -3,11 +3,21 @@ import { request } from '../request';
 import { ApiResponse, LoginResponseData, RegisterResponseData } from '../types';
 
 /**
- * 用户信息类型
+ * 用户信息类型 - 包含所有用户详细信息
  */
 export interface UserInfo {
     user_id: number;
     username: string;
+    password?: string;  // 可选，安全考虑通常不应存储密码
+    email?: string;
+    phone_number?: string;
+    registration_date?: string;
+    total_usage_hours?: number;
+    total_spent?: number;
+    user_types?: string;
+    avatar_path?: string;
+    is_disabled?: boolean;
+    token?: string;  // 可选，存储登录令牌
 }
 
 /**
@@ -113,12 +123,18 @@ export const userApi = {
 
     /**
      * 保存用户信息到本地存储
-     * @param userInfo 用户信息
+     * @param userInfo 完整的用户信息
      */
     saveUserInfo(userInfo: UserInfo): void {
         try {
             uni.setStorageSync('userInfo', JSON.stringify(userInfo));
-            console.log('用户信息已保存到本地存储', userInfo);
+            console.log('完整用户信息已保存到本地存储', userInfo);
+            
+            // 如果有token，单独保存token（保持与现有代码兼容）
+            if (userInfo.token) {
+                uni.setStorageSync('token', userInfo.token);
+                console.log('用户token已单独保存');
+            }
         } catch (e) {
             console.error('保存用户信息失败:', e);
         }
@@ -126,7 +142,7 @@ export const userApi = {
 
     /**
      * 获取用户信息
-     * @returns 用户信息，如果未找到则返回null
+     * @returns 完整的用户信息，如果未找到则返回null
      */
     getUserInfo(): UserInfo | null {
         try {
@@ -188,6 +204,26 @@ export const userApi = {
         } catch (e) {
             console.error('退出登录失败:', e);
         }
+    },
+    
+    /**
+     * 更新本地存储的用户信息
+     * @param newInfo 需要更新的用户信息字段
+     */
+    updateLocalUserInfo(newInfo: Partial<UserInfo>): void {
+        try {
+            const currentUserInfo = this.getUserInfo();
+            if (currentUserInfo) {
+                // 合并现有信息和新信息
+                const updatedInfo = { ...currentUserInfo, ...newInfo };
+                this.saveUserInfo(updatedInfo);
+                console.log('本地用户信息已更新', updatedInfo);
+            } else {
+                console.warn('没有找到本地用户信息，无法更新');
+            }
+        } catch (e) {
+            console.error('更新本地用户信息失败:', e);
+        }
     }
 }
 
@@ -196,35 +232,32 @@ export const userApi = {
  * 
  * import { userApi } from '../utils/api/user';
  * 
- * // 登录
+ * // 登录并保存完整用户信息
  * userApi.login({
  *     username: 'user123',
  *     password: 'password123'
  * }).then(res => {
  *     if (res.code === 1) {
- *         // 保存用户信息
- *         userApi.saveUserInfo({
- *             user_id: res.data.user_id,
- *             username: res.data.username,
- *             token: res.data.token
+ *         // 获取完整用户信息
+ *         userApi.getUserDetail(res.data.user_id).then(detailRes => {
+ *             if (detailRes.code === 1) {
+ *                 // 保存完整用户信息
+ *                 userApi.saveUserInfo({
+ *                     ...detailRes.data,
+ *                     token: res.data.token
+ *                 });
+ *             }
  *         });
  *         console.log('登录成功');
  *     }
  * });
  * 
- * // 获取用户信息
+ * // 获取完整用户信息
  * const userInfo = userApi.getUserInfo();
  * 
- * // 获取用户ID，默认为1
- * const userId = userApi.getUserId(1);
- * 
- * // 获取用户名
- * const username = userApi.getUsername();
- * 
- * // 判断用户是否已登录
- * if (userApi.isLoggedIn()) {
- *     console.log('用户已登录');
- * } else {
- *     console.log('用户未登录');
- * }
+ * // 更新本地存储的某些用户信息字段
+ * userApi.updateLocalUserInfo({
+ *     avatar_path: 'new_avatar.jpg',
+ *     phone_number: '1234567890'
+ * });
  */ 

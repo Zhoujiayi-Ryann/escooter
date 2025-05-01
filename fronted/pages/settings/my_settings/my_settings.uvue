@@ -100,15 +100,35 @@ export default {
   },
   methods: {
     getUserInformation() {
-      // 使用userApi获取真实的用户信息
-      const username = userApi.getUsername('游客');
-      const userId = userApi.getUserId(0);
+      // 使用userApi获取完整的用户信息
+      const userInfo = userApi.getUserInfo();
       
-      // 更新页面上的用户信息
-      this.user.name = username;
-      this.user.id = userId.toString();
-      
-      console.log('已加载用户信息:', username, userId);
+      if (userInfo) {
+        console.log('已加载完整用户信息:', userInfo);
+        
+        // 更新页面上的用户信息 - 使用正确的字段名称
+        this.user.name = userInfo.username || '游客';
+        this.user.id = (userInfo.user_id || userInfo.userId || 0).toString();
+        
+        // 更新使用时长和总花费 - 注意字段名称可能有多种格式
+        const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
+        const spent = userInfo.totalSpent || userInfo.total_spent || 0;
+        
+        this.mileage.hours = parseFloat(usageHours).toFixed(1);
+        this.mileage.spent = parseFloat(spent);
+        
+        console.log('更新后的里程信息:', {
+          hours: this.mileage.hours,
+          spent: this.mileage.spent
+        });
+      } else {
+        // 用户未登录，显示默认信息
+        this.user.name = '游客';
+        this.user.id = '0';
+        this.mileage.hours = 0;
+        this.mileage.spent = 0;
+        console.log('未找到用户信息，显示游客模式');
+      }
     },
     handleLogout() {
       // 调用API退出登录

@@ -128,15 +128,44 @@ export default {
         });
 
         if (res.code === 1) {  // 注意这里使用 1 表示成功
-          // 保存 token
+          // 显示登录中提示
+          uni.showLoading({
+            title: '登录中...'
+          });
+        
+          // 保存token
           setToken(res.data.token);
           
-          // 保存用户信息到本地存储
-          userApi.saveUserInfo({
+          // 先保存基本信息和token
+          const basicUserInfo = {
             user_id: res.data.user_id,
             username: res.data.username,
             token: res.data.token
-          });
+          };
+          
+          userApi.saveUserInfo(basicUserInfo);
+          
+          // 获取用户详细信息
+          try {
+            const detailRes = await userApi.getUserDetail(res.data.user_id);
+            if (detailRes.code === 1) {
+              // 合并详细信息和token
+              const fullUserInfo = {
+                ...detailRes.data,
+                token: res.data.token
+              };
+              
+              // 保存完整用户信息
+              userApi.saveUserInfo(fullUserInfo);
+              console.log('已保存完整用户信息:', fullUserInfo);
+            }
+          } catch (detailError) {
+            console.error('获取用户详情失败:', detailError);
+            // 获取详情失败也不影响登录流程
+          }
+        
+          // 隐藏加载提示
+          uni.hideLoading();
           
           uni.showToast({
             title: res.msg || '登录成功',

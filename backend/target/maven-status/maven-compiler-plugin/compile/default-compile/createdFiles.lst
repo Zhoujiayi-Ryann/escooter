@@ -15,6 +15,7 @@ com/example/hello/dto/response/OrderResponse.class
 com/example/hello/entity/Feedback$Status.class
 com/example/hello/dto/response/AvailableTimeSlotsResponse.class
 com/example/hello/dto/response/CouponResponse.class
+com/example/hello/dto/response/RevenueStatisticsResponse$DurationRevenue.class
 com/example/hello/dto/request/ResetPasswordRequest.class
 com/example/hello/mapper/FeedbackImageMapper.class
 com/example/hello/controller/BankCardController.class
@@ -25,6 +26,7 @@ com/example/hello/service/ScooterService.class
 com/example/hello/service/impl/OrderServiceImpl.class
 com/example/hello/mapper/FeedbackMapper.class
 com/example/hello/dto/request/CreateOrderRequest.class
+com/example/hello/dto/response/RevenueStatisticsResponse.class
 com/example/hello/dto/response/FeedbackDetailResponse.class
 com/example/hello/entity/Scooter.class
 com/example/hello/service/impl/ScooterServiceImpl.class
@@ -39,6 +41,7 @@ com/example/hello/config/MyBatisConfig.class
 com/example/hello/utils/CreditCardUtils.class
 com/example/hello/dto/request/RegisterRequest.class
 com/example/hello/entity/VerificationCode.class
+com/example/hello/mapper/OrderMapper$DailyRevenue.class
 com/example/hello/service/impl/CreditCardServiceImpl.class
 com/example/hello/entity/Scooter$Status.class
 com/example/hello/mapper/OrderMapper.class
@@ -81,6 +84,7 @@ com/example/hello/dto/request/CouponRequest.class
 com/example/hello/service/impl/VerificationCodeServiceImpl.class
 com/example/hello/dto/response/FeedbackListResponse$FeedbackImageDto$FeedbackImageDtoBuilder.class
 com/example/hello/dto/response/AddCreditCardResponse.class
+com/example/hello/mapper/OrderMapper$DurationRevenue.class
 com/example/hello/service/FeedbackService.class
 com/example/hello/entity/Feedback.class
 com/example/hello/controller/OrderController.class

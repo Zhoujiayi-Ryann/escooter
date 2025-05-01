@@ -468,8 +468,25 @@ export default {
 						return;
 					}
 
-					// 获取用户ID，默认值为1
-					const userId = userApi.getUserId(1);
+					// 检查用户是否登录
+					if (!userApi.isLoggedIn()) {
+						uni.showToast({
+							title: 'Please log in first',
+							icon: 'none',
+							duration: 2000
+						});
+						
+						// 延迟后跳转到登录页面
+						setTimeout(() => {
+							uni.navigateTo({
+								url: '/pages/login/login'
+							});
+						}, 1500);
+						return;
+					}
+					
+					// 用户已登录，可以安全获取用户ID
+					const userId = userApi.getUserId();
 					
 					uni.navigateTo({
 						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}&startDate=${encodeURIComponent(this.formatFullDate(this.startDate))}&startTime=${encodeURIComponent(this.startTime)}&endDate=${encodeURIComponent(this.formatFullDate(this.endDate))}&endTime=${encodeURIComponent(this.endTime)}&latitude=${selectedScooter.locationLat}&longitude=${selectedScooter.locationLng}`
@@ -772,7 +789,15 @@ export default {
 			return `${year}-${month}-${day}`;
 		},
 		checkUnstartedOrder() {
-			const userId = userApi.getUserId(1);
+			// 先检查用户是否已登录
+			if (!userApi.isLoggedIn()) {
+				console.log('用户未登录，跳过检查未开始订单');
+				this.orderTipInfo.show = false;
+				return;
+			}
+			
+			// 用户已登录，获取用户ID并检查订单
+			const userId = userApi.getUserId();
 			orderApi.getUserOrders(userId).then(res => {
 				if (res.code === 1 && res.data) {
 					res.data.forEach((order, index) => {
