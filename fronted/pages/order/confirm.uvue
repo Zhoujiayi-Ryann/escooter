@@ -57,8 +57,45 @@
       <text class="error-text">{{ addressError }}</text>
     </view>
     
+    <view class="agreement-section">
+      <van-checkbox v-model="agreedToTerms" shape="square" icon-size="18px">
+        <text class="agreement-text">I acknowledge and agree to the </text>
+        <text class="agreement-link" @click="showAgreement">User Agreement</text>
+      </van-checkbox>
+    </view>
+    
+    <van-popup
+      v-model:show="showAgreementPopup"
+      position="bottom"
+      round
+      :style="{ height: '70%' }"
+    >
+      <view class="agreement-popup">
+        <scroll-view class="agreement-content" scroll-y>
+          <text class="agreement-text-content">
+            1. General Terms\n\n
+            By using our e-scooter rental service, you agree to comply with all applicable laws and regulations.\n\n
+            2. Safety Requirements\n\n
+            - You must be at least 16 years old to use our service\n
+            - Wear a helmet while riding\n
+            - Follow all traffic rules and regulations\n\n
+            3. Rental Rules\n\n
+            - Return the e-scooter in the same condition as received\n
+            - Report any damages or issues immediately\n
+            - If you return earlier than the reserved time, no refund will be provided for the remaining rental period\n\n
+            4. Payment Terms\n\n
+            - All charges will be processed through your registered credit card\n
+            - Late returns will incur additional charges\n\n
+            5. Liability\n\n
+            - Users are responsible for any damages caused to the scooter\n
+            - We are not liable for any personal injuries or property damage
+          </text>
+        </scroll-view>
+      </view>
+    </van-popup>
+
     <view class="bottom-button">
-      <button class="rent-button" @click="goToRent">Go to Rent</button>
+      <button class="rent-button" :class="{'rent-button-disabled': !agreedToTerms}" @click="goToRent">Go to Rent</button>
     </view>
   </view>
 </template>
@@ -97,6 +134,8 @@ export default {
       userId: 1,         // 存储用户ID
       latitude: 0,       // 存储纬度
       longitude: 0,      // 存储经度
+      agreedToTerms: false, // 添加用户协议同意状态
+      showAgreementPopup: false,
     };
   },
   onLoad(options) {
@@ -193,6 +232,14 @@ export default {
     
     // 跳转
     goToRent() {
+      if (!this.agreedToTerms) {
+        uni.showToast({
+          title: 'Please agree to the User Agreement',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
       // 创建订单
       this.createOrder();
     },
@@ -353,6 +400,9 @@ export default {
       });
       // #endif
     },
+    showAgreement() {
+      this.showAgreementPopup = true;
+    },
   }
 };
 </script>
@@ -472,6 +522,50 @@ export default {
   font-size: 26rpx;
 }
 
+.agreement-section {
+  background: #ffffff;
+  padding: 20rpx 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin: 20rpx 0;
+}
+
+.agreement-text {
+  font-size: 28rpx;
+  color: #666;
+  margin-left: 10rpx;
+}
+
+.agreement-link {
+  font-size: 28rpx;
+  color: #007aff;
+  text-decoration: underline;
+}
+
+.agreement-popup {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.agreement-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.agreement-content {
+  flex: 1;
+  padding: 30rpx;
+}
+
+.agreement-text-content {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 .bottom-button {
   margin: 40rpx 0;
   padding: 0 30rpx;
@@ -487,5 +581,12 @@ export default {
   font-weight: bold;
   box-shadow: 0 6px 14px rgba(0, 122, 255, 0.2);
   text-align: center;
+}
+
+.rent-button-disabled {
+  background: linear-gradient(to right, #cccccc, #dddddd);
+  box-shadow: none;
+  opacity: 0.7;
+  pointer-events: auto !important;
 }
 </style> 
