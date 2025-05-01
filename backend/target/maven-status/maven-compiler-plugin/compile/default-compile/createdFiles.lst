@@ -11,7 +11,9 @@ com/example/hello/entity/FeedbackImage.class
 com/example/hello/dto/response/FeedbackDetailResponse$FeedbackDetailResponseBuilder.class
 com/example/hello/controller/FileUploadController.class
 com/example/hello/dto/request/FeedbackRequest.class
+com/example/hello/mapper/NotificationMapper.class
 com/example/hello/dto/response/OrderResponse.class
+com/example/hello/service/NotificationService.class
 com/example/hello/entity/Feedback$Status.class
 com/example/hello/dto/response/AvailableTimeSlotsResponse.class
 com/example/hello/dto/response/CouponResponse.class
@@ -48,6 +50,7 @@ com/example/hello/mapper/OrderMapper.class
 com/example/hello/entity/Feedback$Priority.class
 com/example/hello/entity/User.class
 com/example/hello/dto/response/OrderDetailResponse.class
+com/example/hello/entity/Notification.class
 com/example/hello/common/OrderStatus.class
 com/example/hello/service/CouponService.class
 com/example/hello/dto/response/AvailableCouponsResponse.class
@@ -59,7 +62,9 @@ com/example/hello/dto/request/ExtendOrderRequest.class
 com/example/hello/dto/request/ScooterRequest.class
 com/example/hello/common/Result.class
 com/example/hello/entity/Order.class
+com/example/hello/service/impl/NotificationServiceImpl.class
 com/example/hello/dto/request/LoginRequest.class
+com/example/hello/entity/Notification$NotificationType.class
 com/example/hello/scheduler/OrderTimeoutScheduler.class
 com/example/hello/dto/request/CouponDistributeRequest.class
 com/example/hello/dto/response/ChangeOrderStatusResponse.class
@@ -67,6 +72,7 @@ com/example/hello/utils/JwtUtil.class
 com/example/hello/service/impl/EmailServiceImpl.class
 com/example/hello/handler/OrderStatusTypeHandler.class
 com/example/hello/service/impl/CouponServiceImpl.class
+com/example/hello/dto/response/UserCouponNotificationResponse$UserCouponNotificationResponseBuilder.class
 com/example/hello/service/UserService.class
 com/example/hello/dto/request/AddCreditCardRequest.class
 com/example/hello/entity/UserCoupon.class
@@ -89,6 +95,7 @@ com/example/hello/service/FeedbackService.class
 com/example/hello/entity/Feedback.class
 com/example/hello/controller/OrderController.class
 com/example/hello/exception/OrderException.class
+com/example/hello/controller/NotificationController.class
 com/example/hello/controller/CouponController.class
 com/example/hello/config/SchedulingConfig.class
 com/example/hello/controller/PasswordController.class
@@ -98,8 +105,10 @@ com/example/hello/service/EmailService.class
 com/example/hello/controller/FeedbackController.class
 com/example/hello/dto/request/VerifyCodeRequest.class
 com/example/hello/exception/GlobalExceptionHandler.class
+com/example/hello/entity/Notification$NotificationBuilder.class
 com/example/hello/service/OrderService.class
 com/example/hello/interceptor/JwtInterceptor.class
 com/example/hello/dto/response/ScooterResponse.class
 com/example/hello/dto/response/CreditCardResponse.class
 com/example/hello/config/MyBatisExceptionHandler.class
+com/example/hello/dto/response/UserCouponNotificationResponse.class

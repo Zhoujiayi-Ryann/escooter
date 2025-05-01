@@ -192,4 +192,47 @@ export interface AvailableTimeSlotsResponse {
     current_end_time: string;     // 当前结束时间
     next_start_time: string;      // 下一个订单的开始时间
     max_extended_hours: number;   // 最大可延长时间（小时）
+}
+
+/**
+ * 通知类型枚举
+ */
+export enum NotificationType {
+    COUPON = "COUPON",           // 优惠券通知
+    COMMENT_REPLY = "COMMENT_REPLY" // 评论回复通知
+}
+
+/**
+ * 通知响应类型
+ */
+export interface NotificationResponse {
+    id: number;                  // 通知ID
+    user_id: number;             // 用户ID
+    type: NotificationType;      // 通知类型
+    title: string;               // 通知标题
+    content: string;             // 通知内容
+    is_read: boolean;            // 是否已读
+    related_id: number;          // 关联业务ID
+    created_at: string;          // 创建时间
+}
+
+/**
+ * 优惠券通知响应类型
+ */
+export interface CouponNotificationResponse extends NotificationResponse {
+    coupon_id: number;           // 优惠券ID
+    coupon_name: string;         // 优惠券名称
+    coupon_amount: number;       // 优惠券金额
+    min_spend: number;           // 最低消费额
+    valid_from: string;          // 有效期开始
+    valid_to: string;            // 有效期结束
+}
+
+/**
+ * 评论回复通知响应类型
+ */
+export interface CommentReplyNotificationResponse extends NotificationResponse {
+    comment_id: number;          // 评论ID
+    reply_content: string;       // 回复内容
+    feedback_id: number;         // 反馈ID
 } 

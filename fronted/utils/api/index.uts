@@ -1,25 +1,30 @@
-// API统一导出文件
-import { getToken, setToken, removeToken } from './request';
-import { userApi } from './user';
-import { scooterApi } from './scooter';
-import { orderApi } from './order';
-import { creditCardApi } from './creditCard';
-import { couponApi } from './coupon';
+// API导出统一入口
+// 直接导出token相关函数
+export { setToken, getToken, removeToken } from './request';
 
 // 导出所有API模块
+import { request } from './request';
+import { userApi } from './user';
+import { orderApi } from './order';
+import { scooterApi } from './scooter';
+import { feedbackApi } from './feedback';
+import { couponApi } from './coupon';
+import { creditCardApi } from './creditCard';
+import { passwordApi } from './password';
+import { notificationApi } from './notification';
+
+// 导出所有API
 export {
-    // Token相关方法
-    getToken,
-    setToken,
-    removeToken,
-    
-    // 各个功能模块API
+    request,
     userApi,
-    scooterApi,
     orderApi,
+    scooterApi,
+    feedbackApi,
+    couponApi,
     creditCardApi,
-	couponApi
-}
+    passwordApi,
+    notificationApi
+};
 
 /**
  * 使用示例：
