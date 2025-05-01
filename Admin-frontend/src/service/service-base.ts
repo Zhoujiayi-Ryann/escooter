@@ -35,7 +35,7 @@ export const PANE_LIST: Array<DashboardPanel> = [
     leftType: 'icon-usergroup',
   },
   {
-    title: 'Order',
+    title: 'Total orders',
     number: 527,
     downTrend: '20.5%',
     leftType: 'icon-file-paste',

@@ -31,20 +31,6 @@
             <file-icon />
           </span>
         </div>
-        <!-- <template #footer>
-          <div class="dashboard-item-bottom">
-            <div class="dashboard-item-block">
-              自从上周以来
-              <trend
-                class="dashboard-item-trend"
-                :type="item.upTrend ? 'up' : 'down'"
-                :is-reverse-color="index === 0"
-                :describe="item.upTrend || item.downTrend"
-              />
-            </div>
-            <chevron-right-icon />
-          </div>
-        </template> -->
       </t-card>
     </t-col>
   </t-row>
@@ -62,7 +48,7 @@ import { constructInitDashboardDataset } from '../index';
 import { changeChartsTheme } from '@/utils/color';
 import { PANE_LIST } from '@/service/service-base';
 import { scooterService } from '@/service/service-scooter';
-import { getTotalRevenue } from '@/service/service-revenue';
+import { getTotalRevenue, getTotalOrderCount } from '@/service/service-revenue';
 import { getAllNonAdminUsers } from '@/service/service-user';
 
 echarts.use([LineChart, BarChart, CanvasRenderer]);
@@ -105,6 +91,7 @@ export default {
     this.fetchVehicleCount();
     this.fetchTotalRevenue();
     this.fetchUserCount();
+    this.fetchTotalOrderCount();
     this.renderCharts();
   },
 
@@ -145,6 +132,18 @@ export default {
         }
       } catch (error) {
         console.error('获取用户数据失败:', error);
+      }
+    },
+
+    async fetchTotalOrderCount() {
+      try {
+        const totalOrderCount = await getTotalOrderCount();
+        if (this.panelList[3]) {
+          this.panelList[3].number = totalOrderCount;
+          this.panelList[3].downTrend = '5%'; // 可以根据实际情况修改或从API获取
+        }
+      } catch (error) {
+        console.error('获取总订单数据失败:', error);
       }
     },
 
