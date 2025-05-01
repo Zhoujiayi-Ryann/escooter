@@ -4,6 +4,7 @@ import com.example.hello.entity.Coupon;
 import com.example.hello.mapper.CouponMapper;
 import com.example.hello.service.CouponService;
 import com.example.hello.dto.response.CouponDistributeResponse;
+import com.example.hello.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 优惠券服务实现类
@@ -22,6 +24,9 @@ public class CouponServiceImpl implements CouponService {
 
     @Autowired
     private CouponMapper couponMapper;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     public List<Coupon> getAllCoupons() {
@@ -130,6 +135,25 @@ public class CouponServiceImpl implements CouponService {
             // 批量发放优惠券
             int successCount = couponMapper.batchDistributeCoupons(couponId, userIds);
             int failCount = userIds.size() - successCount;
+            
+            // 发送优惠券通知
+            if (successCount > 0) {
+                try {
+                    // 将Integer类型的userIds转换为Long类型
+                    List<Long> longUserIds = userIds.stream()
+                            .map(Long::valueOf)
+                            .collect(Collectors.toList());
+                    
+                    // 批量创建优惠券通知
+                    int notificationCount = notificationService.batchCreateCouponNotifications(
+                            longUserIds, couponId, coupon.getCouponName());
+                    
+                    logger.info("Created {} coupon notifications for {} users", notificationCount, successCount);
+                } catch (Exception e) {
+                    // 通知发送失败不影响优惠券发放结果
+                    logger.error("Failed to create coupon notifications: {}", e.getMessage(), e);
+                }
+            }
             
             logger.info("Coupon distribution completed, success: {}, failed: {}", successCount, failCount);
             return CouponDistributeResponse.of(successCount, failCount);
