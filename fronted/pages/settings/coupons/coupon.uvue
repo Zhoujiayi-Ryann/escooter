@@ -18,7 +18,7 @@
 							<view class="coupon-left">
 								<view class="coupon-amount">
 									<text class="currency">£</text>
-									<text class="value">{{ coupon.denominations / 100 }}</text>
+									<text class="value">{{ coupon.denominations }}</text>
 								</view>
 								<text class="coupon-condition">{{ coupon.condition }}</text>
 							</view>
@@ -46,12 +46,12 @@
 							<view class="coupon-left">
 								<view class="coupon-amount">
 									<text class="currency">£</text>
-									<text class="value">{{ coupon.denominations / 100 }}</text>
+									<text class="value">{{ coupon.denominations }}</text>
 								</view>
 								<text class="coupon-condition">{{ coupon.condition }}</text>
 							</view>
 							<view class="coupon-right">
-								<text class="coupon-name">{{ coupon.name }}</text>
+								<text class="coupon-name">{{ coupon.coupon_name }}</text>
 								<text class="coupon-desc">{{ coupon.description }}</text>
 								<text class="coupon-date">Expired: {{ formatDate(coupon.endAt) }}</text>
 							</view>
@@ -110,39 +110,55 @@ export default {
 			// 从userApi获取当前用户ID，如果未登录则使用默认值0
 			const userId = userApi.getUserId(0);
 			
+			// 检查是否有user_id字段
 			if (userId === 0) {
-				// 用户未登录，可以显示提示或跳转到登录页
-				uni.showToast({
-					title: '请先登录',
-					icon: 'none'
-				});
-				this.loading = false;
+				// 尝试直接从用户信息中获取user_id
+				const userInfo = userApi.getUserInfo();
+				if (userInfo && userInfo.user_id) {
+					console.log('使用user_id字段从用户信息中获取ID:', userInfo.user_id);
+					this.fetchCouponsWithUserId(userInfo.user_id);
+				} else {
+					// 用户未登录，可以显示提示或跳转到登录页
+					uni.showToast({
+						title: '请先登录',
+						icon: 'none'
+					});
+					this.loading = false;
+				}
 				return;
 			}
 			
+			// 使用获取到的userId继续获取优惠券信息
+			this.fetchCouponsWithUserId(userId);
+		},
+		async fetchCouponsWithUserId(userId) {
 			try {
-				console.log(userId);
+				console.log('获取用户优惠券，用户ID:', userId);
 				const response = await couponApi.getAvailableCoupons(userId);
-				console.log(response);
+				console.log('优惠券API返回结果:', response);
 				
 				if (response.code === 1 && response.data) {
 					// 修改这里的筛选逻辑
 					const now = new Date();
 					
-					this.coupons = response.data.coupons.filter(coupon => 
-						new Date(coupon.validTo) > now && 
-						coupon.isActive === true &&
-						coupon.isUsed === false &&
+					// 处理返回数据中的coupons属性
+					const coupons = Array.isArray(response.data) ? response.data : (response.data.coupons || []);
+					
+					this.coupons = coupons.filter(coupon => 
+						new Date(coupon.valid_to) > now && 
+						coupon.is_active === true &&
+						coupon.is_used === false &&
 						coupon.status === "able"
 					).map(coupon => this.formatCouponData(coupon));
 					
-					this.disabledCoupons = response.data.coupons.filter(coupon => 
-						new Date(coupon.validTo) <= now || 
-						coupon.isActive !== true ||
-						coupon.isUsed === true ||
+					this.disabledCoupons = coupons.filter(coupon => 
+						new Date(coupon.valid_to) <= now || 
+						coupon.is_active !== true ||
+						coupon.is_used === true ||
 						coupon.status !== "able"
 					).map(coupon => this.formatCouponData(coupon));
-					console.log(this.coupons);
+					console.log('可用优惠券:', this.coupons);
+					console.log('不可用优惠券:', this.disabledCoupons);
 				} else {
 					uni.showToast({
 						title: '获取优惠券失败',
@@ -161,16 +177,16 @@ export default {
 		},
 		formatCouponData(coupon) {
 			return {
-				id: coupon.couponId,
-				coupon_name: coupon.couponName,
-				name: coupon.couponName,
-				denominations: (coupon.couponAmount || 0) * 100,
-				condition: coupon.minSpend > 0 ? `最低消费 £${coupon.minSpend}` : '无最低消费',
-				originCondition: (coupon.minSpend || 0) * 100,
-				startAt: coupon.validFrom ? new Date(coupon.validFrom).getTime() / 1000 : Date.now() / 1000,
-				endAt: coupon.validTo ? new Date(coupon.validTo).getTime() / 1000 : (Date.now() / 1000 + 86400 * 30),
-				valueDesc: `£${coupon.couponAmount || 0}`,
-				description: coupon.description || '租赁优惠券'
+				id: coupon.coupon_id,
+				coupon_name: coupon.coupon_name,
+				name: coupon.coupon_name,
+				denominations: coupon.coupon_amount || 0, // 直接使用原始金额，不乘以100
+				condition: coupon.min_spend > 0 ? `MinSpent £${coupon.min_spend}` : 'No MinSpent',
+				originCondition: coupon.min_spend || 0,
+				startAt: coupon.valid_from ? new Date(coupon.valid_from).getTime() / 1000 : Date.now() / 1000,
+				endAt: coupon.valid_to ? new Date(coupon.valid_to).getTime() / 1000 : (Date.now() / 1000 + 86400 * 30),
+				valueDesc: `£${coupon.coupon_amount || 0}`,
+				description: coupon.description || 'Rent Coupon'
 			};
 		}
 	}
