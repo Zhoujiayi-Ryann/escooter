@@ -163,9 +163,9 @@ export const userApi = {
      */
     getUserId(defaultId: number = 0): number {
         const userInfo = this.getUserInfo();
-        //注意这里的命名方式，其他页面可能使用的下划线命名
-        if (userInfo && userInfo.userId) {
-            return userInfo.userId;
+        // 同时支持驼峰命名和下划线命名
+        if (userInfo && (userInfo.userId || userInfo.user_id)) {
+            return userInfo.userId || userInfo.user_id;
         }
         if (defaultId !== 0) {
             console.warn(`未找到用户ID，使用默认值${defaultId}`);
