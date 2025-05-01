@@ -42,8 +42,10 @@ import dayjs from 'dayjs';
 
 import { LAST_7_DAYS } from '@/utils/date';
 
-import { getPieChartDataSet, getLineChartDataSet } from '../index';
+import { getPieChartDataSet, getLineChartDataSet, updateLineChartData } from '../index';
 import { changeChartsTheme } from '@/utils/color';
+import { getRevenueStatistics } from '@/service/service-revenue';
+
 echarts.use([TooltipComponent, LegendComponent, PieChart, GridComponent, LineChart, CanvasRenderer]);
 
 export default {
@@ -55,6 +57,15 @@ export default {
       currentMonth: this.getThisMonth(),
       selectedWeek: dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD'),
       maxDate: dayjs().format('YYYY-MM-DD'),
+      chartData: {
+        currentWeek: [],
+        lastWeek: [],
+        hourlyRates: {
+          '1hr': [],
+          '4hr': [],
+          '1day': []
+        }
+      }
     };
   },
   computed: {
@@ -99,22 +110,56 @@ export default {
       return `${date.getFullYear()}-${startMonth} to ${date2.getFullYear()}-${endMonth}`;
     },
     /** 更新图表数据 */
-    updateChartData() {
+    async updateChartData() {
       const { chartColors } = this.$store.state.setting;
+      // 首先设置基本图表结构
       const chartData = getLineChartDataSet({ 
         selectedDate: this.selectedWeek,
         ...chartColors 
       });
       this.monitorChart.setOption(chartData);
+      
+      // 然后使用API数据更新图表
+      const result = await updateLineChartData(this.monitorChart, this.selectedWeek);
+      if (result) {
+        this.chartData = result;
+        
+        // 更新图表的tooltip格式化函数，使用最新的hourlyRates数据
+        this.monitorChart.setOption({
+          tooltip: {
+            formatter: (params) => {
+              const day = params[0].name;
+              let html = `${day}<br/>`;
+              params.forEach((param) => {
+                const series = param.seriesName;
+                const value = param.value;
+                html += `${series}: £${value}<br/>`;
+              });
+              
+              const index = params[0].dataIndex;
+              html += '<br/>Time Period Distribution:<br/>';
+              html += `1 Hour: £${this.chartData.hourlyRates['1hr'][index]}<br/>`;
+              html += `4 Hours: £${this.chartData.hourlyRates['4hr'][index]}<br/>`;
+              html += `1 Day: £${this.chartData.hourlyRates['1day'][index]}`;
+              return html;
+            }
+          },
+          yAxis: {
+            axisLabel: {
+              formatter: (value) => `£${value}`
+            }
+          }
+        });
+      }
     },
-    onWeekChange(value) {
+    async onWeekChange(value) {
       if (value) {
         this.selectedWeek = value;
         // 获取所选周的开始(周日)和结束(周六)日期
         const weekStart = dayjs(value).startOf('week').format('YYYY-MM-DD');
         const weekEnd = dayjs(value).endOf('week').format('YYYY-MM-DD');
         console.log(`所选周的范围: ${weekStart} 至 ${weekEnd}`);
-        this.updateChartData();
+        await this.updateChartData();
       }
     },
     updateContainer() {
@@ -126,19 +171,24 @@ export default {
         this.resizeTime = 1;
       }
 
-      this.countChart.resize({
-        // 根据父容器的大小设置大小
-        width: `${this.resizeTime * 326}px`,
-        height: `${this.resizeTime * 326}px`,
-      });
+      // 添加检查确保图表已初始化
+      if (this.countChart) {
+        this.countChart.resize({
+          // 根据父容器的大小设置大小
+          width: `${this.resizeTime * 326}px`,
+          height: `${this.resizeTime * 326}px`,
+        });
+      }
 
-      this.monitorChart.resize({
-        // 根据父容器的大小设置大小
-        width: this.monitorContainer.clientWidth,
-        height: `${this.resizeTime * 326}px`,
-      });
+      if (this.monitorChart) {
+        this.monitorChart.resize({
+          // 根据父容器的大小设置大小
+          width: this.monitorContainer ? this.monitorContainer.clientWidth : 0,
+          height: `${this.resizeTime * 326}px`,
+        });
+      }
     },
-    renderCharts() {
+    async renderCharts() {
       const { chartColors } = this.$store.state.setting;
 
       // 资金走势
@@ -148,7 +198,7 @@ export default {
       this.monitorChart = echarts.init(this.monitorContainer);
       
       // 使用新的方法更新图表数据
-      this.updateChartData();
+      await this.updateChartData();
 
       // 销售合同占比
       if (!this.countContainer) {

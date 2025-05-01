@@ -1,9 +1,10 @@
 import dayjs from 'dayjs';
 import { getChartListColor } from '@/utils/color';
 import { getRandomArray } from '@/utils/charts';
+import { getRevenueStatistics } from '@/service/service-revenue';
 
 /** 首页 dashboard 折线图 */
-export function constructInitDashboardDataset(type: string) {
+export function constructInitDashboardDataset(type: string, chartColors?: any) {
   const dateArray: Array<string> = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   const datasetAxis = {
     xAxis: {
@@ -55,7 +56,7 @@ export function constructInitDashboardDataset(type: string) {
   if (type === 'bar') {
     const barDataset = {
       ...datasetAxis,
-      color: getChartListColor(),
+      color: chartColors || getChartListColor(),
       series: [
         {
           data: [
@@ -194,6 +195,7 @@ export function getLineChartDataSet({
   
   // 修改为以周日为一周的开始
   const startOfWeek = dayjs(selectedDate).startOf('week').subtract(1, 'day');
+  const endOfWeek = startOfWeek.add(6, 'day');
   
   // 修改星期显示顺序，从周日开始
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -203,21 +205,16 @@ export function getLineChartDataSet({
     const currentDay = startOfWeek.add(i, 'day');
     timeArray.push(currentDay.format('MM-DD') + ` (${weekDays[i]})`);
     
-    // 根据日期生成该天的收入数据（这里使用一些模拟数据）
-    const baseValue = 1000 + Math.sin(i) * 500;
-    const dailyTotal = Math.floor(baseValue + Math.random() * 200);
-    outArray.push(dailyTotal.toString());
-    
-    // 生成上周同期数据作为对比
-    const lastWeekValue = Math.floor(dailyTotal * (0.8 + Math.random() * 0.4));
-    inArray.push(lastWeekValue.toString());
+    // 这里将使用API获取的数据替换随机数据
+    outArray.push('0'); // 默认值，将在API调用后更新
+    inArray.push('0');  // 默认值，将在API调用后更新
   }
 
   // 不同时段的收入数据也相应调整
   const hourlyRates = {
-    '1hr': outArray.map(v => Math.floor(Number(v) * 0.2)),
-    '4hr': outArray.map(v => Math.floor(Number(v) * 0.3)),
-    '1day': outArray.map(v => Math.floor(Number(v) * 0.5))
+    '1hr': outArray.map(v => 0),
+    '4hr': outArray.map(v => 0),
+    '1day': outArray.map(v => 0)
   };
 
   const dataSet = {
@@ -324,6 +321,96 @@ export function getLineChartDataSet({
     ],
   };
   return dataSet;
+}
+
+// 新增函数：更新图表数据
+export async function updateLineChartData(chart: any, selectedDate: string) {
+  try {
+    // 获取所选周的开始(周日)和结束(周六)日期
+    const startOfWeek = dayjs(selectedDate).startOf('week').subtract(1, 'day').format('YYYY-MM-DD');
+    const endOfWeek = dayjs(selectedDate).endOf('week').subtract(1, 'day').format('YYYY-MM-DD');
+    
+    // 获取上周的日期范围
+    const lastWeekStart = dayjs(startOfWeek).subtract(7, 'day').format('YYYY-MM-DD');
+    const lastWeekEnd = dayjs(endOfWeek).subtract(7, 'day').format('YYYY-MM-DD');
+    
+    // 调用API获取当前周的收入数据
+    const currentWeekData = await getRevenueStatistics(startOfWeek, endOfWeek);
+    console.log(currentWeekData);
+    // 调用API获取上周的收入数据
+    const lastWeekData = await getRevenueStatistics(lastWeekStart, lastWeekEnd);
+    
+    // 准备数据数组
+    const currentWeekValues = [];
+    const lastWeekValues = [];
+    const hourlyRates = {
+      '1hr': [],
+      '4hr': [],
+      '1day': []
+    };
+    
+    // 遍历日期范围内的每一天
+    for (let i = 0; i < 7; i++) {
+      const currentDate = dayjs(startOfWeek).add(i, 'day').format('YYYY-MM-DD');
+      const lastWeekDate = dayjs(lastWeekStart).add(i, 'day').format('YYYY-MM-DD');
+      
+      // 获取当前周每天的收入
+      const dailyRevenue = currentWeekData.dailyRevenue[currentDate] || 0;
+      currentWeekValues.push(dailyRevenue.toString());
+      
+      // 获取上周每天的收入
+      const lastWeekRevenue = lastWeekData.dailyRevenue[lastWeekDate] || 0;
+      lastWeekValues.push(lastWeekRevenue.toString());
+      
+      // 获取不同时段的收入数据
+      const durationData = currentWeekData.dailyDurationRevenue[currentDate] || {
+        lessThanOneHour: 0,
+        oneToFourHours: 0,
+        moreThanFourHours: 0
+      };
+      
+      hourlyRates['1hr'].push(durationData.lessThanOneHour);
+      hourlyRates['4hr'].push(durationData.oneToFourHours);
+      hourlyRates['1day'].push(durationData.moreThanFourHours);
+    }
+    
+    // 更新图表数据
+    chart.setOption({
+      series: [
+        {
+          name: 'Current Week',
+          data: currentWeekValues
+        },
+        {
+          name: 'Last Week',
+          data: lastWeekValues
+        }
+      ]
+    });
+    
+    // 更新tooltip中的时段数据
+    chart.getOption().tooltip.formatter = function(params: any) {
+      const day = params[0].name;
+      let html = `${day}<br/>`;
+      params.forEach((param: any) => {
+        const series = param.seriesName;
+        const value = param.value;
+        html += `${series}: £${value}<br/>`;
+      });
+      
+      const index = params[0].dataIndex;
+      html += '<br/>Time Period Distribution:<br/>';
+      html += `1 Hour: £${hourlyRates['1hr'][index]}<br/>`;
+      html += `4 Hours: £${hourlyRates['4hr'][index]}<br/>`;
+      html += `1 Day: £${hourlyRates['1day'][index]}`;
+      return html;
+    };
+    
+    return { currentWeekValues, lastWeekValues, hourlyRates };
+  } catch (error) {
+    console.error('Failed to update chart data:', error);
+    return null;
+  }
 }
 
 // 辅助函数：生成指定范围内的随机数
