@@ -282,6 +282,11 @@ export default {
 		this.getUsername();
 		this.initDateFormatting();
 		this.checkUnstartedOrder();
+		
+		// 使用uni.$on监听事件
+		uni.$on('refreshHomePage', () => {
+			this.checkUnstartedOrder();
+		});
 	},
 	onReady() {
 		this.setHeight();
@@ -290,6 +295,10 @@ export default {
 	},
 	onShow() {
 		this.getUsername();
+	},
+	onUnload() {
+		// 移除事件监听
+		uni.$off('refreshHomePage');
 	},
 	computed: {
 		rentalDurationText() {

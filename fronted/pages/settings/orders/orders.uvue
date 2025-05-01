@@ -255,6 +255,8 @@ export default {
 								if (res.code === 1) {
 									// API调用成功，更新本地数据
 									this.orders = this.orders.filter(order => order.id !== orderId);
+									// 使用uni.$emit发送事件
+									uni.$emit('refreshHomePage');
 									uni.showToast({
 										title: 'Deleted',
 										icon: 'success'
