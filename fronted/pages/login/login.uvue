@@ -136,15 +136,6 @@ export default {
           // 保存token
           setToken(res.data.token);
           
-          // 先保存基本信息和token
-          const basicUserInfo = {
-            user_id: res.data.user_id,
-            username: res.data.username,
-            token: res.data.token
-          };
-          
-          userApi.saveUserInfo(basicUserInfo);
-          
           // 获取用户详细信息
           try {
             const detailRes = await userApi.getUserDetail(res.data.user_id);
@@ -155,13 +146,29 @@ export default {
                 token: res.data.token
               };
               
-              // 保存完整用户信息
+              // 只在这里保存一次完整用户信息
               userApi.saveUserInfo(fullUserInfo);
               console.log('已保存完整用户信息:', fullUserInfo);
+            } else {
+              // 如果获取详情失败，至少保存基本信息
+              const basicUserInfo = {
+                user_id: res.data.user_id,
+                username: res.data.username,
+                token: res.data.token
+              };
+              userApi.saveUserInfo(basicUserInfo);
+              console.log('获取详情失败，保存基本用户信息');
             }
           } catch (detailError) {
             console.error('获取用户详情失败:', detailError);
-            // 获取详情失败也不影响登录流程
+            // 获取详情失败，保存基本信息
+            const basicUserInfo = {
+              user_id: res.data.user_id,
+              username: res.data.username,
+              token: res.data.token
+            };
+            userApi.saveUserInfo(basicUserInfo);
+            console.log('获取详情失败，保存基本用户信息');
           }
         
           // 隐藏加载提示

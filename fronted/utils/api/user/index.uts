@@ -163,8 +163,9 @@ export const userApi = {
      */
     getUserId(defaultId: number = 0): number {
         const userInfo = this.getUserInfo();
-        if (userInfo && userInfo.user_id) {
-            return userInfo.user_id;
+        //注意这里的命名方式，其他页面可能使用的下划线命名
+        if (userInfo && userInfo.userId) {
+            return userInfo.userId;
         }
         if (defaultId !== 0) {
             console.warn(`未找到用户ID，使用默认值${defaultId}`);
@@ -217,7 +218,7 @@ export const userApi = {
                 // 合并现有信息和新信息
                 const updatedInfo = { ...currentUserInfo, ...newInfo };
                 this.saveUserInfo(updatedInfo);
-                console.log('本地用户信息已更新', updatedInfo);
+                console.log('本地用户信息已更新');
             } else {
                 console.warn('没有找到本地用户信息，无法更新');
             }
