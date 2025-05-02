@@ -1,126 +1,175 @@
 <template>
-  <div class="list-feedback-table">
-    <t-form
-      ref="form"
-      :data="formData"
-      :label-width="110"
-      colon
-      @reset="onReset"
-      @submit="onSubmit"
-      :style="{ marginBottom: '8px' }"
-    >
-      <t-row>
-        <t-col :span="10">
-          <!-- <t-row :gutter="[16, 24]"> -->
-            <!-- <t-col :flex="1">
-              <t-form-item label="合同名称" name="name">
-                <t-input
-                  v-model="formData.name"
-                  class="form-item-content"
-                  type="search"
-                  placeholder="请输入合同名称"
-                  :style="{ minWidth: '134px' }"
-                />
-              </t-form-item>
-            </t-col>
-            <t-col :flex="1">
-              <t-form-item label="合同状态" name="status">
-                <t-select
-                  v-model="formData.status"
-                  class="form-item-content`"
-                  :options="CONTRACT_STATUS_OPTIONS"
-                  placeholder="请选择合同状态"
-                />
-              </t-form-item>
-            </t-col>
-            <t-col :flex="1">
-              <t-form-item label="合同编号" name="no">
-                <t-input
-                  v-model="formData.no"
-                  class="form-item-content"
-                  placeholder="请输入合同编号"
-                  :style="{ minWidth: '134px' }"
-                />
-              </t-form-item>
-            </t-col> -->
-            <t-col :flex="1">
-              <t-form-item label="Feedback Type" name="type">
-                <t-select
-                  v-model="formData.type"
-                  class="form-item-content`"
-                  :options="FEEDBACK_TYPE_OPTIONS"
-                  placeholder="Please choose a type"
-                />
-              </t-form-item>
-            </t-col>
-          <!-- </t-row> -->
-        </t-col>
+  <t-config-provider :global-config="globalConfig">
+    <div class="list-feedback-table">
+      <t-form
+        ref="form"
+        :data="formData"
+        :label-width="110"
+        colon
+        @reset="onReset"
+        @submit="onSubmit"
+        :style="{ marginBottom: '8px' }"
+      >
+        <t-row>
+          <t-col :span="10">
+            <t-row :gutter="[16, 24]">
+              <t-col :flex="1">
+                <t-form-item label="Feedback Type" name="type">
+                  <t-select
+                    v-model="formData.type"
+                    class="form-item-content"
+                    :options="FEEDBACK_TYPE_OPTIONS"
+                    placeholder="Please select feedback type"
+                  />
+                </t-form-item>
+              </t-col>
+              <t-col :flex="1">
+                <t-form-item label="Status" name="status">
+                  <t-select
+                    v-model="formData.status"
+                    class="form-item-content"
+                    :options="FEEDBACK_STATUS_OPTIONS"
+                    placeholder="Please select status"
+                  />
+                </t-form-item>
+              </t-col>
+            </t-row>
+          </t-col>
 
-        <t-col :span="2" class="operation-container">
-          <t-button theme="primary" type="submit" :style="{ marginLeft: '8px' }"> Search </t-button>
-          <t-button type="reset" variant="base" theme="default"> Reset </t-button>
-        </t-col>
-      </t-row>
-    </t-form>
-    <div class="table-container">
-      <t-table
-        :data="data"
-        :columns="columns"
-        :rowKey="rowKey"
-        :verticalAlign="verticalAlign"
-        :hover="hover"
-        :pagination="pagination"
-        @page-change="rehandlePageChange"
-        @change="rehandleChange"
-        :loading="dataLoading"
-        :headerAffixedTop="true"
-        :headerAffixProps="{ offsetTop, container: getContainer }"
+          <t-col :span="2" class="operation-container">
+            <t-button theme="primary" type="submit" :style="{ marginLeft: '8px' }">Search</t-button>
+            <t-button type="reset" variant="base" theme="default">Reset</t-button>
+          </t-col>
+        </t-row>
+      </t-form>
+      <div class="table-container">
+        <t-table
+          :data="data"
+          :columns="columns"
+          :rowKey="rowKey"
+          :verticalAlign="verticalAlign"
+          :hover="hover"
+          :pagination="pagination"
+          @page-change="onPageChange"
+          @change="rehandleChange"
+          :loading="dataLoading"
+          :headerAffixedTop="true"
+          :headerAffixProps="{ offsetTop, container: getContainer }"
+        >
+          <template #status="{ row }">
+            <t-tag v-if="row.status === FEEDBACK_STATUS.PENDING" theme="warning" variant="light">Todo</t-tag>
+            <t-tag v-if="row.status === FEEDBACK_STATUS.EXECUTING" theme="success" variant="light">Processing</t-tag>
+            <t-tag v-if="row.status === FEEDBACK_STATUS.FINISH" theme="success" variant="light">Finish</t-tag>
+          </template>
+          <template #priority="{ row }">
+            <t-tag v-if="row.priority === 'LOW'" theme="default" variant="light">Low</t-tag>
+            <t-tag v-if="row.priority === 'MEDIUM'" theme="primary" variant="light">Medium</t-tag>
+            <t-tag v-if="row.priority === 'HIGH'" theme="warning" variant="light">High</t-tag>
+            <t-tag v-if="row.priority === 'URGENT'" theme="danger" variant="light">Urgent</t-tag>
+          </template>
+          <template #feedbackType="{ row }">
+            <p v-if="row.feedbackType === FEEDBACK_TYPES.USING">Using Problems</p>
+            <p v-if="row.feedbackType === FEEDBACK_TYPES.EXPERIENCE">Experience Feedback</p>
+          </template>
+          <template #op="slotProps">
+            <a class="t-button-link" @click="rehandleClickOp(slotProps)">Details</a>
+            <a class="t-button-link" @click="handleClickDelete(slotProps)">Delete</a>
+          </template>
+          <template #priority-header>
+            <div class="priority-header" @click="handlePrioritySort">
+              <span>Priority</span>
+              <div class="sort-icons">
+                <t-icon name="chevron-up" :class="{ 'active': currentSort === 'asc' }" />
+                <t-icon name="chevron-down" :class="{ 'active': currentSort === 'desc' }" />
+              </div>
+            </div>
+          </template>
+        </t-table>
+        <t-dialog
+          header="Are you sure to delete this feedback?"
+          :body="confirmBody"
+          :visible.sync="confirmVisible"
+          @confirm="onConfirmDelete"
+          :onCancel="onCancel"
+        >
+        </t-dialog>
+      </div>
+
+      <!-- 添加反馈详情侧边栏 -->
+      <t-drawer
+        :visible.sync="drawerVisible"
+        :header="selectedFeedback ? `Feedback Details - #${selectedFeedback.id}` : 'Feedback Details'"
+        :footer="false"
+        :size="'500px'"
+        :close-btn="true"
+        :on-close="onDrawerClose"
       >
-        <template #status="{ row }">
-          <!-- <t-tag v-if="row.status === CONTRACT_STATUS.FAIL" theme="danger" variant="light">待处理</t-tag> -->
-          <t-tag v-if="row.status === FEEDBACK_STATUS.PENDING" theme="warning" variant="light">Todo</t-tag>
-          <!-- <t-tag v-if="row.status === CONTRACT_STATUS.EXEC_PENDING" theme="warning" variant="light">待履行</t-tag> -->
-          <t-tag v-if="row.status === FEEDBACK_STATUS.EXECUTING" theme="success" variant="light">Processing</t-tag>
-          <t-tag v-if="row.status === FEEDBACK_STATUS.FINISH" theme="success" variant="light">Finish</t-tag>
-        </template>
-        <template #feedbackType="{ row }">
-          <p v-if="row.feedbackType === FEEDBACK_TYPES.USING">Using Problems</p>
-          <p v-if="row.feedbackType === FEEDBACK_TYPES.EXPERIENCE">Experience Feedback</p>
-          <!-- <p v-if="row.contractType === CONTRACT_TYPES.SUPPLEMENT">待履行</p> -->
-        </template>
-        <!-- <template #paymentType="{ row }">
-          <p v-if="row.paymentType === CONTRACT_PAYMENT_TYPES.PAYMENT" class="payment-col">
-            付款
-            <trend class="dashboard-item-trend" type="up" />
-          </p>
-          <p v-if="row.paymentType === CONTRACT_PAYMENT_TYPES.RECEIPT" class="payment-col">
-            收款
-            <trend class="dashboard-item-trend" type="down" />
-          </p>
-        </template> -->
-        <template #op="slotProps">
-          <a class="t-button-link" @click="rehandleClickOp(slotProps)">Details</a>
-          <a class="t-button-link" @click="handleClickDelete(slotProps)">Delete</a>
-        </template>
-      </t-table>
-      <t-dialog
-        header="Are you sure to delete this feedback?"
-        :body="confirmBody"
-        :visible.sync="confirmVisible"
-        @confirm="onConfirmDelete"
-        :onCancel="onCancel"
-      >
-      </t-dialog>
+        <div v-if="selectedFeedback" class="feedback-details">
+          <t-descriptions :column="1" bordered>
+            <t-descriptions-item label="ID">#{{ selectedFeedback.id }}</t-descriptions-item>
+            <t-descriptions-item label="User">User {{ selectedFeedback.userId }}</t-descriptions-item>
+            <t-descriptions-item label="Type">
+              <t-tag v-if="selectedFeedback.type === FEEDBACK_TYPE.USING_PROBLEM" theme="warning" variant="light">Using Problem</t-tag>
+              <t-tag v-if="selectedFeedback.type === FEEDBACK_TYPE.EXPERIENCE_FEEDBACK" theme="primary" variant="light">Experience Feedback</t-tag>
+            </t-descriptions-item>
+            <t-descriptions-item label="Status">
+              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.PENDING" theme="warning" variant="light">Todo</t-tag>
+              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.PROCESSING" theme="success" variant="light">Processing</t-tag>
+              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.RESOLVED" theme="success" variant="light">Resolved</t-tag>
+              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.REJECTED" theme="danger" variant="light">Rejected</t-tag>
+            </t-descriptions-item>
+            <t-descriptions-item label="Priority">
+              <t-select
+                v-model="selectedFeedback.priority"
+                :options="priorityOptions"
+                @change="handlePriorityChange"
+                style="width: 120px"
+              />
+            </t-descriptions-item>
+            <t-descriptions-item label="Description">{{ selectedFeedback.description }}</t-descriptions-item>
+            <t-descriptions-item label="Created At">{{ selectedFeedback.createdAt }}</t-descriptions-item>
+            <t-descriptions-item label="Images">
+              <div v-if="selectedFeedback.imagesCount > 0" class="image-count">
+                {{ selectedFeedback.imagesCount }} images attached
+              </div>
+              <div v-else>No images</div>
+            </t-descriptions-item>
+          </t-descriptions>
+
+          <div class="reply-section">
+            <t-button v-if="!showReplyInput" theme="primary" @click="showReplyInput = true">Reply</t-button>
+            
+            <div v-if="showReplyInput" class="reply-input-section">
+              <t-textarea
+                v-model="replyContent"
+                placeholder="Enter your reply..."
+                :autosize="{ minRows: 3, maxRows: 5 }"
+              />
+              <div class="reply-buttons">
+                <t-button theme="default" @click="cancelReply">Cancel</t-button>
+                <t-button theme="primary" @click="submitReply">Submit</t-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </t-drawer>
     </div>
-  </div>
+  </t-config-provider>
 </template>
 <script>
 import { prefix } from '@/config/global';
 import Trend from '@/components/trend/index.vue';
+import { feedbackService, FEEDBACK_STATUS, FEEDBACK_TYPE } from '@/service/service-feedback';
+import enConfig from 'tdesign-vue/es/locale/en_US';
+import { 
+  Drawer as TDrawer,
+  Descriptions as TDescriptions,
+  DescriptionsItem as TDescriptionsItem,
+  Tag as TTag,
+  Select as TSelect,
+} from 'tdesign-vue';
 
 import {
-  FEEDBACK_STATUS,
-  FEEDBACK_STATUS_OPTIONS,
   FEEDBACK_TYPES,
   FEEDBACK_TYPE_OPTIONS,
 } from '@/pages/feedback/list/index.ts';
@@ -129,57 +178,60 @@ export default {
   name: 'list-table',
   components: {
     Trend,
+    TDrawer,
+    TDescriptions,
+    TDescriptionsItem,
+    TTag,
+    TSelect,
   },
   data() {
     return {
+      globalConfig: enConfig,
       FEEDBACK_STATUS,
-      FEEDBACK_STATUS_OPTIONS,
-      FEEDBACK_TYPES,
-      FEEDBACK_TYPE_OPTIONS,
+      FEEDBACK_TYPE,
       prefix,
       formData: {
-        name: '',
-        no: undefined,
+        type: undefined,
         status: undefined,
       },
       data: [],
       dataLoading: false,
       value: 'first',
+      currentSort: 'default', // 'default', 'desc', 'asc'
+      sortPriority: {
+        order: ['URGENT', 'HIGH', 'MEDIUM', 'LOW']
+      },
       columns: [
         {
-          title: 'Title',
+          title: 'Description',
           fixed: 'left',
           width: 200,
           align: 'left',
           ellipsis: true,
-          colKey: 'name',
+          colKey: 'description',
         },
         { title: 'Status', colKey: 'status', width: 200, cell: { col: 'status' } },
-        {
-          title: 'Number',
-          width: 200,
-          ellipsis: true,
-          colKey: 'no',
-        },
         {
           title: 'Type',
           width: 200,
           ellipsis: true,
-          colKey: 'feedbackType',
+          colKey: 'type',
           cell: { col: 'feedbackType' }
         },
-        // {
-        //   title: '合同收付类型',
-        //   width: 200,
-        //   ellipsis: true,
-        //   colKey: 'paymentType',
-        // },
-        // {
-        //   title: '合同金额 (元)',
-        //   width: 200,
-        //   ellipsis: true,
-        //   colKey: 'amount',
-        // },
+        {
+          title: 'Priority',
+          width: 120,
+          colKey: 'priority',
+          cell: { col: 'priority' },
+          align: 'center',
+          title: 'priority-header',
+        },
+        {
+          title: 'Created At',
+          width: 200,
+          ellipsis: true,
+          colKey: 'createdAt',
+        },
         {
           align: 'left',
           fixed: 'right',
@@ -188,27 +240,53 @@ export default {
           title: 'Options',
         },
       ],
-      rowKey: 'index',
+      rowKey: 'id',
       tableLayout: 'auto',
       verticalAlign: 'top',
       bordered: true,
       hover: true,
       rowClassName: (rowKey) => `${rowKey}-class`,
-      // 与pagination对齐
       pagination: {
-        defaultPageSize: 20,
-        total: 100,
-        defaultCurrent: 1,
+        pageSize: 10,
+        total: 0,
+        current: 1,
+        locale: {
+          itemsPerPage: 'Items per page',
+          jumpTo: 'Jump to',
+          page: 'Page',
+          total: 'Total {total} items',
+        },
       },
       confirmVisible: false,
       deleteIdx: -1,
+      allData: [],
+      FEEDBACK_TYPE_OPTIONS: [
+        { label: 'Using Problems', value: FEEDBACK_TYPE.USING_PROBLEM },
+        { label: 'Experience Feedback', value: FEEDBACK_TYPE.EXPERIENCE_FEEDBACK },
+      ],
+      FEEDBACK_STATUS_OPTIONS: [
+        { label: 'Todo', value: FEEDBACK_STATUS.PENDING },
+        { label: 'Processing', value: FEEDBACK_STATUS.PROCESSING },
+        { label: 'Finished', value: FEEDBACK_STATUS.RESOLVED },
+        { label: 'Rejected', value: FEEDBACK_STATUS.REJECTED },
+      ],
+      drawerVisible: false,
+      selectedFeedback: null,
+      priorityOptions: [
+        { label: 'Low', value: 'LOW' },
+        { label: 'Medium', value: 'MEDIUM' },
+        { label: 'High', value: 'HIGH' },
+        { label: 'Urgent', value: 'URGENT' },
+      ],
+      showReplyInput: false,
+      replyContent: '',
     };
   },
   computed: {
     confirmBody() {
       if (this.deleteIdx > -1) {
-        const { name } = this.data?.[this.deleteIdx];
-        return `After deleting，${name}''s all contents will be clear and cannot be restored'`;
+        const { description } = this.data?.[this.deleteIdx];
+        return `After deleting，${description}''s all contents will be clear and cannot be restored'`;
       }
       return '';
     },
@@ -217,62 +295,236 @@ export default {
     },
   },
   mounted() {
-    this.dataLoading = true;
-    // 模拟数据
-    setTimeout(() => {
-      const mockData = [];
-      for (let i = 1; i <= 20; i++) {
-        const status = Math.floor(Math.random() * 3); // 0, 1, 2
-        const type = Math.floor(Math.random() * 2); // 0, 1
-        mockData.push({
-          id: i,
-          name: `Feedback ${i}`,
-          status: status,
-          no: `FB-${1000 + i}`,
-          feedbackType: type,
-        });
-      }
-      this.data = mockData;
-      this.pagination.total = mockData.length;
-      this.dataLoading = false;
-    }, 1000);
+    this.fetchFeedbackData();
   },
   methods: {
     getContainer() {
       return document.querySelector('.tdesign-starter-layout');
     },
-    onReset(data) {
-      console.log(data);
+    updatePageData() {
+      const { current, pageSize } = this.pagination;
+      const start = (current - 1) * pageSize;
+      const end = start + pageSize;
+      this.data = this.allData.slice(start, end);
     },
-    onSubmit(data) {
-      console.log(data);
+    onPageChange(pageInfo) {
+      console.log('Page number changed:', pageInfo);
+      this.pagination = {
+        ...this.pagination,
+        current: pageInfo.current,
+        pageSize: pageInfo.pageSize
+      };
+      this.updatePageData();
     },
-    rehandlePageChange(curr, pageInfo) {
-      console.log('分页变化', curr, pageInfo);
+    async fetchFeedbackData() {
+      this.dataLoading = true;
+      try {
+        const feedbackList = await feedbackService.getAllFeedback();
+        this.allData = feedbackList;
+        
+        this.pagination.total = feedbackList.length;
+        this.pagination.current = 1;
+        this.updatePageData();
+      } catch (error) {
+        console.error('Failed to fetch feedback data:', error);
+        this.$message.error('Failed to fetch feedback data');
+      } finally {
+        this.dataLoading = false;
+      }
+    },
+    async onSubmit({ validateResult, firstError, e }) {
+      if (!validateResult) {
+        console.log('Validate Errors:', firstError, e);
+        return;
+      }
+      
+      this.dataLoading = true;
+      try {
+        const feedbackList = await feedbackService.getAllFeedback();
+        
+        this.allData = feedbackList.filter((item) => {
+          let match = true;
+          if (this.formData.type) {
+            match = match && item.type === this.formData.type;
+          }
+          if (this.formData.status) {
+            match = match && item.status === this.formData.status;
+          }
+          return match;
+        });
+
+        // 重置排序状态
+        this.currentSort = 'default';
+        // 按创建时间排序
+        this.allData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        this.pagination.total = this.allData.length;
+        this.pagination.current = 1;
+        this.updatePageData();
+      } catch (error) {
+        console.error('Failed to fetch feedback data:', error);
+        this.$message.error('Failed to fetch feedback data');
+      } finally {
+        this.dataLoading = false;
+      }
+    },
+    onReset() {
+      this.formData = {
+        type: undefined,
+        status: undefined,
+      };
+      // 重置排序状态
+      this.currentSort = 'default';
+      this.fetchFeedbackData();
     },
     rehandleChange(changeParams, triggerAndData) {
       console.log('统一Change', changeParams, triggerAndData);
     },
-    rehandleClickOp({ text, row }) {
-      console.log(text, row);
+    handlePrioritySort() {
+      console.log('Current sort:', this.currentSort);
+      // 切换排序状态
+      if (this.currentSort === 'default') {
+        this.currentSort = 'desc';
+      } else if (this.currentSort === 'desc') {
+        this.currentSort = 'asc';
+      } else {
+        this.currentSort = 'default';
+      }
+
+      // 根据当前排序状态进行排序
+      if (this.currentSort === 'desc') {
+        this.allData.sort((a, b) => {
+          const orderA = this.sortPriority.order.indexOf(a.priority);
+          const orderB = this.sortPriority.order.indexOf(b.priority);
+          return orderA - orderB;
+        });
+      } else if (this.currentSort === 'asc') {
+        this.allData.sort((a, b) => {
+          const orderA = this.sortPriority.order.indexOf(a.priority);
+          const orderB = this.sortPriority.order.indexOf(b.priority);
+          return orderB - orderA;
+        });
+      } else {
+        // 恢复默认排序（按创建时间）
+        this.allData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+      
+      // 更新表格数据
+      this.updatePageData();
     },
-    handleClickDelete(row) {
+    async rehandleClickOp({ row }) {
+      try {
+        const feedbackDetail = await feedbackService.getFeedbackDetail(row.id);
+        if (feedbackDetail) {
+          this.selectedFeedback = {
+            id: feedbackDetail.id,
+            userId: feedbackDetail.user_id,
+            type: feedbackDetail.feedback_type,
+            description: feedbackDetail.description,
+            status: feedbackDetail.status,
+            priority: feedbackDetail.priority,
+            createdAt: new Date(feedbackDetail.created_at).toLocaleString(),
+            imagesCount: feedbackDetail.images ? feedbackDetail.images.length : 0,
+          };
+          this.drawerVisible = true;
+        }
+      } catch (error) {
+        console.error('Failed to get feedback details:', error);
+        this.$message.error('Failed to get feedback details');
+      }
+    },
+    async handleClickDelete(row) {
       this.deleteIdx = row.rowIndex;
       this.confirmVisible = true;
     },
-    onConfirmDelete() {
-      // 真实业务请发起请求
-      this.data.splice(this.deleteIdx, 1);
-      this.pagination.total = this.data.length;
-      this.confirmVisible = false;
-      this.$message.success('Delete successfully');
-      this.resetIdx();
+    async onConfirmDelete() {
+      try {
+        const feedbackId = this.data[this.deleteIdx].id;
+        const result = await feedbackService.deleteFeedback(feedbackId);
+        if (result) {
+          this.data.splice(this.deleteIdx, 1);
+          this.pagination.total = this.data.length;
+          this.$message.success('Delete successfully');
+        } else {
+          this.$message.error('Failed to delete feedback');
+        }
+      } catch (error) {
+        console.error('删除反馈失败:', error);
+        this.$message.error('Failed to delete feedback');
+      } finally {
+        this.confirmVisible = false;
+        this.resetIdx();
+      }
     },
     onCancel() {
       this.resetIdx();
     },
     resetIdx() {
       this.deleteIdx = -1;
+    },
+    onDrawerClose() {
+      this.drawerVisible = false;
+      this.selectedFeedback = null;
+      this.showReplyInput = false;
+      this.replyContent = '';
+    },
+    cancelReply() {
+      this.showReplyInput = false;
+      this.replyContent = '';
+    },
+    async submitReply() {
+      if (!this.replyContent.trim()) {
+        this.$message.warning('Please enter your reply');
+        return;
+      }
+
+      try {
+        // TODO: 调用回复API
+        console.log('Submitting reply:', this.replyContent);
+        this.$message.success('Reply submitted successfully');
+        this.showReplyInput = false;
+        this.replyContent = '';
+      } catch (error) {
+        console.error('Failed to submit reply:', error);
+        this.$message.error('Failed to submit reply');
+      }
+    },
+    async handlePriorityChange(value) {
+      try {
+        const result = await feedbackService.updateFeedback(this.selectedFeedback.id, {
+          description: this.selectedFeedback.description, // 保持原有描述
+          priority: value,
+        });
+        
+        if (result) {
+          this.$message.success('Priority updated successfully');
+          // 关闭抽屉
+          this.drawerVisible = false;
+          // 刷新页面数据
+          await this.fetchFeedbackData();
+        } else {
+          console.error('Update failed: No result returned');
+          this.$message.error('Failed to update priority');
+          // 恢复原值
+          const originalFeedback = this.data.find(item => item.id === this.selectedFeedback.id);
+          if (originalFeedback) {
+            this.selectedFeedback.priority = originalFeedback.priority;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update priority:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        this.$message.error('Failed to update priority');
+        // 恢复原值
+        const originalFeedback = this.data.find(item => item.id === this.selectedFeedback.id);
+        if (originalFeedback) {
+          this.selectedFeedback.priority = originalFeedback.priority;
+        }
+      }
     },
   },
 };
@@ -308,5 +560,70 @@ export default {
 }
 .t-button + .t-button {
   margin-left: var(--td-comp-margin-s);
+}
+
+.feedback-details {
+  padding: 16px;
+}
+
+:deep(.t-descriptions) {
+  margin-top: 16px;
+}
+
+:deep(.t-descriptions__label) {
+  width: 120px;
+}
+
+.image-count {
+  color: var(--td-text-color-secondary);
+}
+
+:deep(.t-select) {
+  width: 120px;
+}
+
+.priority-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  gap: 4px;
+  
+  span {
+    cursor: pointer;
+  }
+  
+  .sort-icons {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    line-height: 1;
+    
+    .t-icon {
+      color: var(--td-text-color-secondary);
+      transition: color 0.2s;
+      
+      &.active {
+        color: var(--td-brand-color);
+      }
+    }
+  }
+}
+
+.reply-section {
+  margin-top: 24px;
+  padding: 0 16px;
+}
+
+.reply-input-section {
+  margin-top: 16px;
+  
+  .reply-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
 }
 </style>
