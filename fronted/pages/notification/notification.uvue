@@ -45,7 +45,7 @@
 				// 根据消息类型跳转到对应的详情页面
 				const typeMapping = {
 					'customer-service': '/pages/notification/customer-service',
-					'system': '/pages/notification/system-messages'
+					'system': '/pages/notification/system'
 				};
 				
 				if (typeMapping[type]) {

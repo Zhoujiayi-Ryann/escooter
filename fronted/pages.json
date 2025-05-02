@@ -213,14 +213,16 @@
 			"path" : "pages/notification/customer-service",
 			"style" : 
 			{
-				"navigationBarTitleText" : "Support Messages"
+				"navigationBarTitleText" : "Support Messages",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path" : "pages/notification/system",
 			"style" : 
 			{
-				"navigationBarTitleText" : "System Messages"
+				"navigationBarTitleText" : "System Messages",
+				"navigationStyle": "custom"
 			}
 		}
 	],
