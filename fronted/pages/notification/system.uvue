@@ -9,7 +9,11 @@
 		<view v-for="item in notifications" :key="item.id" class="msg-card">
 			<view class="msg-title">{{ item.title }}</view>
 			<view class="msg-content">{{ item.content }}</view>
-			<view class="msg-time">{{ item.created_at }}</view>
+			<view class="msg-time">{{ formatTime(item.createdAt) }}</view>
+			<view class="coupon-link" @click="goToCoupons">
+				<text>See Coupons</text>
+				<van-icon name="arrow" class="arrow-icon" />
+			</view>
 		</view>
 		<view v-if="notifications.length === 0" class="empty-tip">No System Meassages</view>
 	</view>
@@ -43,14 +47,46 @@ export default {
 				this.notifications = [];
 				return;
 			}
-			const res = await notificationApi.getUserNotifications(userId);
-			console.log('通知接口返回：', res);
-			if (res.code === 1 && Array.isArray(res.data)) {
-				// 按时间倒序
-				this.notifications = res.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-			} else {
+
+			try {
+				const res = await notificationApi.getUserNotifications(userId);
+				console.log('通知接口返回原始数据：', res.data);
+				
+				if (res.code === 1 && Array.isArray(res.data)) {
+					this.notifications = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+					await this.markAllAsRead(userId);
+				} else {
+					this.notifications = [];
+				}
+			} catch (err) {
+				console.error('获取通知失败:', err);
 				this.notifications = [];
 			}
+		},
+		async markAllAsRead(userId) {
+			try {
+				const res = await notificationApi.markAllAsRead(userId);
+				if (res.code === 1) {
+					console.log('所有通知已标记为已读');
+				}
+			} catch (err) {
+				console.error('标记通知已读失败:', err);
+			}
+		},
+		goToCoupons() {
+			uni.navigateTo({
+				url: '/pages/settings/coupons/coupon'
+			});
+		},
+		formatTime(timestamp) {
+			if (!timestamp) return '';
+			const date = new Date(timestamp);
+			const year = date.getFullYear();
+			const month = String(date.getMonth() + 1).padStart(2, '0');
+			const day = String(date.getDate()).padStart(2, '0');
+			const hours = String(date.getHours()).padStart(2, '0');
+			const minutes = String(date.getMinutes()).padStart(2, '0');
+			return `${year}-${month}-${day} ${hours}:${minutes}`;
 		}
 	}
 }
@@ -101,6 +137,7 @@ export default {
 	padding: 32rpx 28rpx 20rpx 28rpx;
 	margin-bottom: 28rpx;
 	box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+	position: relative;
 }
 .msg-title {
 	font-size: 34rpx;
@@ -117,12 +154,30 @@ export default {
 .msg-time {
 	font-size: 24rpx;
 	color: #b0b0b0;
-	text-align: right;
+	text-align: left;
+	padding: 8rpx 0;
+	margin: 8rpx 0;
 }
 .empty-tip {
 	text-align: center;
 	color: #aaa;
 	margin-top: 80rpx;
 	font-size: 32rpx;
+}
+.coupon-link {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16rpx 0 0;
+	margin-top: 8rpx;
+	border-top: 1px solid #eee;
+	color: #0084ff;
+	font-size: 28rpx;
+	cursor: pointer;
+}
+.arrow-icon {
+	font-size: 32rpx;
+	color: #0084ff;
 }
 </style>

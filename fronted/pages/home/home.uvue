@@ -5,6 +5,7 @@
 		</view>
 		<view class="notification-button" @click="navigateTo('notification')">
 			<van-icon name="bell" size="24px" color="#333" />
+			<view class="notification-dot" v-if="hasUnreadNotifications"></view>
 		</view>
 		<view class="order-tip" v-if="orderTipInfo.show">
 			<view class="tip-content">
@@ -216,6 +217,7 @@ import { scooterApi } from '../../utils/api/scooter';
 import { userApi } from '../../utils/api/user';
 import { orderApi } from '../../utils/api/order';
 import { dateUtils } from '../../utils/dateUtils';
+import { notificationApi } from '../../utils/api/notification';
 
 export default {
 	data() {
@@ -272,7 +274,8 @@ export default {
 				message: '',
 				buttonText: '',
 				action: () => {}
-			}
+			},
+			hasUnreadNotifications: false,
 		};
 	},
 	mounted() {
@@ -282,6 +285,7 @@ export default {
 		this.getUsername();
 		this.initDateFormatting();
 		this.checkUnstartedOrder();
+		this.checkUnreadNotifications();
 		
 		// 使用uni.$on监听事件
 		uni.$on('refreshHomePage', () => {
@@ -295,6 +299,8 @@ export default {
 	},
 	onShow() {
 		this.getUsername();
+		this.checkUnstartedOrder();
+		this.checkUnreadNotifications();
 	},
 	onUnload() {
 		// 移除事件监听
@@ -909,6 +915,24 @@ export default {
 				this.orderTipInfo.show = false;
 			});
 		},
+		async checkUnreadNotifications() {
+			const userId = userApi.getUserId();
+			if (!userId) {
+				this.hasUnreadNotifications = false;
+				return;
+			}
+			try {
+				const res = await notificationApi.countUserUnreadNotifications(userId);
+				if (res.code === 1) {
+					this.hasUnreadNotifications = res.data > 0;
+				} else {
+					this.hasUnreadNotifications = false;
+				}
+			} catch (err) {
+				console.error('获取未读通知数量失败:', err);
+				this.hasUnreadNotifications = false;
+			}
+		}
 	}
 };
 </script>
@@ -1224,6 +1248,17 @@ export default {
 	}
 	.notification-button .van-icon {
 		font-size: 28px;
+	}
+	.notification-dot {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 15px;
+		height: 15px;
+		background-color: #ff4d4f;
+		border-radius: 50%;
+		border: 2px solid #fff;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 	}
 	.button-group {
 		display: flex;

@@ -31,46 +31,110 @@
 </template>
 
 <script>
-	export default {
-		data() {
-			return {
-				hasUnread: false
+import { userApi } from '../../utils/api/user/index.uts'
+import { notificationApi } from '../../utils/api/notification/index.uts'
+
+export default {
+	data() {
+		return {
+			hasUnread: false,
+			checkInterval: null
+		}
+	},
+	onShow() {
+		this.checkUnreadNotifications()
+		// 每30秒检查一次未读消息
+		this.startAutoCheck()
+	},
+	onHide() {
+		// 页面隐藏时清除定时器
+		this.stopAutoCheck()
+	},
+	onUnload() {
+		// 页面卸载时清除定时器
+		this.stopAutoCheck()
+	},
+	methods: {
+		startAutoCheck() {
+			// 清除可能存在的旧定时器
+			this.stopAutoCheck()
+			// 设置新的定时器，每30秒检查一次
+			this.checkInterval = setInterval(() => {
+				this.checkUnreadNotifications()
+			}, 30000)
+		},
+		stopAutoCheck() {
+			if (this.checkInterval) {
+				clearInterval(this.checkInterval)
+				this.checkInterval = null
 			}
 		},
-		methods: {
-			goBack() {
+		goBack() {
+			uni.navigateBack();
+		},
+		navigateTo(type) {
+			// 根据消息类型跳转到对应的详情页面
+			const typeMapping = {
+				'customer-service': '/pages/notification/customer-service',
+				'system': '/pages/notification/system'
+			};
+			
+			if (typeMapping[type]) {
+				if (type === 'system') {
+					// 进入系统消息页面时，标记所有消息为已读
+					this.markAllAsRead()
+				}
+				uni.navigateTo({
+					url: typeMapping[type]
+				});
+			} else {
+				console.log(`消息类型 ${type} 的页面尚未实现`);
+				uni.showToast({
+					title: `${type} page not ready`,
+					icon: 'none',
+					duration: 2000
+				});
+			}
+		},
+		handleBack() {
+			const pages = getCurrentPages();
+			if (pages.length > 1) {
 				uni.navigateBack();
-			},
-			navigateTo(type) {
-				// 根据消息类型跳转到对应的详情页面
-				const typeMapping = {
-					'customer-service': '/pages/notification/customer-service',
-					'system': '/pages/notification/system'
-				};
-				
-				if (typeMapping[type]) {
-					uni.navigateTo({
-						url: typeMapping[type]
-					});
+			} else {
+				uni.reLaunch({ url: '/pages/home/home' });
+			}
+		},
+		async checkUnreadNotifications() {
+			const userId = userApi.getUserId();
+			if (!userId) {
+				this.hasUnread = false;
+				return;
+			}
+			try {
+				const res = await notificationApi.countUserUnreadNotifications(userId);
+				if (res.code === 1) {
+					this.hasUnread = res.data > 0;
 				} else {
-					console.log(`消息类型 ${type} 的页面尚未实现`);
-					uni.showToast({
-						title: `${type} page not ready`,
-						icon: 'none',
-						duration: 2000
-					});
+					this.hasUnread = false;
 				}
-			},
-			handleBack() {
-				const pages = getCurrentPages();
-				if (pages.length > 1) {
-					uni.navigateBack();
-				} else {
-					uni.reLaunch({ url: '/pages/home/home' });
-				}
+			} catch (err) {
+				console.error('获取未读通知数量失败:', err);
+				this.hasUnread = false;
+			}
+		},
+		async markAllAsRead() {
+			const userId = userApi.getUserId();
+			if (!userId) return;
+			
+			try {
+				await notificationApi.markAllAsRead(userId);
+				this.hasUnread = false;
+			} catch (err) {
+				console.error('标记所有通知为已读失败:', err);
 			}
 		}
 	}
+}
 </script>
 
 <style>
@@ -142,12 +206,14 @@
 
 .unread-dot {
 	position: absolute;
-	top: 0;
-	right: 0;
-	width: 10px;
-	height: 10px;
+	top: 4px;
+	right: 4px;
+	width: 15px;
+	height: 15px;
 	border-radius: 50%;
 	background-color: #ff4d4f;
+	border: 2px solid #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .message-content {
