@@ -1,5 +1,22 @@
 import axios from 'axios';
 
+// API基础URL
+const BASE_URL = 'http://localhost:8080/api';
+
+// 响应类型接口
+interface ApiResponse<T> {
+  code: number;
+  data: T;
+  msg: string;
+}
+
+// 登录响应数据类型
+interface LoginResponseData {
+  user_id: number;
+  username: string;
+  token: string;
+}
+
 export const USER_INFO_LIST = [
   {
     title: '手机',
@@ -65,16 +82,6 @@ export const TEAM_MEMBERS = [
 
 export const PRODUCT_LIST = ['a', 'b', 'c', 'd'];
 
-// API基础URL
-const BASE_URL = 'http://172.20.10.2:8080/api';
-
-// 响应类型接口
-interface ApiResponse<T> {
-  code: number;
-  data: T;
-  msg: string;
-}
-
 export interface IFrequentUser {
   user_id: number;
   username: string;
@@ -110,7 +117,7 @@ export const getFrequentUsers = async (): Promise<IFrequentUser[]> => {
     }
     return [];
   } catch (error) {
-    console.error('获取常用用户列表失败:', error);
+    console.error('Failed to get frequent users:', error);
     return [];
   }
 };
@@ -128,7 +135,7 @@ export const getAllNonAdminUsers = async (): Promise<IUser[]> => {
     }
     return [];
   } catch (error) {
-    console.error('获取非管理员用户列表失败:', error);
+    console.error('Failed to get non-admin users:', error);
     return [];
   }
 };
@@ -151,3 +158,23 @@ export const toggleUserDisabledStatus = async (userId: number): Promise<IUser> =
     throw error;
   }
 };
+
+/**
+ * 管理员登录
+ * @param username 用户名
+ * @param password 密码
+ * @returns 登录响应
+ */
+export const adminLogin = async (username: string, password: string): Promise<ApiResponse<LoginResponseData>> => {
+  try {
+    const response = await axios.post<ApiResponse<LoginResponseData>>(`${BASE_URL}/users/admin/login`, {
+      username,
+      password
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Admin login failed:', error);
+    throw error;
+  }
+};
+

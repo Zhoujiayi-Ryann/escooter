@@ -51,6 +51,16 @@ public class UserController {
         }
     }
 
+    @PostMapping("/admin/login")
+    public Result<LoginResponse> adminLogin(@Valid @RequestBody LoginRequest request) {
+        try {
+            LoginResponse response = userService.adminLogin(request);
+            return Result.success(response, "Admin login successfully");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
     @GetMapping("/profile/{id}")
     public Result<User> getUserProfile(@PathVariable Long id) {
         try {

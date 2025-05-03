@@ -14,6 +14,8 @@ public interface UserService {
 
     LoginResponse login(LoginRequest request);
 
+    LoginResponse adminLogin(LoginRequest request);
+
     User getUserById(Long id);
 
     User updateUser(Long id, UpdateUserRequest request);

@@ -90,6 +90,36 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public LoginResponse adminLogin(LoginRequest request) {
+        // 根据用户名查询用户
+        User user = userMapper.findByUsername(request.getUsername());
+        if (user == null) {
+            throw new RuntimeException("Username or password is incorrect");
+        }
+
+        // 验证密码
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Username or password is incorrect");
+        }
+
+        // 验证是否为管理员
+        if (user.getUserTypes() == null || !user.getUserTypes().contains("admin")) {
+            throw new RuntimeException("User is not an administrator");
+        }
+
+        // 生成token
+        String token = jwtUtil.generateToken(user.getUserId(), user.getUsername());
+
+        // 构建响应对象
+        LoginResponse response = new LoginResponse();
+        response.setUser_id(user.getUserId());
+        response.setUsername(user.getUsername());
+        response.setToken(token);
+
+        return response;
+    }
+
+    @Override
     public User getUserById(Long id) {
         User user = userMapper.findById(id);
         if (user != null) {
