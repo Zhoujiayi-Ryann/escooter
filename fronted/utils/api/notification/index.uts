@@ -13,7 +13,7 @@ export const notificationApi = {
      */
     getUserNotifications(userId: number): Promise<ApiResponse<NotificationResponse[]>> {
         return request<NotificationResponse[]>({
-            url: `/api/notifications/user/${userId}`,
+            url: `/notifications/user/${userId}`,
             method: 'GET',
             needToken: true
         });
@@ -26,7 +26,7 @@ export const notificationApi = {
      */
     getUserUnreadNotifications(userId: number): Promise<ApiResponse<NotificationResponse[]>> {
         return request<NotificationResponse[]>({
-            url: `/api/notifications/user/${userId}/unread`,
+            url: `/notifications/user/${userId}/unread`,
             method: 'GET',
             needToken: true
         });
@@ -39,7 +39,7 @@ export const notificationApi = {
      */
     countUserUnreadNotifications(userId: number): Promise<ApiResponse<number>> {
         return request<number>({
-            url: `/api/notifications/user/${userId}/unread/count`,
+            url: `/notifications/user/${userId}/unread/count`,
             method: 'GET',
             needToken: true
         });
@@ -53,7 +53,7 @@ export const notificationApi = {
      */
     markAsRead(notificationId: number, userId: number): Promise<ApiResponse<boolean>> {
         return request<boolean>({
-            url: `/api/notifications/${notificationId}/read`,
+            url: `/notifications/${notificationId}/read`,
             method: 'PATCH',
             data: { userId },
             needToken: true
@@ -67,7 +67,7 @@ export const notificationApi = {
      */
     markAllAsRead(userId: number): Promise<ApiResponse<number>> {
         return request<number>({
-            url: `/api/notifications/user/${userId}/read/all`,
+            url: `/notifications/user/${userId}/read/all`,
             method: 'PATCH',
             needToken: true
         });
@@ -81,7 +81,7 @@ export const notificationApi = {
      */
     deleteNotification(notificationId: number, userId: number): Promise<ApiResponse<boolean>> {
         return request<boolean>({
-            url: `/api/notifications/${notificationId}?userId=${userId}`,
+            url: `/notifications/${notificationId}?userId=${userId}`,
             method: 'DELETE',
             needToken: true
         });
