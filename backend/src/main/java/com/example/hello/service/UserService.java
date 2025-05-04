@@ -18,6 +18,12 @@ public interface UserService {
 
     User getUserById(Long id);
 
+    /**
+     * 更新用户信息
+     * @param id 用户ID
+     * @param request 更新请求
+     * @return 更新后的用户信息
+     */
     User updateUser(Long id, UpdateUserRequest request);
 
     /**

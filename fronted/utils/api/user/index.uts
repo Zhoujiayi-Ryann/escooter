@@ -95,7 +95,6 @@ export const userApi = {
         email?: string;
         phone_number?: string;
         password?: string;
-        avatar_path?: string;
     }): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
             url: `/users/profile/${userId}`,

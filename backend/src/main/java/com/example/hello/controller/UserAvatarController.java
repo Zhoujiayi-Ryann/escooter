@@ -1,0 +1,71 @@
+package com.example.hello.controller;
+
+import com.example.hello.common.Result;
+import com.example.hello.dto.request.UpdateUserRequest;
+import com.example.hello.entity.User;
+import com.example.hello.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserAvatarController {
+    private static final Logger logger = LoggerFactory.getLogger(UserAvatarController.class);
+    
+    @Autowired
+    private UserService userService;
+    
+    // 修改上传目录为fronted/static/settings
+    private final String uploadDir = "../fronted/static/settings";
+    
+    @PostMapping("/avatar/upload/{userId}")
+    public Result<String> uploadAvatar(
+            @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file) {
+        logger.info("Received avatar upload request for user: {}", userId);
+        
+        if (file.isEmpty()) {
+            return Result.error("请选择文件");
+        }
+        
+        try {
+            // 确保上传目录存在
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            
+            // 生成唯一文件名
+            String originalFilename = file.getOriginalFilename();
+            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String newFilename = "avatar_" + userId + "_" + UUID.randomUUID().toString() + extension;
+            
+            // 保存文件
+            Path filePath = uploadPath.resolve(newFilename);
+            Files.copy(file.getInputStream(), filePath);
+            
+            // 返回相对路径（相对于fronted目录）
+            String relativePath = "/static/settings/" + newFilename;
+            
+            // 更新数据库中的头像路径
+            UpdateUserRequest updateRequest = new UpdateUserRequest();
+            updateRequest.setAvatar_path(relativePath);
+            userService.updateUser(userId, updateRequest);
+            
+            return Result.success(relativePath, "头像上传成功");
+            
+        } catch (IOException e) {
+            logger.error("头像上传失败", e);
+            return Result.error("头像上传失败: " + e.getMessage());
+        }
+    }
+} 
