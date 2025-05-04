@@ -6,27 +6,16 @@
 			</view>
 			<text class="header-title">Notification</text>
 		</view>
-		<view class="message-list">
-			<view class="message-item" @click="navigateTo('customer-service')">
-				<view class="message-icon customer-service">
-					<van-icon name="service-o" size="30px" color="#fff" />
-				</view>
-				<view class="message-content">
-					<text class="message-title">Support Messages</text>
-				</view>
-				<van-icon name="arrow" size="16px" color="#999" />
-			</view>
-			<view class="message-item" @click="navigateTo('system')">
-				<view class="message-icon system">
-					<van-icon name="volume-o" size="30px" color="#fff" />
-                    <view class="unread-dot" v-if="hasUnread"></view>
-				</view>
-				<view class="message-content">
-					<text class="message-title">System Messages</text>
-				</view>
-				<van-icon name="arrow" size="16px" color="#999" />
+		<view v-for="item in notifications" :key="item.id" class="msg-card">
+			<view class="msg-title">{{ item.title }}</view>
+			<view class="msg-content">{{ item.content }}</view>
+			<view class="msg-time">{{ formatTime(item.createdAt) }}</view>
+			<view v-if="item.type === 'COUPON'" class="link" @click="goToPages(item.type)">
+				<text>See Details</text>
+				<van-icon name="arrow" class="arrow-icon" />
 			</view>
 		</view>
+		<view v-if="notifications.length === 0" class="empty-tip">No Messages</view>
 	</view>
 </template>
 
@@ -37,28 +26,25 @@ import { notificationApi } from '../../utils/api/notification/index.uts'
 export default {
 	data() {
 		return {
+			notifications: [],
 			hasUnread: false,
 			checkInterval: null
 		}
 	},
 	onShow() {
+		this.fetchNotifications()
 		this.checkUnreadNotifications()
-		// 每30秒检查一次未读消息
 		this.startAutoCheck()
 	},
 	onHide() {
-		// 页面隐藏时清除定时器
 		this.stopAutoCheck()
 	},
 	onUnload() {
-		// 页面卸载时清除定时器
 		this.stopAutoCheck()
 	},
 	methods: {
 		startAutoCheck() {
-			// 清除可能存在的旧定时器
 			this.stopAutoCheck()
-			// 设置新的定时器，每30秒检查一次
 			this.checkInterval = setInterval(() => {
 				this.checkUnreadNotifications()
 			}, 30000)
@@ -67,33 +53,6 @@ export default {
 			if (this.checkInterval) {
 				clearInterval(this.checkInterval)
 				this.checkInterval = null
-			}
-		},
-		goBack() {
-			uni.navigateBack();
-		},
-		navigateTo(type) {
-			// 根据消息类型跳转到对应的详情页面
-			const typeMapping = {
-				'customer-service': '/pages/notification/customer-service',
-				'system': '/pages/notification/system'
-			};
-			
-			if (typeMapping[type]) {
-				if (type === 'system') {
-					// 进入系统消息页面时，标记所有消息为已读
-					this.markAllAsRead()
-				}
-				uni.navigateTo({
-					url: typeMapping[type]
-				});
-			} else {
-				console.log(`消息类型 ${type} 的页面尚未实现`);
-				uni.showToast({
-					title: `${type} page not ready`,
-					icon: 'none',
-					duration: 2000
-				});
 			}
 		},
 		handleBack() {
@@ -122,16 +81,59 @@ export default {
 				this.hasUnread = false;
 			}
 		},
-		async markAllAsRead() {
+		async fetchNotifications() {
 			const userId = userApi.getUserId();
-			if (!userId) return;
-			
-			try {
-				await notificationApi.markAllAsRead(userId);
-				this.hasUnread = false;
-			} catch (err) {
-				console.error('标记所有通知为已读失败:', err);
+			if (!userId) {
+				this.notifications = [];
+				return;
 			}
+
+			try {
+				const res = await notificationApi.getUserNotifications(userId);
+				console.log('通知接口返回原始数据：', res.data);
+				
+				if (res.code === 1 && Array.isArray(res.data)) {
+					this.notifications = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+					await this.markAllAsRead(userId);
+				} else {
+					this.notifications = [];
+				}
+			} catch (err) {
+				console.error('获取通知失败:', err);
+				this.notifications = [];
+			}
+		},
+		async markAllAsRead(userId) {
+			try {
+				const res = await notificationApi.markAllAsRead(userId);
+				if (res.code === 1) {
+					console.log('所有通知已标记为已读');
+					this.hasUnread = false;
+				}
+			} catch (err) {
+				console.error('标记通知已读失败:', err);
+			}
+		},
+		goToPages(type) {
+			if (type === 'COUPON') {
+				uni.navigateTo({
+					url: '/pages/settings/coupons/coupon'
+				});
+			} else if (type === 'COMMENT_REPLY') {
+				uni.navigateTo({
+					url: '/pages/feedback/detail'
+				});
+			}
+		},
+		formatTime(timestamp) {
+			if (!timestamp) return '';
+			const date = new Date(timestamp);
+			const year = date.getFullYear();
+			const month = String(date.getMonth() + 1).padStart(2, '0');
+			const day = String(date.getDate()).padStart(2, '0');
+			const hours = String(date.getHours()).padStart(2, '0');
+			const minutes = String(date.getMinutes()).padStart(2, '0');
+			return `${year}-${month}-${day} ${hours}:${minutes}`;
 		}
 	}
 }
@@ -145,92 +147,14 @@ export default {
 	padding: 20px;
 }
 
-.nav-header {
-	position: sticky;
-	top: 0;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 10px 15px;
-	background-color: #fff;
-	border-bottom: 1px solid #eee;
-	z-index: 10;
-}
-
-.back-button {
-	padding: 5px;
-}
-
-.page-title {
-	font-size: 18px;
-	font-weight: bold;
-}
-
-.right-buttons {
-	display: flex;
-	align-items: center;
-}
-
-.message-list {
-	padding: 10px 0;
-}
-
-.message-item {
-	display: flex;
-	flex-direction: row;
-	justify-content: center;
-	align-items: center;
-	padding: 15px;
-	background-color: #fff;
-	margin-bottom: 1px;
+.header {
+	background-color: #ffffff;
+	padding: 40rpx 0;
+	text-align: center;
+	border-radius: 20rpx;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 	position: relative;
-}
-
-.message-icon {
-	width: 50px;
-	height: 50px;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	position: relative;
-}
-
-.customer-service {
-	background-color: #39c5bb;
-}
-
-.system {
-	background-color: #4b8bf4;
-}
-
-.unread-dot {
-	position: absolute;
-	top: 4px;
-	right: 4px;
-	width: 15px;
-	height: 15px;
-	border-radius: 50%;
-	background-color: #ff4d4f;
-	border: 2px solid #fff;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.message-content {
-	flex: 1;
-	margin-left: 15px;
-}
-
-.message-title {
-	font-size: 16px;
-	font-weight: 500;
-	display: block;
-}
-
-.message-desc {
-	font-size: 12px;
-	color: #999;
-	display: block;
+	margin-bottom: 30rpx;
 }
 
 .back-btn {
@@ -260,13 +184,59 @@ export default {
 	text-align: center;
 }
 
-.header {
-	background-color: #ffffff;
-	padding: 40rpx 0;
-	text-align: center;
-	border-radius: 20rpx;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+.msg-card {
+	background: #f8fbfd;
+	border-radius: 18rpx;
+	padding: 32rpx 28rpx 20rpx 28rpx;
+	margin-bottom: 28rpx;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 	position: relative;
-	margin-bottom: 30rpx;
+}
+
+.msg-title {
+	font-size: 34rpx;
+	font-weight: bold;
+	color: #222;
+	margin-bottom: 12rpx;
+}
+
+.msg-content {
+	font-size: 28rpx;
+	color: #444;
+	margin-bottom: 16rpx;
+	white-space: pre-line;
+}
+
+.msg-time {
+	font-size: 24rpx;
+	color: #b0b0b0;
+	text-align: left;
+	padding: 8rpx 0;
+	margin: 8rpx 0;
+}
+
+.empty-tip {
+	text-align: center;
+	color: #aaa;
+	margin-top: 80rpx;
+	font-size: 32rpx;
+}
+
+.link {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16rpx 0 0;
+	margin-top: 8rpx;
+	border-top: 1px solid #eee;
+	color: #0084ff;
+	font-size: 28rpx;
+	cursor: pointer;
+}
+
+.arrow-icon {
+	font-size: 32rpx;
+	color: #0084ff;
 }
 </style>

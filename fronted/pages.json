@@ -208,22 +208,6 @@
 				"navigationBarTitleText" : "",
 				"navigationStyle": "custom"
 			}
-		},
-		{
-			"path" : "pages/notification/customer-service",
-			"style" : 
-			{
-				"navigationBarTitleText" : "Support Messages",
-				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path" : "pages/notification/system",
-			"style" : 
-			{
-				"navigationBarTitleText" : "System Messages",
-				"navigationStyle": "custom"
-			}
 		}
 	],
 	"globalStyle": {
