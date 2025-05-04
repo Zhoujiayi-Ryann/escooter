@@ -29,11 +29,11 @@
         </text>
       </view>
       
-      <view class="info-item">
+<!--      <view class="info-item">
         <text class="info-value">Rental Period:
 		    <text class="info-label">{{ rentalPeriod }}</text>
         </text>
-      </view>
+      </view> -->
       
       <view class="info-item">
         <text class="info-value">Battery Level:
@@ -47,6 +47,10 @@
         </text>
       </view>
     </view>
+	<view class="info-item rental-period-item">
+	  <text class="info-label-title">Rental Period:</text>
+	  <view class="rental-period-value">{{ rentalPeriod }}</view>
+	</view>
     
     <!-- 地址 MODIFY-->
     <view class="address-section">
@@ -59,7 +63,7 @@
     
     <view class="agreement-section">
       <van-checkbox v-model="agreedToTerms" shape="square" icon-size="18px">
-        <text class="agreement-text">I acknowledge and agree to the </text>
+        <text class="agreement-text">I acknowledge and agree to the </text><br>
         <text class="agreement-link" @click="showAgreement">User Agreement</text>
       </van-checkbox>
     </view>
@@ -71,26 +75,50 @@
       :style="{ height: '70%' }"
     >
       <view class="agreement-popup">
-        <scroll-view class="agreement-content" scroll-y>
-          <text class="agreement-text-content">
-            1. General Terms\n\n
-            By using our e-scooter rental service, you agree to comply with all applicable laws and regulations.\n\n
-            2. Safety Requirements\n\n
-            - You must be at least 16 years old to use our service\n
-            - Wear a helmet while riding\n
-            - Follow all traffic rules and regulations\n\n
-            3. Rental Rules\n\n
-            - Return the e-scooter in the same condition as received\n
-            - Report any damages or issues immediately\n
-            - If you return earlier than the reserved time, no refund will be provided for the remaining rental period\n\n
-            4. Payment Terms\n\n
-            - All charges will be processed through your registered credit card\n
-            - Late returns will incur additional charges\n\n
-            5. Liability\n\n
-            - Users are responsible for any damages caused to the scooter\n
-            - We are not liable for any personal injuries or property damage
-          </text>
-        </scroll-view>
+		<scroll-view class="agreement-content" scroll-y>
+			 <view class="agreement-title">User Agreement</view>
+		  <view class="agreement-section">
+			<view class="section-title">1. General Terms</view>
+			<view class="section-text">
+			  By using our e-scooter rental service, you agree to comply with all applicable laws and regulations.
+			</view>
+		  </view>
+
+		  <view class="agreement-section">
+			<view class="section-title">2. Safety Requirements</view>
+			<view class="section-text">
+			  • You must be at least 16 years old to use our service<br />
+			  • Wear a helmet while riding<br />
+			  • Follow all traffic rules and regulations
+			</view>
+		  </view>
+
+		  <view class="agreement-section">
+			<view class="section-title">3. Rental Rules</view>
+			<view class="section-text">
+			  • Return the e-scooter in the same condition as received<br />
+			  • Report any damages or issues immediately<br />
+			  • If you return earlier than the reserved time, no refund will be provided for the remaining rental period
+			</view>
+		  </view>
+
+		  <view class="agreement-section">
+			<view class="section-title">4. Payment Terms</view>
+			<view class="section-text">
+			  • All charges will be processed through your registered credit card<br />
+			  • Late returns will incur additional charges
+			</view>
+		  </view>
+
+		  <view class="agreement-section">
+			<view class="section-title">5. Liability</view>
+			<view class="section-text">
+			  • Users are responsible for any damages caused to the scooter<br />
+			  • We are not liable for any personal injuries or property damage
+			</view>
+		  </view>
+		</scroll-view>
+
       </view>
     </van-popup>
 
@@ -501,6 +529,7 @@ export default {
   font-size: 30rpx;
   color: #333;
   margin-right: 20rpx;
+  font-weight: bold;
 }
 
 .address-input {
@@ -533,13 +562,14 @@ export default {
 .agreement-text {
   font-size: 28rpx;
   color: #666;
-  margin-left: 10rpx;
+  margin-left: 20rpx;
 }
 
 .agreement-link {
   font-size: 28rpx;
   color: #007aff;
   text-decoration: underline;
+  margin-left: 20rpx;
 }
 
 .agreement-popup {
@@ -565,6 +595,13 @@ export default {
   line-height: 1.6;
   white-space: pre-wrap;
 }
+.agreement-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #007aff;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
 
 .bottom-button {
   margin: 40rpx 0;
@@ -589,4 +626,56 @@ export default {
   opacity: 0.7;
   pointer-events: auto !important;
 }
+.agreement-content {
+  max-height: 80vh;
+  padding: 24rpx 32rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.agreement-section {
+  margin-bottom: 36rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #007aff;
+  margin-bottom: 16rpx;
+}
+
+.section-text {
+  font-size: 28rpx;
+  color: #444;
+  line-height: 1.8;
+}
+/* 新增 rental-period 样式，展示更清晰 */
+.rental-period-item {
+  flex-direction: column;
+  /* align-items: flex-start; */
+  padding: 20rpx;
+  background: #f7faff;
+  border: 2rpx dashed #007aff;
+  border-radius: 16rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08);
+}
+
+.info-label-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #007aff;
+  margin-bottom: 10rpx;
+}
+
+.rental-period-value {
+  font-size: 28rpx;
+  color: #444;
+  line-height: 1.8;
+  text-align: center;
+  align-items: center;
+}
+
+
 </style> 

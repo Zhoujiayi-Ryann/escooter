@@ -1093,7 +1093,7 @@ export default {
 		text-align: center;
 	}
 	.days-text {
-		font-size: 20px;
+		font-size: 14px;
 		color: #333;
 		white-space: nowrap;
 	}
@@ -1104,14 +1104,16 @@ export default {
 		font-size: 22px;
 		color: #333;
 		margin-bottom: 10px;
+		font-weight: bold;
 	}
 	.quick-option-buttons {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
+		
 	}
 	.quick-option {
-		background-color: rgba(255, 255, 255, 0.6);
+		background-color: rgba(255, 255, 255, 0.2);
 		padding: 10px 0;
 		flex: 1;
 		margin: 0 5px;
@@ -1120,6 +1122,7 @@ export default {
 		justify-content: center;
 		align-items: center;
 		font-size: 25px;
+		border: 2px solid #007aff;
 	}
 	.active-option {
 		background-color: rgba(0, 122, 255, 0.1);
@@ -1308,8 +1311,92 @@ export default {
 	}
 	.time-limit-tip {
 		margin-top: 20px;
+		align-items: center;
 		text-align: center;
 		font-size: 14px;
 		color: #666;
 	}
+	.instruction text {
+	  font-size: 22px;
+	  font-weight: bold;
+	  color: #007aff;
+	}
+	.quick-option {
+	  background: rgba(255, 255, 255, 0.5);
+	  padding: 12px 0;
+	  font-size: 18px;
+	  border-radius: 10px;
+	  border: 1px solid transparent;
+	  transition: all 0.3s;
+	  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+	}
+	
+	.active-option {
+	  background: linear-gradient(to right, #82b1ff, #007aff);
+	  color: white;
+	  border: none;
+	  font-weight: bold;
+	  box-shadow: 0 3px 8px rgba(0, 122, 255, 0.3);
+	}
+	.next-button-area .van-button {
+	  font-size: 20px;
+	  height: 55px;
+	  line-height: 48px;
+	  background: linear-gradient(to right, #82b1ff, #007aff);
+	  border-radius: 25px;
+	  color: white;
+	  font-weight: bold;
+	  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);
+	  margin-bottom: 20px;
+	}
+	.selected {
+	  border: 2px solid #007aff !important;
+	  border-radius: 10px;
+	  box-shadow: 0 3px 8px rgba(0, 122, 255, 0.2);
+	}
+	/* 时间选择器统一为卡片式风格 */
+	.date-time-picker {
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  margin-top: 20rpx;
+	  gap: 20rpx;
+	}
+	
+	.date-item {
+	  flex: 1;
+	  background: #f4f8ff;
+	  border-radius: 20rpx;
+	  padding: 20rpx;
+	  text-align: center;
+	  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.08);
+	  border: 2rpx solid #cce6ff;
+	}
+	
+	.date-text {
+	  font-size: 30rpx;
+	  font-weight: bold;
+	  color: #007aff;
+	}
+	
+	.time-text {
+	  font-size: 26rpx;
+	  color: #555;
+	  margin-top: 10rpx;
+	  display: block;
+	}
+	
+	.days-display {
+	  width: 140rpx;
+	  height: 100rpx;
+	  border-radius: 20rpx;
+	  font-weight: bold;
+	  font-size: smaller;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  text-align: center;
+	  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
+	}
+
 </style> 

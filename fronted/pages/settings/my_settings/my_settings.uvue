@@ -80,7 +80,7 @@ export default {
       user: {
         name: '游客',
         id: '0',
-        avatar: '/static/settings/userp.jpg'
+        avatar: ''
       },
       orderStatus: {
         unused: 1
@@ -99,37 +99,34 @@ export default {
     this.getUserInformation();
   },
   methods: {
-    getUserInformation() {
-      // 使用userApi获取完整的用户信息
-      const userInfo = userApi.getUserInfo();
-      
-      if (userInfo) {
-        console.log('已加载完整用户信息:', userInfo);
-        
-        // 更新页面上的用户信息 - 使用正确的字段名称
-        this.user.name = userInfo.username || '游客';
-        this.user.id = (userInfo.user_id || userInfo.userId || 0).toString();
-        
-        // 更新使用时长和总花费 - 注意字段名称可能有多种格式
-        const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
-        const spent = userInfo.totalSpent || userInfo.total_spent || 0;
-        
-        this.mileage.hours = parseFloat(usageHours).toFixed(1);
-        this.mileage.spent = parseFloat(spent);
-        
-        console.log('更新后的里程信息:', {
-          hours: this.mileage.hours,
-          spent: this.mileage.spent
-        });
-      } else {
-        // 用户未登录，显示默认信息
-        this.user.name = '游客';
-        this.user.id = '0';
-        this.mileage.hours = 0;
-        this.mileage.spent = 0;
-        console.log('未找到用户信息，显示游客模式');
-      }
-    },
+	getUserInformation() {
+	  const userInfo = userApi.getUserInfo();
+
+	  if (userInfo) {
+		console.log('已加载完整用户信息:', userInfo);
+
+		this.user.name = userInfo.username || '游客';
+		this.user.id = (userInfo.user_id || userInfo.userId || 0).toString();
+
+		// ✅ 头像处理：拼接后端路径
+		const avatarPath = userInfo.avatar_path;
+		this.user.avatar = avatarPath
+		  ? `http://localhost:8080${avatarPath}`  // ← 修改为你的后端地址
+		  : '/static/avatar/userp.jpg';
+
+		const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
+		const spent = userInfo.totalSpent || userInfo.total_spent || 0;
+
+		this.mileage.hours = parseFloat(usageHours).toFixed(1);
+		this.mileage.spent = parseFloat(spent);
+	  } else {
+		this.user.name = '游客';
+		this.user.id = '0';
+		this.user.avatar = '/static/avatar/userp.jpg';
+		this.mileage.hours = 0;
+		this.mileage.spent = 0;
+	  }
+	},
     handleLogout() {
       // 调用API退出登录
       userApi.logout();

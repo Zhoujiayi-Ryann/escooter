@@ -6,7 +6,7 @@
 		  </view>
 		  <text class="header-title">Help</text>
 		</view>
-		<text class="page-title">Usual Questions</text>
+		<text class="page-title">Common Usual Questions</text>
 		<view class="help-list">
 			<view class="help-item" @click="toggleExpand('start')">
 				<view class="item-left">
@@ -128,123 +128,128 @@
 
 <style>
 .container {
-	flex: 1;
-	background: linear-gradient(to bottom, #e0f0ff, #ffffff);
-	min-height: 100vh;
-	padding: 20px;
+  flex: 1;
+  background: linear-gradient(to bottom, #e6f2ff, #ffffff);
+  min-height: 100vh;
+  padding: 32rpx;
+  box-sizing: border-box;
 }
 
 .page-title {
-	font-size: 24px;
-	font-weight: bold;
-	color: #333;
-	margin-bottom: 20px;
-	display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #007aff;
+  margin: 20rpx 0 40rpx;
+  text-align: center;
 }
 
 .help-list {
-	background-color: #fff;
-	border-radius: 12px;
-	overflow: hidden;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 122, 255, 0.1);
 }
 
 .help-item {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	padding: 16px 20px;
-	background-color: #fff;
-	transition: background-color 0.2s;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 32rpx;
+  background-color: #fff;
+  transition: background-color 0.2s ease;
 }
 
 .help-item:active {
-	background-color: #f5f5f5;
+  background-color: #f2f6fa;
 }
 
 .item-left {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
 }
 
 .help-text {
-	font-size: 16px;
-	color: #333;
-	font-weight: 500;
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
 }
 
 .divider {
-	height: 1px;
-	background-color: #f0f0f0;
-	margin: 0 20px;
+  height: 2rpx;
+  background-color: #f0f0f0;
+  margin: 0 32rpx;
 }
 
 .expand-wrapper {
-	max-height: 0;
-	overflow: hidden;
-	transition: max-height 0.3s ease-out;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-out;
 }
 
 .expand-wrapper.expanded {
-	max-height: 200px; /* 根据实际内容调整这个值 */
+  max-height: 400rpx;
 }
 
 .expand-content {
-	padding: 15px 20px;
-	background-color: #f8f8f8;
-	border-top: 1px solid #f0f0f0;
-	transform: translateY(-100%);
-	transition: transform 0.3s ease-out;
+  padding: 24rpx 32rpx;
+  background-color: #f9fbfd;
+  border-top: 1rpx solid #ebeff5;
+  transform: translateY(-10%);
+  transition: transform 0.3s ease-out, opacity 0.3s;
+  opacity: 0;
 }
 
 .expand-wrapper.expanded .expand-content {
-	transform: translateY(0);
+  transform: translateY(0);
+  opacity: 1;
 }
 
 .solution-text {
-	font-size: 14px;
-	color: #666;
-	line-height: 1.6;
-	white-space: pre-line;
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.8;
+  white-space: pre-line;
 }
 
+/* 返回按钮与标题 */
 .back-btn {
-	position: absolute;
-	top: 25rpx;
-	left: 30rpx;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	z-index: 10;
-	background-color: #f4f8ff;
-	border-radius: 25rpx;
-	width: 80rpx;
-	height: 80rpx;
+  position: absolute;
+  top: 25rpx;
+  left: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #f4f8ff;
+  border-radius: 25rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
-	
+
 .back-icon {
-    font-size: 55rpx;
-	color: #0084ff;
+  font-size: 55rpx;
+  color: #007aff;
 }
-	
+
 .header-title {
-	font-size: 40rpx;
-	font-weight: bold;
-	color: #007aff;
-	text-align: center;
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #007aff;
+  text-align: center;
 }
 
 .header {
-	background-color: #ffffff;
-	padding: 40rpx 0;
-	text-align: center;
-	border-radius: 20rpx;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-	position: relative;
-	margin-bottom: 30rpx;
+  background-color: #ffffff;
+  padding: 40rpx 0;
+  text-align: center;
+  border-radius: 20rpx;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+  margin-bottom: 40rpx;
 }
+
 </style>

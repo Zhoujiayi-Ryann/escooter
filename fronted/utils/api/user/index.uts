@@ -79,7 +79,7 @@ export const userApi = {
      */
     getUserDetail(userId: number): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
-            url: `/api/users/profile/${userId}`,
+            url: `/users/profile/${userId}`,
             method: 'GET'
         });
     },
@@ -98,7 +98,7 @@ export const userApi = {
         avatar_path?: string;
     }): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
-            url: `/api/users/profile/${userId}`,
+            url: `/users/profile/${userId}`,
             method: 'PATCH',
             data: data
         });
@@ -115,7 +115,7 @@ export const userApi = {
         newPassword: string;
     }): Promise<ApiResponse<UserDetailInfo>> {
         return request<UserDetailInfo>({
-            url: `/api/users/profile/${userId}/password`,
+            url: `/users/profile/${userId}/password`,
             method: 'PATCH',
             data: data
         });

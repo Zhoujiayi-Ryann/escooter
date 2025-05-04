@@ -117,7 +117,7 @@ function formatToCST(utcStr) {
   if (isNaN(date.getTime())) return 'Invalid Date';
 
   // 转为中国时间
-  const offsetMs = 8 * 60 * 60 * 1000;
+  const offsetMs = 0;
   const cstDate = new Date(date.getTime() + offsetMs);
 
   return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;

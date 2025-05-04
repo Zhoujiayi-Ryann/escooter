@@ -188,7 +188,7 @@
 
 <style>
 .cards-container {
-	padding: 20rpx;
+	padding: 40rpx;
 	background: linear-gradient(to bottom, #e0f0ff, #ffffff);
 	min-height: 100vh;
 }
