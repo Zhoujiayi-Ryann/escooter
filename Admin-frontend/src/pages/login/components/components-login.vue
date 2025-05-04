@@ -33,10 +33,6 @@
       </t-input>
     </t-form-item>
 
-    <div class="check-container remember-pwd">
-      <t-checkbox>Remember me</t-checkbox>
-    </div>
-
     <t-form-item class="btn-container">
       <t-button block size="large" type="submit">Login</t-button>
     </t-form-item>
@@ -46,11 +42,11 @@
 <script lang="ts">
 import Vue from 'vue';
 import { UserIcon, LockOnIcon, BrowseOffIcon, BrowseIcon } from 'tdesign-icons-vue';
+import { adminLogin } from '@/service/service-user';
 
 const INITIAL_DATA = {
   account: '',
   password: '',
-  checked: false,
 };
 
 const FORM_RULES = {
@@ -77,11 +73,24 @@ export default Vue.extend({
     async onSubmit({ validateResult }) {
       if (validateResult === true) {
         try {
-          await this.$store.dispatch('user/login', this.formData);
-          this.$message.success('Login successful');
-          this.$router.replace('/').catch(() => '');
+          const response = await adminLogin(this.formData.account, this.formData.password);
+          
+          if (response.code === 1 && response.data) {
+            // 保存登录信息
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('userId', response.data.user_id.toString());
+            localStorage.setItem('username', response.data.username);
+            
+            this.$message.success('Login successful');
+
+            // 使用window.location进行页面跳转
+            window.location.href = '/dashboard/base';
+          } else {
+            this.$message.error(response.msg || 'Login failed');
+          }
         } catch (error) {
-          this.$message.error('Login failed');
+          console.error('Login error:', error);
+          this.$message.error(error.response?.data?.msg || 'Login failed');
         }
       }
     },
