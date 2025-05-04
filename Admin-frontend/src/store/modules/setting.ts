@@ -1,23 +1,51 @@
 /* eslint-disable no-param-reassign */
+/* eslint-disable no-param-reassign */
 import { Color } from 'tvision-color';
 import STYLE_CONFIG from '@/config/style';
 import { TColorSeries, TColorToken, LIGHT_CHART_COLORS, DARK_CHART_COLORS } from '@/config/color';
 import { insertThemeStylesheet, generateColorMap } from '@/utils/color';
 
-// 定义的state初始值
-const state = {
-  ...STYLE_CONFIG,
+/** 👇 类型必须在前面定义好 */
+export interface IStateType {
+  showBreadcrumb: boolean;
+  mode: string;
+  layout: string;
+  isSidebarCompact: boolean;
+  splitMenu: boolean;
+  isFooterAside: boolean;
+  isSidebarFixed: boolean;
+  isHeaderFixed: boolean;
+  showHeader: boolean;
+  showFooter: boolean;
+  backgroundTheme: string;
+  brandTheme: string;
+  isUseTabsRouter: boolean;
+
+  /** 扩展属性 */
+  showSettingPanel: boolean;
+  colorList: Record<string, any>;
+  chartColors: TColorToken;
+}
+
+/** 👇 从 localStorage 读取默认配置 */
+const localSetting = localStorage.getItem('APP_STYLE_CONFIG');
+const baseConfig = localSetting ? JSON.parse(localSetting) : STYLE_CONFIG;
+
+/** 👇 初始化 state */
+const state: IStateType = {
+  ...baseConfig,
   showSettingPanel: false,
   colorList: {},
   chartColors: LIGHT_CHART_COLORS,
 };
 
+
 type IInitStateType = typeof state;
 
-export interface IStateType extends IInitStateType {
-  isAsideFooter: boolean;
-  showSettingPanel: boolean;
-}
+// export interface IStateType extends IInitStateType {
+//   isAsideFooter: boolean;
+//   showSettingPanel: boolean;
+// }
 
 // 定义的state的初始值方法，传入state或者额外的方法，然后利用 vuex 的双向数据驱动进行值的改变
 // 可通过this.$store.commit(' ')调用，但是触发的是同步事件
@@ -36,7 +64,26 @@ const mutations = {
     state.backgroundTheme = payload.backgroundTheme;
     state.brandTheme = payload.brandTheme;
     state.isUseTabsRouter = payload.isUseTabsRouter;
+  
+    // ✅ 存储到 localStorage
+    const configToSave = {
+      showBreadcrumb: state.showBreadcrumb,
+      mode: state.mode,
+      layout: state.layout,
+      isSidebarCompact: state.isSidebarCompact,
+      splitMenu: state.splitMenu,
+      isFooterAside: state.isFooterAside,
+      isSidebarFixed: state.isSidebarFixed,
+      isHeaderFixed: state.isHeaderFixed,
+      showHeader: state.showHeader,
+      showFooter: state.showFooter,
+      backgroundTheme: state.backgroundTheme,
+      brandTheme: state.brandTheme,
+      isUseTabsRouter: state.isUseTabsRouter,
+    };
+    localStorage.setItem('APP_STYLE_CONFIG', JSON.stringify(configToSave));
   },
+  
   toggleSidebarCompact(state: IStateType) {
     state.isSidebarCompact = !state.isSidebarCompact;
   },

@@ -1,184 +1,301 @@
 <template>
+  <t-config-provider :global-config="globalConfig">
     <t-card class="order-list-container" :bordered="false">
-      <!-- Top Action Bar -->
+      <!-- Search & Filter -->
       <t-row justify="space-between">
-        <div class="left-operation-container">
-          <t-button @click="handleAddOrder">Add Order</t-button>
-          <t-button variant="base" theme="default" :disabled="!selectedRowKeys.length">Export Orders</t-button>
-          <p v-if="selectedRowKeys.length" class="selected-count">Selected {{ selectedRowKeys.length }} items</p>
-        </div>
         <div class="search-area">
+          
+          <t-select v-model="filterStatus" class="status-filter" placeholder="Filter by Status" clearable>
+            <t-option value="" label="All" />
+            <t-option value="completed" label="Completed" />
+            <t-option value="paid" label="Paid" />
+            <t-option value="pending" label="Pending" />
+          </t-select>
           <t-input v-model="searchValue" class="search-input" placeholder="Search by Order ID" clearable>
             <template #suffix-icon><search-icon size="20px" /></template>
           </t-input>
         </div>
       </t-row>
-  
-      <!-- Table Display -->
+
+      <!-- Table -->
       <div class="table-container">
         <t-table
           :columns="columns"
-          :data="filteredOrders"
+          :data="paginatedData"
           :rowKey="rowKey"
           :hover="true"
           :pagination="pagination"
           :selected-row-keys="selectedRowKeys"
           :loading="dataLoading"
-          @page-change="handlePageChange"
+          @page-change="onPageChange"
           @select-change="handleSelectChange"
           :headerAffixedTop="true"
           :headerAffixProps="{ offsetTop: offsetTop, container: getContainer }"
         >
-          <!-- Action Column -->
+        <template #status="{ row }">
+  <t-tag :theme="badgeTheme(row.status)" variant="light" size="small">
+    {{ row.status }}
+  </t-tag>
+</template>
+
           <template #op="{ rowIndex }">
-            <a class="t-button-link" @click="handleEdit(rowIndex)">View</a>
-            <a class="t-button-link" @click="handleEdit(rowIndex)">Edit</a>
+            <a class="t-button-link" @click="handleView(rowIndex)">View</a>
+            <a class="t-button-link" @click="promptDelete(rowIndex)">Delete</a>
           </template>
         </t-table>
       </div>
-  
-      <!-- Delete Confirmation Dialog -->
+
+      <!-- Confirm Deletion -->
       <t-dialog
-        header="Confirm Deletion?"
-        :body="confirmBody"
+        header="Confirm Deletion"
+        :body="`Are you sure you want to delete Order ID: ${orders[deleteIdx]?.order_id}?`"
         :visible.sync="confirmVisible"
         @confirm="confirmDelete"
         @cancel="cancelDelete"
       />
+
+      <!-- Drawer -->
+      <t-drawer
+        :visible.sync="drawerVisible"
+        header="Order Details"
+        size="400px"
+        :close-btn="true"
+        @close="drawerVisible = false"
+        :footer="false"
+      >
+        <div class="order-info">
+          <div class="info-row"><span>Order ID:</span> {{ currentOrder.order_id }}</div>
+          <div class="info-row"><span>User ID:</span> {{ currentOrder.user_id }}</div>
+          <div class="info-row"><span>Scooter ID:</span> {{ currentOrder.scooter_id }}</div>
+          <div class="info-row"><span>Start:</span> {{ currentOrder.start_time }}</div>
+          <div class="info-row"><span>End:</span> {{ currentOrder.end_time }}</div>
+          <!-- <div class="info-row"><span>Duration:</span> {{ currentOrder.duration }} hrs</div> -->
+          <div class="info-row"><span>Cost:</span> ${{ currentOrder.cost }}</div>
+          <div class="info-row"><span>Status:</span>
+            <t-tag :theme="badgeTheme(currentOrder.status)" variant="light" size="small">
+  {{ currentOrder.status }}
+</t-tag>
+          </div>
+          <div class="info-row"><span>Address:</span> {{ currentOrder.pickup_address }}</div>
+        </div>
+      </t-drawer>
     </t-card>
-  </template>
-  
-  <script>
-  import { SearchIcon } from 'tdesign-icons-vue';
-  
-  export default {
-    name: 'OrderManagePage',
-    components: {
-      SearchIcon,
+  </t-config-provider>
+</template>
+
+<script>
+import { SearchIcon } from 'tdesign-icons-vue';
+import enConfig from 'tdesign-vue/es/locale/en_US';
+import { getAllOrders } from '@/service/service-order'; // 根据实际路径调整
+
+export default {
+  name: 'OrderManagePage',
+  components: { SearchIcon },
+  data() {
+    return {
+      globalConfig: enConfig,
+      dataLoading: false,
+      drawerVisible: false,
+      currentOrder: {},
+      selectedRowKeys: [],
+      confirmVisible: false,
+      deleteIdx: -1,
+      searchValue: '',
+      filterStatus: '',
+      rowKey: 'order_id',
+      orders: [],
+      pagination: {
+        current: 1,
+        pageSize: 5,
+        total: 0,
+        showJumper: true,
+        showTotal: total => `Total ${total} orders`,
+      },
+      columns: [
+        { colKey: 'row-select', type: 'multiple', width: 64, fixed: 'left' },
+        { title: 'Order ID', colKey: 'order_id', width: 120 },
+        { title: 'User ID', colKey: 'user_id', width: 100 },
+        { title: 'Scooter ID', colKey: 'scooter_id', width: 120 },
+        { title: 'Start Time', colKey: 'start_time', width: 190 },
+        { title: 'End Time', colKey: 'end_time', width: 190 },
+        // {
+        //     title: 'Duration (hrs)',
+        //     colKey: 'duration_custom',
+        //     width: 120,
+        //     cell: ({ row }) => {
+        //       if (!row || !row.start_time || !row.end_time) return '--';
+        //       const start = new Date(row.start_time);
+        //       const end = new Date(row.end_time);
+        //       const duration = (end - start) / 3600000;
+        //       return isNaN(duration) ? '--' : duration.toFixed(1);
+        //     },
+        //   },
+        { title: 'Cost', colKey: 'cost', width: 100 },
+        { title: 'Status', colKey: 'status', width: 100 },
+        { title: 'Address', colKey: 'pickup_address', width: 180 },
+        { title: 'Actions', colKey: 'op', fixed: 'right', width: 160 },
+      ],
+    };
+  },
+
+  computed: {
+    offsetTop() {
+      return this.$store?.state?.setting?.isUseTabsRouter ? 48 : 0;
     },
-    data() {
-      return {
-        dataLoading: false,
-        orders: [
-          { order_id: 1, user_id: 6, scooter_id: 6, start_time: '2025-03-19 10:00:00', end_time: '2025-03-19 11:00:00', duration: 1, cost: 6.5, status: 'completed', address: '123 Main St' },
-          { order_id: 2, user_id: 1, scooter_id: 10, start_time: '2025-03-20 10:00:00', end_time: '2025-03-20 11:00:00', duration: 1, cost: 5, status: 'completed', address: '123 Main St' },
-          { order_id: 3, user_id: 4, scooter_id: 6, start_time: '2025-03-21 09:00:00', end_time: '2025-03-21 11:00:00', duration: 2, cost: 6.5, status: 'completed', address: '123 Main St' },
-          { order_id: 4, user_id: 5, scooter_id: 8, start_time: '2025-04-13 11:00:00', end_time: '2025-04-13 13:00:00', duration: 2, cost: 19.5, status: 'paid', address: 'qqqqq1111' },
-          // Add more simulated order data here as needed
-        ],
-        selectedRowKeys: [],
-        searchValue: '',
-        confirmVisible: false,
-        deleteIdx: -1,
-        rowKey: 'order_id',
-        pagination: {
-          current: 1,
-          pageSize: 10,
-          total: 4,
-          showJumper: true,
-          showTotal: true,
-        },
-        columns: [
-          { colKey: 'row-select', type: 'multiple', width: 64, fixed: 'left' },
-          { title: 'Order ID', colKey: 'order_id', width: 120 },
-          { title: 'User ID', colKey: 'user_id', width: 100 },
-          { title: 'Scooter ID', colKey: 'scooter_id', width: 120 },
-          { title: 'Start Time', colKey: 'start_time', width: 180 },
-          { title: 'End Time', colKey: 'end_time', width: 180 },
-          { title: 'Duration (hrs)', colKey: 'duration', width: 120 },
-          { title: 'Cost', colKey: 'cost', width: 120 },
-          { title: 'Status', colKey: 'status', width: 100 },
-          { title: 'Address', colKey: 'address', width: 180 },
-          { title: 'Actions', colKey: 'op', fixed: 'right', width: 200 },
-        ],
-      };
+    paginatedData() {
+      const keyword = this.searchValue.trim().toLowerCase();
+      let filtered = this.orders;
+
+      if (keyword) {
+        filtered = filtered.filter(order =>
+          order.order_id.toString().includes(keyword)
+        );
+      }
+
+      if (this.filterStatus) {
+        filtered = filtered.filter(order => order.status === this.filterStatus);
+      }
+
+      this.pagination.total = filtered.length;
+      const start = (this.pagination.current - 1) * this.pagination.pageSize;
+      const end = start + this.pagination.pageSize;
+      return filtered.slice(start, end);
     },
-    computed: {
-      filteredOrders() {
-        let filtered = this.orders;
-  
-        if (this.searchValue.trim()) {
-          const keyword = this.searchValue.trim().toLowerCase();
-          filtered = filtered.filter(order =>
-            order.order_id.toString().includes(keyword)  // Searching by order ID
-          );
-        }
-  
-        const start = (this.pagination.current - 1) * this.pagination.pageSize;
-        const end = start + this.pagination.pageSize;
-  
-        return filtered.slice(start, end);
+  },
+
+  methods: {
+    badgeTheme(status) {
+      switch (status) {
+        case 'completed': return 'success';
+        case 'paid': return 'warning';
+        case 'pending': return 'danger';
+        case 'active': return 'primary';
+        case 'cancelled': return 'default';
+        default: return 'default';
       }
     },
-    methods: {
-      handlePageChange(pageInfo) {
-        this.pagination.current = pageInfo.current;
-        this.pagination.pageSize = pageInfo.pageSize;
-      },
-  
-      handleSelectChange(keys) {
-        this.selectedRowKeys = keys;
-      },
-  
-      handleEdit(idx) {
-        const order = this.filteredOrders[idx];
-        this.$router.push(`/order-management/edit/${order.order_id}`);
-      },
-  
-      handleAddOrder() {
-        this.$router.push('/order-management/new');
-      },
-  
-      cancelDelete() {
-        this.deleteIdx = -1;
-        this.confirmVisible = false;
-      },
-  
-      confirmDelete() {
-        this.orders.splice(this.deleteIdx, 1);
-        this.pagination.total = this.orders.length;
+
+    async fetchOrders() {
+      try {
+        this.dataLoading = true;
+        const res = await getAllOrders();
+        console.log('Fetched orders:', res);
+
+        if (res.code === 1 && Array.isArray(res.data)) {
+          this.orders = res.data;
+          this.pagination.total = res.data.length;
+        } else {
+          this.$message.error(res.msg || 'Failed to fetch orders');
+        }
+      } catch (err) {
+        this.$message.error('Network error while fetching orders');
+        console.error(err);
+      } finally {
+        this.dataLoading = false;
+      }
+    },
+
+    onPageChange(pageInfo) {
+      this.pagination.current = pageInfo.current;
+      this.pagination.pageSize = pageInfo.pageSize;
+    },
+
+    handleSelectChange(keys) {
+      this.selectedRowKeys = keys;
+    },
+
+    handleView(idx) {
+      this.currentOrder = this.paginatedData[idx];
+      this.drawerVisible = true;
+    },
+
+    promptDelete(idx) {
+      this.deleteIdx = idx;
+      this.confirmVisible = true;
+    },
+
+    confirmDelete() {
+      const target = this.paginatedData[this.deleteIdx];
+      const globalIdx = this.orders.findIndex(o => o.order_id === target.order_id);
+      if (globalIdx !== -1) {
+        this.orders.splice(globalIdx, 1);
         this.selectedRowKeys = [];
         this.confirmVisible = false;
+        this.pagination.total = this.orders.length;
         this.$message.success('Order deleted');
-      },
-  
-      getContainer() {
-        return document.querySelector('.tdesign-starter-layout');
       }
-    }
-  };
-  </script>
-  
-  <style lang="less" scoped>
-  .order-list-container {
-    .left-operation-container {
-      display: flex;
-      align-items: center;
-      margin-bottom: 16px;
-  
-      .t-button + .t-button {
-        margin-left: 12px;
-      }
-  
-      .selected-count {
-        margin-left: 16px;
-        color: var(--td-text-color-secondary);
-      }
-    }
-  
-    .search-area {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-  
-      .search-input {
-        width: 220px;
-      }
-    }
-  
-    .table-container {
-      margin-top: 16px;
-    }
-  }
-  </style>
-  
+    },
+
+    cancelDelete() {
+      this.deleteIdx = -1;
+      this.confirmVisible = false;
+    },
+
+    getContainer() {
+      return document.querySelector('.tdesign-starter-layout');
+    },
+  },
+
+  mounted() {
+    this.fetchOrders();
+  },
+};
+</script>
+
+
+
+<style scoped>
+.search-area {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  width: 260px;
+}
+
+.status-filter {
+  width: 200px;
+}
+
+.table-container {
+  margin-top: 16px;
+}
+
+.order-info {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 2;
+  background-color: #f0f6ff;
+  border-radius: 10px;
+  /* box-shadow: inset 0 0 5px #d0e7ff; */
+}
+
+.order-info {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 2;
+  background-color: var(--td-bg-color-container, #f0f6ff);
+  color: var(--td-text-color-primary, #000);
+  border-radius: 10px;
+}
+
+.order-info .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--td-border-color, #cce0ff);
+}
+
+.order-info .info-row:last-child {
+  border-bottom: none;
+}
+
+.order-info .info-row span {
+  font-weight: 600;
+  color: var(--td-text-color-secondary, #333);
+}
+
+</style>

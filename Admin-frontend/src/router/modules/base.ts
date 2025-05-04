@@ -8,7 +8,7 @@ export default [
     redirect: '/dashboard/base',
     name: 'dashboard',
     meta: {
-      title: 'Dashboard',
+      title: 'Income Dashboard',
       icon: DashboardIcon,
     },
     children: [
