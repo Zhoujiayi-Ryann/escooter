@@ -2,10 +2,12 @@ package com.example.hello.service;
 
 import com.example.hello.dto.request.FeedbackRequest;
 import com.example.hello.dto.request.UpdateFeedbackRequest;
+import com.example.hello.dto.request.FeedbackReplyRequest;
 import com.example.hello.dto.response.DeleteFeedbackResponse;
 import com.example.hello.dto.response.FeedbackDetailResponse;
 import com.example.hello.dto.response.FeedbackListResponse;
 import com.example.hello.dto.response.FeedbackResponse;
+import com.example.hello.dto.response.FeedbackReplyResponse;
 
 import java.util.List;
 
@@ -53,4 +55,13 @@ public interface FeedbackService {
      * @return 删除结果
      */
     DeleteFeedbackResponse deleteFeedback(Long id);
+    
+    /**
+     * 管理员回复评论
+     * 
+     * @param id 反馈ID
+     * @param request 回复请求
+     * @return 回复结果
+     */
+    FeedbackReplyResponse replyFeedback(Long id, FeedbackReplyRequest request);
 } 

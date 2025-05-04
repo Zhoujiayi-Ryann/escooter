@@ -79,6 +79,24 @@ public class FeedbackDetailResponse {
     private UserInfo userInfo;
     
     /**
+     * 管理员回复内容
+     */
+    @JsonProperty("admin_reply")
+    private String adminReply;
+    
+    /**
+     * 回复管理员ID
+     */
+    @JsonProperty("reply_admin_id")
+    private Long replyAdminId;
+    
+    /**
+     * 管理员回复时间
+     */
+    @JsonProperty("replied_at")
+    private LocalDateTime repliedAt;
+    
+    /**
      * 用户信息DTO
      */
     @Data

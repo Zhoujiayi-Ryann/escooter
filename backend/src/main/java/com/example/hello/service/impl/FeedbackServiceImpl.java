@@ -1,16 +1,19 @@
 package com.example.hello.service.impl;
 
+import com.example.hello.dto.request.FeedbackReplyRequest;
 import com.example.hello.dto.request.FeedbackRequest;
 import com.example.hello.dto.request.UpdateFeedbackRequest;
 import com.example.hello.dto.response.DeleteFeedbackResponse;
 import com.example.hello.dto.response.FeedbackDetailResponse;
 import com.example.hello.dto.response.FeedbackListResponse;
+import com.example.hello.dto.response.FeedbackReplyResponse;
 import com.example.hello.dto.response.FeedbackResponse;
 import com.example.hello.entity.Feedback;
 import com.example.hello.entity.FeedbackImage;
 import com.example.hello.mapper.FeedbackImageMapper;
 import com.example.hello.mapper.FeedbackMapper;
 import com.example.hello.service.FeedbackService;
+import com.example.hello.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +40,9 @@ public class FeedbackServiceImpl implements FeedbackService {
     
     @Autowired
     private FeedbackImageMapper feedbackImageMapper;
+    
+    @Autowired
+    private NotificationService notificationService;
     
     /**
      * 提交反馈
@@ -135,6 +141,9 @@ public class FeedbackServiceImpl implements FeedbackService {
                                             feedback.getHappeningTime().atStartOfDay() : null)
                                     .bill_number(feedback.getBillNumber())
                                     .created_at(feedback.getCreatedAt())
+                                    .admin_reply(feedback.getAdminReply())
+                                    .reply_admin_id(feedback.getReplyAdminId())
+                                    .replied_at(feedback.getRepliedAt())
                                     .build();
                             
                             // 转换图片列表
@@ -236,6 +245,9 @@ public class FeedbackServiceImpl implements FeedbackService {
                     .billNumber(feedback.getBillNumber())
                     .createdAt(feedback.getCreatedAt())
                     .images(imageUrls)  // 直接使用图片URL列表
+                    .adminReply(feedback.getAdminReply())
+                    .replyAdminId(feedback.getReplyAdminId())
+                    .repliedAt(feedback.getRepliedAt())
                     .build();
             
             // 补充用户信息（在实际应用中，你需要调用用户服务获取用户信息）
@@ -339,6 +351,83 @@ public class FeedbackServiceImpl implements FeedbackService {
         } catch (Exception e) {
             logger.error("Delete feedback failed, id: {}, error: {}", id, e.getMessage(), e);
             return null;
+        }
+    }
+    
+    /**
+     * 管理员回复反馈
+     * 使用事务确保回复操作的原子性
+     *
+     * @param id 反馈ID
+     * @param request 回复请求
+     * @return 回复响应
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public FeedbackReplyResponse replyFeedback(Long id, FeedbackReplyRequest request) {
+        logger.info("Start to reply feedback: id={}, reply={}", id, request);
+        
+        try {
+            // 1. 检查反馈是否存在
+            Feedback feedback = feedbackMapper.findById(id);
+            if (feedback == null) {
+                logger.warn("Cannot reply to non-existing feedback, id: {}", id);
+                return null;
+            }
+            
+            // 2. 检查反馈状态是否允许回复
+            // 根据业务需求决定哪些状态可以回复，这里假设只有PENDING和PROCESSING状态可以回复
+            if (feedback.getStatus() == Feedback.Status.RESOLVED || 
+                feedback.getStatus() == Feedback.Status.REJECTED) {
+                logger.warn("Cannot reply to feedback with status {}, id: {}", feedback.getStatus(), id);
+                return null;
+            }
+            
+            // 3. 更新反馈状态为已解决（或根据具体业务需求设置其他状态）
+            // feedback.setStatus(Feedback.Status.RESOLVED); // 默认设置为已解决，可以根据业务需求调整
+            feedback.setAdminReply(request.getContent());
+            feedback.setRepliedAt(LocalDateTime.now());
+            feedback.setReplyAdminId(request.getAdminId());
+            
+            int updated = feedbackMapper.updateFeedbackWithReply(feedback);
+            if (updated <= 0) {
+                logger.error("Failed to update feedback with reply, id: {}", id);
+                return null;
+            }
+            
+            // 4. 发送通知给用户
+            try {
+                // 发送通知
+                if (request.isSendNotification()) {
+                    notificationService.createCommentReplyNotification(
+                            feedback.getUserId(),
+                            feedback.getId(),
+                            request.getContent()
+                    );
+                    logger.info("Notification sent to user: {}", feedback.getUserId());
+                }
+            } catch (Exception e) {
+                // 通知发送失败不应该影响回复操作的完成
+                logger.error("Failed to send notification for reply: {}", e.getMessage(), e);
+            }
+            
+            // 5. 构建响应
+            FeedbackReplyResponse response = FeedbackReplyResponse.builder()
+                    .feedbackId(feedback.getId())
+                    .userId(feedback.getUserId())
+                    .content(request.getContent())
+                    .replyTime(feedback.getRepliedAt())
+                    .adminId(request.getAdminId())
+                    .status(feedback.getStatus().name())
+                    .notificationSent(request.isSendNotification())
+                    .build();
+            
+            logger.info("Feedback reply successful: {}", response);
+            return response;
+        } catch (Exception e) {
+            logger.error("Failed to reply feedback: id={}, error: {}", id, e.getMessage(), e);
+            // 回滚事务
+            throw new RuntimeException("Reply to feedback failed", e);
         }
     }
 } 

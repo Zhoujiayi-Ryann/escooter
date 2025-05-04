@@ -41,7 +41,10 @@ public interface FeedbackMapper {
         @Result(property = "priority", column = "priority"),
         @Result(property = "happeningTime", column = "happening_time"),
         @Result(property = "billNumber", column = "bill_number"),
-        @Result(property = "createdAt", column = "created_at")
+        @Result(property = "createdAt", column = "created_at"),
+        @Result(property = "adminReply", column = "admin_reply"),
+        @Result(property = "replyAdminId", column = "reply_admin_id"),
+        @Result(property = "repliedAt", column = "replied_at")
     })
     Feedback findById(Long id);
     
@@ -69,7 +72,10 @@ public interface FeedbackMapper {
         @Result(property = "priority", column = "priority"),
         @Result(property = "happeningTime", column = "happening_time"),
         @Result(property = "billNumber", column = "bill_number"),
-        @Result(property = "createdAt", column = "created_at")
+        @Result(property = "createdAt", column = "created_at"),
+        @Result(property = "adminReply", column = "admin_reply"),
+        @Result(property = "replyAdminId", column = "reply_admin_id"),
+        @Result(property = "repliedAt", column = "replied_at")
     })
     List<Feedback> findAllFeedback();
     
@@ -78,6 +84,22 @@ public interface FeedbackMapper {
      */
     @Update("UPDATE feedback SET description = #{description}, status = #{status}, priority = #{priority} WHERE id = #{id}")
     int updateFeedback(Feedback feedback);
+    
+    /**
+     * 更新反馈回复信息
+     * 
+     * @param feedback 带有回复信息的反馈实体
+     * @return 影响的行数
+     */
+    @Update({
+        "UPDATE feedback SET ",
+        "status = #{status}, ",
+        "admin_reply = #{adminReply}, ",
+        "replied_at = #{repliedAt}, ",
+        "reply_admin_id = #{replyAdminId} ",
+        "WHERE id = #{id}"
+    })
+    int updateFeedbackWithReply(Feedback feedback);
     
     /**
      * 删除反馈

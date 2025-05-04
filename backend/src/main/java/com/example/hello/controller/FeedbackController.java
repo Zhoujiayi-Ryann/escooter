@@ -3,10 +3,12 @@ package com.example.hello.controller;
 import com.example.hello.common.Result;
 import com.example.hello.dto.request.FeedbackRequest;
 import com.example.hello.dto.request.UpdateFeedbackRequest;
+import com.example.hello.dto.request.FeedbackReplyRequest;
 import com.example.hello.dto.response.DeleteFeedbackResponse;
 import com.example.hello.dto.response.FeedbackDetailResponse;
 import com.example.hello.dto.response.FeedbackListResponse;
 import com.example.hello.dto.response.FeedbackResponse;
+import com.example.hello.dto.response.FeedbackReplyResponse;
 import com.example.hello.service.FeedbackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +142,36 @@ public class FeedbackController {
             return Result.success(response, "Feedback deleted successfully");
         } catch (Exception e) {
             logger.error("Delete feedback failed", e);
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 管理员回复评论
+     * 
+     * @param id 反馈ID
+     * @param request 回复请求
+     * @return 回复结果
+     */
+    @PostMapping("/feedback/{id}/reply")
+    public Result<FeedbackReplyResponse> replyFeedback(
+            @PathVariable Long id,
+            @RequestBody @Validated FeedbackReplyRequest request) {
+        logger.info("Received admin reply to feedback, id: {}, admin id: {}", id, request.getAdminId());
+        
+        try {
+            FeedbackReplyResponse response = feedbackService.replyFeedback(id, request);
+            
+            if (response == null) {
+                logger.warn("Reply failed, feedback not found or system error, id: {}", id);
+                return Result.error("Reply failed, feedback not found or system error");
+            }
+            
+            logger.info("Successfully replied to feedback, id: {}, admin id: {}", id, request.getAdminId());
+            return Result.success(response, "Reply submitted successfully");
+        } catch (Exception e) {
+            logger.error("Reply to feedback failed, id: {}, admin id: {}, error: {}", 
+                    id, request.getAdminId(), e.getMessage(), e);
             return Result.error(e.getMessage());
         }
     }

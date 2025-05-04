@@ -60,6 +60,21 @@ public class Feedback {
     // 一对多关系：一个反馈可以有多张图片
     private List<FeedbackImage> images;
     
+    /**
+     * 管理员回复内容
+     */
+    private String adminReply;
+    
+    /**
+     * 回复管理员ID
+     */
+    private Long replyAdminId;
+    
+    /**
+     * 回复时间
+     */
+    private LocalDateTime repliedAt;
+    
     // Getters and Setters
     public Long getId() {
         return id;
@@ -139,6 +154,30 @@ public class Feedback {
     
     public void setImages(List<FeedbackImage> images) {
         this.images = images;
+    }
+    
+    public String getAdminReply() {
+        return adminReply;
+    }
+    
+    public void setAdminReply(String adminReply) {
+        this.adminReply = adminReply;
+    }
+    
+    public Long getReplyAdminId() {
+        return replyAdminId;
+    }
+    
+    public void setReplyAdminId(Long replyAdminId) {
+        this.replyAdminId = replyAdminId;
+    }
+    
+    public LocalDateTime getRepliedAt() {
+        return repliedAt;
+    }
+    
+    public void setRepliedAt(LocalDateTime repliedAt) {
+        this.repliedAt = repliedAt;
     }
     
     @Override

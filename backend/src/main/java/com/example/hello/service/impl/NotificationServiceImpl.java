@@ -117,6 +117,28 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public boolean createCommentReplyNotification(Long userId, Long feedbackId, String replyContent) {
+        logger.info("Creating comment reply notification for user: {}, feedback: {}", userId, feedbackId);
+        try {
+            // 创建评论回复通知
+            Notification notification = Notification.builder()
+                    .userId(userId)
+                    .type(Notification.NotificationType.COMMENT_REPLY)
+                    .title("New Reply to Feedback")
+                    .content("Your feedback has a new reply: " + (replyContent.length() > 50 ? replyContent.substring(0, 47) + "..." : replyContent))
+                    .isRead(false)
+                    .relatedId(feedbackId)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            
+            return createNotification(notification);
+        } catch (Exception e) {
+            logger.error("Error creating comment reply notification: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    @Override
     public List<Notification> getUserNotifications(Long userId) {
         logger.info("Getting notifications for user: {}", userId);
         try {

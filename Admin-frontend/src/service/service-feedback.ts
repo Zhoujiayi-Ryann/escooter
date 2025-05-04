@@ -116,6 +116,24 @@ const mapFeedbackToTableData = (feedback: FeedbackListResponse): TableFeedback =
   };
 };
 
+// 回复反馈请求接口
+export interface FeedbackReplyRequest {
+  admin_id: number;
+  content: string;
+  send_notification?: boolean;
+}
+
+// 回复反馈响应接口
+export interface FeedbackReplyResponse {
+  feedback_id: number;
+  user_id: number;
+  admin_id: number;
+  content: string;
+  reply_time: string;
+  status: string;
+  notification_sent: boolean;
+}
+
 // 反馈服务类
 export const feedbackService = {
   /**
@@ -131,7 +149,7 @@ export const feedbackService = {
       }
       return [];
     } catch (error) {
-      console.error('获取反馈列表失败:', error);
+      console.error('Get feedback list failed:', error);
       return [];
     }
   },
@@ -148,7 +166,7 @@ export const feedbackService = {
       }
       return null;
     } catch (error) {
-      console.error(`获取反馈详情(ID: ${feedbackId})失败:`, error);
+      console.error(`Get feedback detail(ID: ${feedbackId}) failed:`, error);
       return null;
     }
   },
@@ -168,7 +186,7 @@ export const feedbackService = {
       }
       return null;
     } catch (error) {
-      console.error(`更新反馈(ID: ${feedbackId})失败:`, error);
+      console.error(`Update feedback(ID: ${feedbackId}) failed:`, error);
       return null;
     }
   },
@@ -185,7 +203,7 @@ export const feedbackService = {
       }
       return null;
     } catch (error) {
-      console.error(`删除反馈(ID: ${feedbackId})失败:`, error);
+      console.error(`Delete feedback(ID: ${feedbackId}) failed:`, error);
       return null;
     }
   },
@@ -238,5 +256,28 @@ export const feedbackService = {
       default:
         return 'Unknown type';
     }
-  }
+  },
+
+  /**
+   * 管理员回复反馈
+   * @param feedbackId 反馈ID
+   * @param replyData 回复数据
+   * @returns 回复结果
+   */
+  async replyFeedback(feedbackId: number, replyData: FeedbackReplyRequest): Promise<FeedbackReplyResponse | null> {
+    try {
+      const response = await axios.post<ApiResponse<FeedbackReplyResponse>>(
+        `${BASE_URL}/feedback/${feedbackId}/reply`,
+        replyData
+      );
+
+      if (response.data.code === 1 && response.data.data) {
+        return response.data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Admin reply feedback(ID: ${feedbackId}) failed:`, error);
+      return null;
+    }
+  },
 }; 

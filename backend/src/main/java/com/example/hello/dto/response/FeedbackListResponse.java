@@ -67,6 +67,22 @@ public class FeedbackListResponse {
     private LocalDateTime created_at;
     
     /**
+     * 管理员回复内容
+     */
+    private String admin_reply;
+    
+    /**
+     * 回复管理员ID
+     */
+    private Long reply_admin_id;
+    
+    /**
+     * 管理员回复时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    private LocalDateTime replied_at;
+    
+    /**
      * 关联图片列表
      */
     @Builder.Default

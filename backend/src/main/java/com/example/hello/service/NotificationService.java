@@ -45,6 +45,16 @@ public interface NotificationService {
     int batchCreateCouponNotifications(List<Long> userIds, Integer couponId, String couponName);
     
     /**
+     * 为用户创建评论回复通知
+     *
+     * @param userId 接收通知的用户ID
+     * @param feedbackId 反馈ID
+     * @param replyContent 回复内容
+     * @return 是否创建成功
+     */
+    boolean createCommentReplyNotification(Long userId, Long feedbackId, String replyContent);
+    
+    /**
      * 获取用户的所有通知
      *
      * @param userId 用户ID
