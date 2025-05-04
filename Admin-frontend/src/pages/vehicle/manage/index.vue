@@ -117,6 +117,9 @@
             <t-form-item label="Vehicle No.">
               <t-input v-model="payForm.scooterCode" disabled />
             </t-form-item>
+            <t-form-item label="Pickup Location" name="pickupLocation">
+              <t-input v-model="payForm.pickupLocation" placeholder="Please enter pickup location" />
+            </t-form-item>
             <t-form-item label="Time Range" name="timeRange">
               <t-date-range-picker v-model="payForm.timeRange" enable-time-picker />
             </t-form-item>
@@ -140,6 +143,7 @@
 import Vue from 'vue';
 import { SearchIcon, DeleteIcon } from 'tdesign-icons-vue';
 import { scooterService, SCOOTER_STATUS, TableScooter } from '@/service/service-scooter';
+import { getAllNonAdminUsers, IUser } from '@/service/service-user';
 import enConfig from 'tdesign-vue/es/locale/en_US'; // 
 
 // 车辆状态常量
@@ -378,14 +382,19 @@ export default Vue.extend({
       payFormVisible: false,
       payForm: {
         scooterCode: '',
+        pickupLocation: '',
         timeRange: [],
         amount: 0,
       },
       payRules: {
         scooterCode: [{ required: true, message: 'Please enter vehicle number', type: 'error' }],
+        pickupLocation: [{ required: true, message: 'Please enter pickup location', type: 'error' }],
         timeRange: [{ required: true, message: 'Please select time range', type: 'error' }],
         amount: [{ required: true, message: 'Please enter amount', type: 'error' }],
       },
+      
+      // 用户选项
+      userOptions: [] as IUser[],
     };
   },
 
@@ -418,6 +427,7 @@ export default Vue.extend({
 
   mounted() {
     this.fetchData();
+    this.fetchUsers();
   },
 
   beforeDestroy() {
@@ -879,9 +889,25 @@ export default Vue.extend({
       }
     },
 
+    // 获取用户列表
+    async fetchUsers() {
+      try {
+        const users = await getAllNonAdminUsers();
+        this.userOptions = users;
+      } catch (error) {
+        console.error('获取用户列表失败:', error);
+        this.$message.error('获取用户列表失败');
+      }
+    },
+
     // 添加支付
     handlePay(row) {
-      this.payForm.scooterCode = row.scooterCode;
+      this.payForm = {
+        scooterCode: row.scooterCode,
+        pickupLocation: '',
+        timeRange: [],
+        amount: 0,
+      };
       this.payFormVisible = true;
     },
 
@@ -889,28 +915,43 @@ export default Vue.extend({
     async onPayFormSubmit({ validateResult, firstError }) {
       if (validateResult === true) {
         try {
-          // 从表单数据中提取城市信息，并生成随机经纬度（实际应用中应有地图选点）
-          const lat = 31.2 + Math.random() * 0.1; // 上海附近的随机经纬度
-          const lng = 121.4 + Math.random() * 0.1;
-
-          // 构建请求数据
-          const requestData = {
-            location_lat: lat,
-            location_lng: lng,
-            battery_level: this.payForm.amount,
-            status: VEHICLE_STATUS.charging,
-            price: this.payForm.amount,
+          // 获取当前车辆ID（从scooterCode中提取）
+          const scooterIdMatch = this.payForm.scooterCode.match(/SC-(\d+)/);
+          if (!scooterIdMatch) {
+            this.$message.error('Invalid vehicle code');
+            return;
+          }
+          const scooterId = parseInt(scooterIdMatch[1]) - 1000;
+          
+          // 获取当前管理员ID
+          const currentUser = this.$store.state.user?.userInfo || {};
+          const adminId = currentUser.userId || 5; // 默认为1如果没有获取到
+          
+          // 格式化开始和结束时间
+          const startTime = scooterService.formatDateTimeForAPI(this.payForm.timeRange[0]);
+          const endTime = scooterService.formatDateTimeForAPI(this.payForm.timeRange[1]);
+          
+          // 构建订单请求数据
+          const orderData = {
+            user_id: adminId,
+            scooter_id: scooterId,
+            pickup_address: this.payForm.pickupLocation,
+            start_time: startTime,
+            end_time: endTime,
+            cost: this.payForm.amount
           };
-
-          // 调用API添加车辆
-          const newScooterId = await scooterService.addScooter(requestData);
-
-          if (newScooterId) {
-            // 重新获取数据以确保显示最新状态
+          
+          console.log('Creating order with data:', orderData);
+          
+          // 调用API创建临时用户订单
+          const orderResult = await scooterService.createOrderForTempUser(orderData);
+          
+          if (orderResult) {
+            this.$message.success('Order created successfully');
+            // 更新车辆状态为已预订
             await this.fetchData();
-            this.$message.success('Add successful');
           } else {
-            this.$message.error('Failed to add vehicle');
+            this.$message.error('Failed to create order');
           }
           this.payFormVisible = false;
         } catch (error) {
