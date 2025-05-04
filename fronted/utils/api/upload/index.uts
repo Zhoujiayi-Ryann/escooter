@@ -1,5 +1,7 @@
 // 文件上传相关API
 import { BASE_URL } from '../request';
+import { request } from '../request';
+import { ApiResponse } from '../types';
 
 /**
  * 上传图片接口返回类型
@@ -57,6 +59,21 @@ export const uploadApi = {
                 }
             });
         });
+    },
+
+    /**
+     * 上传用户头像
+     * @param filePath 本地文件路径
+     * @param userId 用户ID
+     * @returns 上传结果
+     */
+    uploadAvatar(filePath: string, userId: number): Promise<Result<string>> {
+        return request({
+            url: BASE_URL + '/users/avatar/upload/' + userId,
+            method: 'POST',
+            filePath: filePath,
+            name: 'file'
+        })
     }
 }
 

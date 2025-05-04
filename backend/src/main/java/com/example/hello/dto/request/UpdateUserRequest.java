@@ -28,8 +28,21 @@ public class UpdateUserRequest {
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone_number;
 
-    /**
-     * 用户头像路径
-     */
     private String avatar_path;
+
+    public String getPhone_number() {
+        return phone_number;
+    }
+
+    public void setPhone_number(String phone_number) {
+        this.phone_number = phone_number;
+    }
+
+    public String getAvatar_path() {
+        return avatar_path;
+    }
+
+    public void setAvatar_path(String avatar_path) {
+        this.avatar_path = avatar_path;
+    }
 }
