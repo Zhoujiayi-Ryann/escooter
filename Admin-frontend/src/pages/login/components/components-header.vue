@@ -1,12 +1,11 @@
 <template>
   <header class="login-header">
-    <logo-full-icon class="logo" />
+    <span class="logo-container" @click="navToHome">
+      <img :src="escooterLogo" alt="Escooter Logo" class="logo" />
+    </span>
     <div class="operations-container">
       <t-button theme="default" shape="square" variant="text" @click="navToGitHub">
         <logo-github-icon class="icon" />
-      </t-button>
-      <t-button theme="default" shape="square" variant="text" @click="navToHelper">
-        <help-circle-icon class="icon" />
       </t-button>
       <t-button theme="default" shape="square" variant="text" @click="toggleSettingPanel">
         <setting-icon class="icon" />
@@ -16,17 +15,22 @@
 </template>
 
 <script>
-import LogoFullIcon from '@/assets/assets-logo-full.svg';
-import { LogoGithubIcon, HelpCircleIcon, SettingIcon } from 'tdesign-icons-vue';
+import escooterLogo from '@/assets/escooterlogo.png';
+import { LogoGithubIcon, SettingIcon } from 'tdesign-icons-vue';
 
 export default {
-  components: { LogoFullIcon, LogoGithubIcon, HelpCircleIcon, SettingIcon },
+  components: { LogoGithubIcon, SettingIcon },
+  data() {
+    return {
+      escooterLogo,
+    };
+  },
   methods: {
     navToGitHub() {
-      window.open('https://github.com/Tencent/tdesign-vue-starter');
+      window.open('https://github.com/Zhoujiayi-Ryann/escooter');
     },
-    navToHelper() {
-      window.open('https://tdesign.tencent.com/starter/docs/get-started');
+    navToHome() {
+      this.$router.push('/dashboard/base');
     },
     toggleSettingPanel() {
       this.$store.commit('setting/toggleSettingPanel', true);
@@ -34,6 +38,7 @@ export default {
   },
 };
 </script>
+
 <style lang="less" scoped>
 @import '@/style/variables.less';
 
@@ -46,9 +51,14 @@ export default {
   backdrop-filter: blur(5px);
   color: var(--td-text-color-primary);
 
+  .logo-container {
+    cursor: pointer;
+  }
+
   .logo {
-    width: 188px;
-    height: var(--td-comp-size-xxxl);
+    height: 40px;
+    width: auto;
+    object-fit: contain;
   }
 
   .operations-container {
