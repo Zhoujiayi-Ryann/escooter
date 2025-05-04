@@ -3,8 +3,8 @@
     <t-head-menu :class="menuCls" :theme="theme" expandType="popup" :value="active">
       <template #logo>
         <span v-if="showLogo" class="header-logo-container" @click="handleNav('/dashboard/base')">
-          <logo-full class="t-logo" />
-        </span>
+    <img :src="escooterLogo" alt="Escooter Logo" class="t-logo" />
+  </span>
         <div v-else class="header-operate-left">
           <t-button theme="default" shape="square" variant="text" @click="changeCollapsed">
             <view-list-icon class="collapsed-icon" />
@@ -21,24 +21,24 @@
           <!-- 全局通知 -->
           <notice />
 
-          <t-tooltip placement="bottom" content="代码仓库">
+          <t-tooltip placement="bottom" content="GitHub">
             <t-button theme="default" shape="square" variant="text" @click="navToGitHub">
               <logo-github-icon />
             </t-button>
           </t-tooltip>
-          <t-tooltip placement="bottom" content="帮助文档">
+          <!-- <t-tooltip placement="bottom" content="帮助文档">
             <t-button theme="default" shape="square" variant="text" @click="navToHelper">
               <help-circle-icon />
             </t-button>
-          </t-tooltip>
+          </t-tooltip> -->
           <t-dropdown :min-column-width="125" trigger="click">
             <template #dropdown>
               <t-dropdown-menu>
                 <t-dropdown-item class="operations-dropdown-container-item" @click="handleNav('/user/index')">
-                  <user-circle-icon />个人中心
+                  <user-circle-icon />Personal
                 </t-dropdown-item>
                 <t-dropdown-item class="operations-dropdown-container-item" @click="handleLogout">
-                  <poweroff-icon />退出登录
+                  <poweroff-icon />Logout
                 </t-dropdown-item>
               </t-dropdown-menu>
             </template>
@@ -46,13 +46,13 @@
               <template #icon>
                 <user-circle-icon class="header-user-avatar" />
               </template>
-              <div class="header-user-account">Tencent</div>
+              <div class="header-user-account">Admin</div>
               <template #suffix>
                 <chevron-down-icon />
               </template>
             </t-button>
           </t-dropdown>
-          <t-tooltip placement="bottom" content="系统设置">
+          <t-tooltip placement="bottom" content="Settings">
             <t-button theme="default" shape="square" variant="text" @click="toggleSettingPanel">
               <setting-icon />
             </t-button>
@@ -64,6 +64,7 @@
 </template>
 
 <script>
+import escooterLogo from '@/assets/escooterlogo.png';
 import Vue from 'vue';
 import {
   ViewListIcon,
@@ -73,9 +74,11 @@ import {
   PoweroffIcon,
   SettingIcon,
   ChevronDownIcon,
-} from 'tdesign-icons-vue';
+  
+} 
+from 'tdesign-icons-vue';
 import { prefix } from '@/config/global';
-import LogoFull from '@/assets/assets-logo-full.svg';
+// import LogoFull from '@/assets/assets-logo-full.svg';
 
 import Notice from './Notice.vue';
 import Search from './Search.vue';
@@ -84,7 +87,7 @@ import MenuContent from './MenuContent.vue';
 export default Vue.extend({
   components: {
     MenuContent,
-    LogoFull,
+    // LogoFull,
     Notice,
     Search,
     ViewListIcon,
@@ -94,6 +97,7 @@ export default Vue.extend({
     PoweroffIcon,
     SettingIcon,
     ChevronDownIcon,
+    escooterLogo
   },
   props: {
     theme: String,
@@ -170,7 +174,7 @@ export default Vue.extend({
       this.$router.push(url);
     },
     navToGitHub() {
-      window.open('https://github.com/Tencent/tdesign-vue-starter');
+      window.open('https://github.com/Zhoujiayi-Ryann/escooter');
     },
     navToHelper() {
       window.open('http://tdesign.tencent.com/starter/docs/get-started');
@@ -180,7 +184,19 @@ export default Vue.extend({
 </script>
 <style lang="less">
 @import '@/style/variables.less';
+.logo-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: white;
+}
 
+.logo-img {
+  height: 100%; /* 根据你想显示的完整高度设置，比如原图高100px */
+  width: auto;   /* 让宽度自适应，避免拉伸或压缩 */
+  object-fit: contain; /* 保证按原比例缩放 */
+}
 .header-menu {
   flex: 1 1 1;
   display: inline-flex;
@@ -317,5 +333,6 @@ export default Vue.extend({
       margin-bottom: 8px;
     }
   }
+  
 }
 </style>

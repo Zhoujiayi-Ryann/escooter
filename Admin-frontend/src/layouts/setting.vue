@@ -4,25 +4,26 @@
       size="408px"
       :footer="false"
       :visible.sync="showSettingPanel"
-      header="页面配置"
+      header="Page Configuration"
       :closeBtn="true"
       :onCloseBtnClick="handleCloseDrawer"
       class="setting-drawer-container"
     >
       <div class="setting-container">
         <t-form :data="formData" size="large" ref="form" labelAlign="left" @reset="onReset" @submit="onSubmit">
-          <div class="setting-group-title">主题模式</div>
+          <div class="setting-group-title">Theme Mode</div>
           <t-radio-group v-model="formData.mode">
             <div v-for="(item, index) in MODE_OPTIONS" :key="index" class="setting-layout-drawer">
               <div>
-                <t-radio-button :key="index" :value="item.type"
-                  ><component :is="getModeIcon(item.type)"
-                /></t-radio-button>
-                <p :style="{ textAlign: 'center', marginTop: '8px' }">{{ item.text }}</p>
+                <t-radio-button :key="index" :value="item.type">
+                  <component :is="getModeIcon(item.type)" />
+                </t-radio-button>
+                <p style="text-align: center; margin-top: 8px">{{ item.text }}</p>
               </div>
             </div>
           </t-radio-group>
-          <div class="setting-group-title">主题色</div>
+
+          <div class="setting-group-title">Brand Color</div>
           <t-radio-group v-model="formData.brandTheme">
             <div v-for="(item, index) in DEFAULT_COLOR_OPTIONS" :key="index" class="setting-layout-drawer">
               <t-radio-button :key="index" :value="item" class="setting-layout-color-group">
@@ -45,61 +46,71 @@
                     :color-modes="['monochrome']"
                     format="HEX"
                     :swatch-colors="[]"
-                /></template>
+                  />
+                </template>
                 <t-radio-button :value="dynamicColor" :class="['setting-layout-color-group', 'dynamic-color-btn']">
                   <color-container :value="dynamicColor" />
                 </t-radio-button>
               </t-popup>
             </div>
           </t-radio-group>
-          <div class="setting-group-title">导航布局</div>
 
+          <!-- <div class="setting-group-title">Layout</div>
           <t-radio-group v-model="formData.layout">
             <div v-for="(item, index) in LAYOUT_OPTION" :key="index" class="setting-layout-drawer">
-              <t-radio-button :key="index" :value="item"><thumbnail :src="getThumbnailUrl(item)" /></t-radio-button>
+              <t-radio-button :key="index" :value="item">
+                <thumbnail :src="getThumbnailUrl(item)" />
+              </t-radio-button>
             </div>
-          </t-radio-group>
+          </t-radio-group> -->
 
-          <t-form-item v-show="formData.layout === 'mix'" label="分割菜单（混合模式下有效）" name="splitMenu">
+          <!-- <t-form-item v-show="formData.layout === 'mix'" label="Split Menu (for mix layout)" name="splitMenu">
             <t-switch v-model="formData.splitMenu"></t-switch>
           </t-form-item>
 
-          <t-form-item v-show="formData.layout !== 'side'" label="固定 Header" name="isHeaderFixed">
+          <t-form-item v-show="formData.layout !== 'side'" label="Fixed Header" name="isHeaderFixed">
             <t-switch v-model="formData.isHeaderFixed"></t-switch>
           </t-form-item>
-          <t-form-item v-show="formData.layout !== 'top'" label="固定 Sidebar" name="isSidebarFixed">
+
+          <t-form-item v-show="formData.layout !== 'top'" label="Fixed Sidebar" name="isSidebarFixed">
             <t-switch v-model="formData.isSidebarFixed"></t-switch>
           </t-form-item>
 
-          <div class="setting-group-title">元素开关</div>
-          <t-form-item label="显示 Header" name="showHeader" v-show="formData.layout === 'side'">
+          <div class="setting-group-title">Element Display</div>
+          <t-form-item v-show="formData.layout === 'side'" label="Show Header" name="showHeader">
             <t-switch v-model="formData.showHeader"></t-switch>
-          </t-form-item>
-          <t-form-item label="显示 Breadcrumbs" name="showBreadcrumb">
+          </t-form-item> -->
+
+          <t-form-item label="Show Breadcrumb" name="showBreadcrumb">
             <t-switch v-model="formData.showBreadcrumb"></t-switch>
           </t-form-item>
-          <t-form-item label="显示 Footer" name="showFooter">
+
+          <t-form-item label="Show Footer" name="showFooter">
             <t-switch v-model="formData.showFooter"></t-switch>
           </t-form-item>
-          <t-form-item label="使用 多标签Tab页" name="isUseTabsRouter">
+
+          <!-- <t-form-item label="Enable Tab Router" name="isUseTabsRouter">
             <t-switch v-model="formData.isUseTabsRouter"></t-switch>
-          </t-form-item>
+          </t-form-item> -->
+
           <t-form-item
-            label="footer 内收"
+            label="Footer Inset"
             name="footerPosition"
             v-show="formData.showFooter && !formData.isSidebarFixed"
           >
             <t-switch v-model="formData.isFooterAside"></t-switch>
           </t-form-item>
         </t-form>
+
         <div class="setting-info">
-          <p>请复制后手动修改配置文件: /src/config/style.ts</p>
-          <t-button theme="primary" variant="text" @click="handleCopy"> 复制配置项 </t-button>
+          <p>Please copy and manually modify the config file: <code>/src/config/style.ts</code></p>
+          <t-button theme="primary" variant="text" @click="handleCopy">Copy Config</t-button>
         </div>
       </div>
     </t-drawer>
   </div>
 </template>
+
 <script lang="ts">
 import { mapGetters } from 'vuex';
 import { Color } from 'tvision-color';
@@ -119,9 +130,9 @@ import SettingAutoIcon from '@/assets/assets-setting-auto.svg';
 const LAYOUT_OPTION = ['side', 'top', 'mix'];
 
 const MODE_OPTIONS = [
-  { type: 'light', text: '明亮' },
-  { type: 'dark', text: '暗黑' },
-  { type: 'auto', text: '跟随系统' },
+  { type: 'light', text: 'light' },
+  { type: 'dark', text: 'dark' },
+  { type: 'auto', text: 'auto' },
 ];
 
 export default {

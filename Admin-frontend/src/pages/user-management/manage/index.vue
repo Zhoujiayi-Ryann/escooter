@@ -85,7 +85,7 @@
 <script>
 import { SearchIcon } from 'tdesign-icons-vue'
 import enConfig from 'tdesign-vue/es/locale/en_US'; 
-
+import { getAllNonAdminUsers, toggleUserDisabledStatus } from '@/service/service-user';
 export default {
   name: 'UserManagePage',
   components: {
@@ -151,33 +151,32 @@ export default {
     getContainer() {
       return document.querySelector('.tdesign-starter-layout');
     },
-    fetchUsers() {
-  this.dataLoading = false;
-
-  setTimeout(() => {
-    const roles = ['admin', 'user'];
-    const statuses = ['active', 'disabled'];
-    const mockData = [];
-
-    for (let i = 1; i <= 250; i++) {
-      const role = roles[Math.floor(Math.random() * roles.length)];
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-
-      mockData.push({
-        id: i,
-        name: `User${i}`,
-        email: `user${i}@example.com`,
-        phone: `1380000${String(1000 + i).slice(-4)}`,
-        role: role,
-        status: status,
-        createdAt: this.randomDate('2024-01-01', '2024-04-24'),
-      });
+    async fetchUsers() {
+  this.dataLoading = true;
+  try {
+    const res = await getAllNonAdminUsers(); // 调用接口
+    if (Array.isArray(res)) {
+      this.allData = res.map(user => ({
+        id: user.userId,
+        name: user.username,
+        email: user.email,
+        phone: user.phoneNumber,
+        role: user.userTypes?.includes('admin') ? 'admin' : 'user',
+        status: user.isDisabled ? 'disabled' : 'active',
+        createdAt: user.registrationDate,
+      }));
+      this.pagination.total = this.allData.length;
+      this.updatePageData();
+    } else {
+      this.$message.error('Unexpected response format from server');
+      console.error('Response:', res);
     }
-
-    this.allData = mockData;
-    this.pagination.total = mockData.length;
-    this.fetchData(); // This will process and update current page data
-  }, 500);
+  } catch (error) {
+    this.$message.error('Failed to fetch users');
+    console.error('Fetch error:', error);
+  } finally {
+    this.dataLoading = false;
+  }
 },
     fetchData() {
       let filtered = [...this.allData];
@@ -236,17 +235,26 @@ export default {
       this.currentUserForToggle = user;
       this.confirmVisible = true;
     },
-    confirmStatusChange() {
-      if (this.currentUserForToggle) {
-        // Toggle status between active and disabled
-        this.currentUserForToggle.status = this.currentUserForToggle.status === 'active' ? 'disabled' : 'active';
-        this.$message.success(`User ${this.currentUserForToggle.name} status has been updated`);
-        
-        // Refresh the data
+    async confirmStatusChange() {
+      if (!this.currentUserForToggle) return;
+
+      try {
+        const updatedUser = await toggleUserDisabledStatus(this.currentUserForToggle.id);
+        this.$message.success(`User ${updatedUser.username} status updated`);
+
+        // 更新本地数据
+        const index = this.allData.findIndex(user => user.id === updatedUser.userId);
+        if (index !== -1) {
+          this.allData[index].status = updatedUser.isDisabled ? 'disabled' : 'active';
+        }
+
         this.fetchData();
+      } catch (err) {
+        this.$message.error('Failed to update user status');
+      } finally {
+        this.confirmVisible = false;
+        this.currentUserForToggle = null;
       }
-      this.confirmVisible = false;
-      this.currentUserForToggle = null;
     },
     cancelStatusChange() {
       this.confirmVisible = false

@@ -1,5 +1,8 @@
 <template>
-  <div :class="prefix + '-footer'">Copyright © 2021-{{ new Date().getFullYear() }} Tencent. All Rights Reserved</div>
+  <div :class="prefix + '-footer'">
+  © 2021-{{ new Date().getFullYear() }} EScooter Rental System. All rights reserved.
+</div>
+
 </template>
 
 <script>

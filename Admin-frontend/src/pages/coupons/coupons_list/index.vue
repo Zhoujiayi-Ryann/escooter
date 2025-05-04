@@ -1,11 +1,16 @@
 <template>
+  <t-config-provider :global-config="globalConfig">
     <t-card class="coupon-list-container" :bordered="false">
-      <!-- Top Action Bar -->
+      <!-- 顶部操作区 -->
       <t-row justify="space-between">
         <div class="left-operation-container">
-          <t-button @click="handleAddCoupon">Add Coupon</t-button>
-          <t-button variant="base" theme="default" :disabled="!selectedRowKeys.length">Export Coupons</t-button>
-          <p v-if="selectedRowKeys.length" class="selected-count">Selected {{ selectedRowKeys.length }} items</p>
+          <t-button @click="openAddDrawer">Add Coupon</t-button>
+          <t-button variant="base" theme="default" :disabled="!selectedRowKeys.length" @click="openDistributeDialog">
+            Distribute
+          </t-button>
+          <p v-if="selectedRowKeys.length" class="selected-count">
+            Selected {{ selectedRowKeys.length }} items
+          </p>
         </div>
         <div class="search-area">
           <t-input v-model="searchValue" class="search-input" placeholder="Search by Coupon Name" clearable>
@@ -13,187 +18,265 @@
           </t-input>
         </div>
       </t-row>
-  
-      <!-- Table Display -->
+
+      <!-- 表格 -->
       <div class="table-container">
         <t-table
           :columns="columns"
-          :data="filteredCoupons"
+          :data="data"
           :rowKey="rowKey"
           :hover="true"
           :pagination="pagination"
           :selected-row-keys="selectedRowKeys"
           :loading="dataLoading"
-          @page-change="handlePageChange"
+          @page-change="onPageChange"
           @select-change="handleSelectChange"
           :headerAffixedTop="true"
           :headerAffixProps="{ offsetTop: offsetTop, container: getContainer }"
         >
-          <!-- Status Rendering -->
           <template #status="{ row }">
-            <t-tag :theme="row.is_active ? 'success' : 'warning'" variant="light">
-              {{ row.is_active ? 'Active' : 'Inactive' }}
+            <t-tag :theme="row.status === 'active' ? 'success' : 'warning'" variant="light">
+              {{ row.status === 'active' ? 'Active' : 'Inactive' }}
             </t-tag>
           </template>
-  
-          <!-- Action Column -->
-          <template #op="{ rowIndex }">
-            <a class="t-button-link" @click="handleEdit(rowIndex)">Edit</a>
-            <a class="t-button-link" @click="handleDeactivate(rowIndex)">Deactivate</a>
-            <a class="t-button-link" @click="handleActivate(rowIndex)">Activate</a>
+          <template #op="{ row }">
+            <a class="t-button-link" @click="editCoupon(row)">Edit</a>
+            <a class="t-button-link" @click="toggleCoupon(row)">
+              {{ row.status === 'active' ? 'Deactivate' : 'Activate' }}
+            </a>
           </template>
         </t-table>
       </div>
-  
-      <!-- Delete Confirmation Dialog -->
+
+      <!-- 新增 / 编辑 抽屉 -->
+      <t-drawer :visible.sync="drawerVisible" :header="editMode ? 'Edit Coupon' : 'Add Coupon'" size="400px">
+        <t-form @submit.prevent="handleSubmit">
+          <t-form-item label="Coupon Name">
+            <t-input v-model="form.coupon_name" required />
+          </t-form-item>
+          <t-form-item label="Min Spend">
+            <t-input-number v-model="form.min_spend" required />
+          </t-form-item>
+          <t-form-item label="Amount">
+            <t-input-number v-model="form.coupon_amount" required />
+          </t-form-item>
+          <t-form-item label="Valid From">
+            <t-date-picker v-model="form.valid_from" enable-time-picker />
+          </t-form-item>
+          <t-form-item label="Valid To">
+            <t-date-picker v-model="form.valid_to" enable-time-picker />
+          </t-form-item>
+          <t-button type="submit" theme="primary">{{ editMode ? 'Save' : 'Add' }}</t-button>
+        </t-form>
+      </t-drawer>
+
+      <!-- 发放弹窗 -->
       <t-dialog
-        header="Confirm Deletion?"
-        :body="confirmBody"
-        :visible.sync="confirmVisible"
-        @confirm="confirmDelete"
-        @cancel="cancelDelete"
-      />
+        header="Distribute Coupons"
+        :visible="distributeVisible"
+        @confirm="handleDistribute"
+        @cancel="() => (distributeVisible = false)"
+      >
+        <t-radio-group v-model="distributeType">
+          <t-radio-button value="frequent">Frequent Users</t-radio-button>
+          <t-radio-button value="normal">Normal Users</t-radio-button>
+        </t-radio-group>
+      </t-dialog>
     </t-card>
-  </template>
-  
-  <script>
-  import { SearchIcon } from 'tdesign-icons-vue';
-  
-  export default {
-    name: 'CouponManagePage',
-    components: {
-      SearchIcon,
+  </t-config-provider>
+</template>
+
+<script>
+import { SearchIcon } from 'tdesign-icons-vue';
+import enConfig from 'tdesign-vue/es/locale/en_US';
+import {
+  getAllCoupons,
+  addCoupon,
+  activateCoupon,
+  deactivateCoupon,
+  distributeCoupons
+} from '@/service/service-coupon';
+
+export default {
+  name: 'CouponManagePage',
+  components: { SearchIcon },
+  data() {
+    return {
+      globalConfig: enConfig,
+      allData: [],
+      data: [],
+      selectedRowKeys: [],
+      searchValue: '',
+      dataLoading: false,
+      drawerVisible: false,
+      editMode: false,
+      form: {
+        coupon_name: '',
+        min_spend: 0,
+        coupon_amount: 0,
+        valid_from: '',
+        valid_to: ''
+      },
+      pagination: {
+        current: 1,
+        pageSize: 10,
+        total: 0
+      },
+      rowKey: 'coupon_id',
+      distributeVisible: false,
+      distributeType: 'frequent',
+      columns: [
+        { colKey: 'row-select', type: 'multiple', width: 60 },
+        { title: 'Name', colKey: 'coupon_name' },
+        { title: 'Min Spend', colKey: 'min_spend' },
+        { title: 'Amount', colKey: 'coupon_amount' },
+        { title: 'Valid From', colKey: 'valid_from' },
+        { title: 'Valid To', colKey: 'valid_to' },
+        { title: 'Status', colKey: 'status', cell: { col: 'status' } },
+        { title: 'Actions', colKey: 'op', fixed: 'right' }
+      ]
+    };
+  },
+  computed: {
+    offsetTop() {
+      return this.$store?.state?.setting?.isUseTabsRouter ? 48 : 0;
+    }
+  },
+  watch: {
+    searchValue() {
+      this.fetchData();
+    }
+  },
+  mounted() {
+    this.fetchCoupons();
+  },
+  methods: {
+    getContainer() {
+      return document.querySelector('.tdesign-starter-layout');
     },
-    data() {
-      return {
-        dataLoading: false,
-        coupons: [
-          { coupon_id: 1, coupon_name: '10% Off', min_spend: 50, coupon_amount: 10, valid_from: '2023-01-01', valid_to: '2023-12-31', is_active: true },
-          { coupon_id: 2, coupon_name: 'Free Shipping', min_spend: 30, coupon_amount: 5, valid_from: '2023-02-01', valid_to: '2023-11-30', is_active: false },
-          { coupon_id: 3, coupon_name: '15% Off', min_spend: 100, coupon_amount: 15, valid_from: '2023-03-01', valid_to: '2023-12-31', is_active: true },
-        ], // Simulated coupon data
-        selectedRowKeys: [],
-        searchValue: '',
-        confirmVisible: false,
-        deleteIdx: -1,
-        rowKey: 'coupon_id',
-        pagination: {
-          current: 1,
-          pageSize: 10,
-          total: 3,
-          showJumper: true,
-          showTotal: true,
-        },
-        columns: [
-          { colKey: 'row-select', type: 'multiple', width: 64, fixed: 'left' },
-          { title: 'Coupon Name', colKey: 'coupon_name', width: 200 },
-          { title: 'Min Spend', colKey: 'min_spend', width: 100 },
-          { title: 'Coupon Amount', colKey: 'coupon_amount', width: 120 },
-          { title: 'Valid From', colKey: 'valid_from', width: 180 },
-          { title: 'Valid To', colKey: 'valid_to', width: 180 },
-          { title: 'Status', colKey: 'status', width: 100, cell: { col: 'status' } },
-          { title: 'Actions', colKey: 'op', fixed: 'right', width: 200 },
-        ],
+    async fetchCoupons() {
+  this.dataLoading = true;
+  try {
+    const res = await getAllCoupons();
+    console.log("Fetched coupons:", res); // ✅调试信息
+
+    if (res.code === 1 && Array.isArray(res.data)) {
+      this.allData = res.data.map(c => ({
+        ...c,
+        status: c.is_active ? 'active' : 'inactive'
+      }));
+      this.pagination.total = this.allData.length;
+      this.fetchData(); // ✅更新当前页数据
+    } else {
+      this.$message.error(res.msg || 'Failed to fetch coupons');
+    }
+  } catch (error) {
+    this.$message.error('Network error while fetching coupons');
+    console.error('fetchCoupons error:', error);
+  } finally {
+    this.dataLoading = false;
+  }
+},
+    fetchData() {
+      const keyword = this.searchValue.toLowerCase().trim();
+      let filtered = [...this.allData];
+
+      if (keyword) {
+        filtered = filtered.filter(c =>
+          c.coupon_name.toLowerCase().includes(keyword)
+        );
+      }
+
+      this.pagination.total = filtered.length;
+      const { current, pageSize } = this.pagination;
+      const start = (current - 1) * pageSize;
+      this.data = filtered.slice(start, start + pageSize);
+    },
+    onPageChange({ current, pageSize }) {
+      this.pagination.current = current;
+      this.pagination.pageSize = pageSize;
+      this.fetchData();
+    },
+    handleSelectChange(keys) {
+      this.selectedRowKeys = keys;
+    },
+    openAddDrawer() {
+      this.editMode = false;
+      this.form = {
+        coupon_name: '',
+        min_spend: 0,
+        coupon_amount: 0,
+        valid_from: '',
+        valid_to: ''
       };
+      this.drawerVisible = true;
     },
-    computed: {
-      filteredCoupons() {
-        let filtered = this.coupons;
-  
-        if (this.searchValue.trim()) {
-          const keyword = this.searchValue.trim().toLowerCase();
-          filtered = filtered.filter(coupon =>
-            coupon.coupon_name.toLowerCase().includes(keyword)
-          );
+    editCoupon(row) {
+      this.editMode = true;
+      this.form = { ...row };
+      this.drawerVisible = true;
+    },
+    async handleSubmit() {
+      try {
+        await addCoupon(this.form);
+        this.$message.success(this.editMode ? 'Updated' : 'Added');
+        this.drawerVisible = false;
+        this.fetchCoupons();
+      } catch {
+        this.$message.error('Failed to save coupon');
+      }
+    },
+    async toggleCoupon(row) {
+      try {
+        if (row.status === 'active') {
+          await deactivateCoupon(row.coupon_id);
+        } else {
+          await activateCoupon(row.coupon_id);
         }
-  
-        const start = (this.pagination.current - 1) * this.pagination.pageSize;
-        const end = start + this.pagination.pageSize;
-  
-        return filtered.slice(start, end);
+        this.$message.success('Status updated');
+        this.fetchCoupons();
+      } catch {
+        this.$message.error('Failed to update status');
       }
     },
-    methods: {
-      handlePageChange(pageInfo) {
-        this.pagination.current = pageInfo.current;
-        this.pagination.pageSize = pageInfo.pageSize;
-      },
-  
-      handleSelectChange(keys) {
-        this.selectedRowKeys = keys;
-      },
-  
-      handleEdit(idx) {
-        const coupon = this.filteredCoupons[idx];
-        this.$router.push(`/coupon-management/edit/${coupon.coupon_id}`);
-      },
-  
-      handleDeactivate(idx) {
-        const coupon = this.filteredCoupons[idx];
-        coupon.is_active = false;
-        this.$message.success('Coupon deactivated');
-      },
-  
-      handleActivate(idx) {
-        const coupon = this.filteredCoupons[idx];
-        coupon.is_active = true;
-        this.$message.success('Coupon activated');
-      },
-  
-      handleAddCoupon() {
-        this.$router.push('/coupon-management/new');
-      },
-  
-      cancelDelete() {
-        this.deleteIdx = -1;
-        this.confirmVisible = false;
-      },
-  
-      confirmDelete() {
-        this.coupons.splice(this.deleteIdx, 1);
-        this.pagination.total = this.coupons.length;
-        this.selectedRowKeys = [];
-        this.confirmVisible = false;
-        this.$message.success('Coupon deleted');
-      },
-  
-      getContainer() {
-        return document.querySelector('.tdesign-starter-layout');
+    openDistributeDialog() {
+      this.distributeVisible = true;
+    },
+    async handleDistribute() {
+      const user_ids = this.distributeType === 'frequent' ? [1, 2] : [3, 4];
+      try {
+        const res = await distributeCoupons({
+          coupon_id: this.selectedRowKeys[0],
+          user_ids
+        });
+        this.$message.success(`Distributed: ${res.success_count} success`);
+        this.distributeVisible = false;
+      } catch {
+        this.$message.error('Distribute failed');
       }
-    }
-  };
-  </script>
-  
-  <style lang="less" scoped>
-  .coupon-list-container {
-    .left-operation-container {
-      display: flex;
-      align-items: center;
-      margin-bottom: 16px;
-  
-      .t-button + .t-button {
-        margin-left: 12px;
-      }
-  
-      .selected-count {
-        margin-left: 16px;
-        color: var(--td-text-color-secondary);
-      }
-    }
-  
-    .search-area {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-  
-      .search-input {
-        width: 220px;
-      }
-    }
-  
-    .table-container {
-      margin-top: 16px;
     }
   }
-  </style>
-  
+};
+</script>
+
+<style scoped>
+.left-operation-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.selected-count {
+  margin-left: 16px;
+}
+.search-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.search-input {
+  width: 220px;
+}
+.table-container {
+  margin-top: 16px;
+}
+</style>

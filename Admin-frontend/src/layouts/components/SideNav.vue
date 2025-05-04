@@ -9,25 +9,29 @@
       :defaultExpanded="defaultExpanded"
     >
       <template #logo>
-        <span v-if="showLogo" :class="`${prefix}-side-nav-logo-wrapper`" @click="() => handleNav('/dashboard/base')">
-          <component :is="getLogo" :class="`${prefix}-side-nav-logo-${collapsed ? 't' : 'tdesign'}-logo`" />
+        <span v-if="showLogo" class="header-logo-container" @click="handleNav('/dashboard/base')">
+          <img :src="escooterLogo" alt="Escooter Logo" class="t-logo" />
         </span>
       </template>
       <menu-content :navData="menu" />
       <template #operations>
-        <span class="version-container"> {{ !collapsed ? `TDesign Starter ${pgk.version}` : pgk.version }} </span>
+        <span class="version-container">
+          {{ !collapsed ? `© ${new Date().getFullYear()} EScooter Admin` : 'eS' }}
+        </span>
       </template>
+
     </t-menu>
     <div :class="`${prefix}-side-nav-placeholder${collapsed ? '-hidden' : ''}`"></div>
   </div>
 </template>
 
 <script lang="ts">
+import escooterLogo from '@/assets/escooterlogo.png';
 import Vue from 'vue';
 import { prefix } from '@/config/global';
 import { ClassName } from '@/interface';
 import Logo from '@/assets/assets-t-logo.svg';
-import LogoFull from '@/assets/assets-logo-full.svg';
+// import LogoFull from '@/assets/assets-logo-full.svg';
 
 import MenuContent from './MenuContent.vue';
 import pgk from '../../../package.json';
@@ -71,6 +75,7 @@ export default Vue.extend({
     return {
       prefix,
       pgk,
+      escooterLogo,
     };
   },
   computed: {
@@ -148,3 +153,18 @@ export default Vue.extend({
   },
 });
 </script>
+<style>
+.logo-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: white;
+}
+
+.logo-img {
+  height: 100%; /* 根据你想显示的完整高度设置，比如原图高100px */
+  width: auto;   /* 让宽度自适应，避免拉伸或压缩 */
+
+}
+</style>

@@ -53,7 +53,7 @@ export const distributeCoupons = (data: {
  */
 export const deactivateCoupon = (couponId: number) => {
   return request({
-    url: `/api/coupons/${couponId}/deactivate`,
+    url: `/coupons/${couponId}/deactivate`,
     method: 'PATCH'
   });
 };
@@ -64,7 +64,7 @@ export const deactivateCoupon = (couponId: number) => {
  */
 export const activateCoupon = (couponId: number) => {
   return request({
-    url: `/api/coupons/${couponId}/activate`,
+    url: `/coupons/${couponId}/activate`,
     method: 'PATCH'
   });
 };
