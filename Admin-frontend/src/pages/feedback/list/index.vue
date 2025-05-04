@@ -58,8 +58,9 @@
         >
           <template #status="{ row }">
             <t-tag v-if="row.status === FEEDBACK_STATUS.PENDING" theme="warning" variant="light">Todo</t-tag>
-            <t-tag v-if="row.status === FEEDBACK_STATUS.EXECUTING" theme="success" variant="light">Processing</t-tag>
-            <t-tag v-if="row.status === FEEDBACK_STATUS.FINISH" theme="success" variant="light">Finish</t-tag>
+            <t-tag v-if="row.status === FEEDBACK_STATUS.PROCESSING" theme="primary" variant="light">Processing</t-tag>
+            <t-tag v-if="row.status === FEEDBACK_STATUS.RESOLVED" theme="success" variant="light">Finished</t-tag>
+            <t-tag v-if="row.status === FEEDBACK_STATUS.REJECTED" theme="danger" variant="light">Rejected</t-tag>
           </template>
           <template #priority="{ row }">
             <t-tag v-if="row.priority === 'LOW'" theme="default" variant="light">Low</t-tag>
@@ -113,10 +114,20 @@
               <t-tag v-if="selectedFeedback.type === FEEDBACK_TYPE.EXPERIENCE_FEEDBACK" theme="primary" variant="light">Experience Feedback</t-tag>
             </t-descriptions-item>
             <t-descriptions-item label="Status">
-              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.PENDING" theme="warning" variant="light">Todo</t-tag>
-              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.PROCESSING" theme="success" variant="light">Processing</t-tag>
-              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.RESOLVED" theme="success" variant="light">Resolved</t-tag>
-              <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.REJECTED" theme="danger" variant="light">Rejected</t-tag>
+              <div v-if="selectedFeedback.status === FEEDBACK_STATUS.PENDING">
+                <t-select
+                  v-model="selectedFeedback.status"
+                  :options="FEEDBACK_STATUS_OPTIONS"
+                  @change="handleStatusChange"
+                  style="width: 120px"
+                />
+              </div>
+              <div v-else>
+                <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.PENDING" theme="warning" variant="light">Todo</t-tag>
+                <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.PROCESSING" theme="primary" variant="light">Processing</t-tag>
+                <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.RESOLVED" theme="success" variant="light">Finished</t-tag>
+                <t-tag v-if="selectedFeedback.status === FEEDBACK_STATUS.REJECTED" theme="danger" variant="light">Rejected</t-tag>
+              </div>
             </t-descriptions-item>
             <t-descriptions-item label="Priority">
               <t-select
@@ -124,30 +135,60 @@
                 :options="priorityOptions"
                 @change="handlePriorityChange"
                 style="width: 120px"
+                :disabled="selectedFeedback.status === FEEDBACK_STATUS.RESOLVED"
               />
             </t-descriptions-item>
             <t-descriptions-item label="Description">{{ selectedFeedback.description }}</t-descriptions-item>
             <t-descriptions-item label="Created At">{{ selectedFeedback.createdAt }}</t-descriptions-item>
             <t-descriptions-item label="Images">
-              <div v-if="selectedFeedback.imagesCount > 0" class="image-count">
-                {{ selectedFeedback.imagesCount }} images attached
+              <div v-if="selectedFeedback.images && selectedFeedback.images.length > 0" class="feedback-images">
+                <t-image-viewer
+                  v-model:visible="imagePreviewVisible"
+                  :images="selectedFeedback.images"
+                  :defaultIndex="currentImageIndex"
+                  @close="closeImagePreview"
+                />
+                <div class="image-grid">
+                  <t-image
+                    v-for="(image, index) in selectedFeedback.images"
+                    :key="index"
+                    :src="image"
+                    :style="{ width: '120px', height: '120px', objectFit: 'cover', margin: '4px', cursor: 'pointer' }"
+                    @click="previewImage(index)"
+                  />
+                </div>
               </div>
               <div v-else>No images</div>
+            </t-descriptions-item>
+            <t-descriptions-item v-if="selectedFeedback.adminReply" label="Admin Reply">
+              <div class="admin-reply">
+                <p>{{ selectedFeedback.adminReply }}</p>
+                <p class="reply-time" v-if="selectedFeedback.repliedAt">
+                  Replied at: {{ new Date(selectedFeedback.repliedAt).toLocaleString() }}
+                </p>
+              </div>
             </t-descriptions-item>
           </t-descriptions>
 
           <div class="reply-section">
-            <t-button v-if="!showReplyInput" theme="primary" @click="showReplyInput = true">Reply</t-button>
+            <t-button 
+              v-if="!showReplyInput && !selectedFeedback.adminReply && selectedFeedback.status !== FEEDBACK_STATUS.RESOLVED && selectedFeedback.status !== FEEDBACK_STATUS.REJECTED" 
+              theme="primary" 
+              @click="showReplyInput = true"
+            >
+              Reply
+            </t-button>
             
             <div v-if="showReplyInput" class="reply-input-section">
               <t-textarea
                 v-model="replyContent"
                 placeholder="Enter your reply..."
                 :autosize="{ minRows: 3, maxRows: 5 }"
+                :disabled="isSubmittingReply"
               />
               <div class="reply-buttons">
-                <t-button theme="default" @click="cancelReply">Cancel</t-button>
-                <t-button theme="primary" @click="submitReply">Submit</t-button>
+                <t-button theme="default" @click="cancelReply" :disabled="isSubmittingReply">Cancel</t-button>
+                <t-button theme="primary" @click="submitReply" :loading="isSubmittingReply">Submit</t-button>
               </div>
             </div>
           </div>
@@ -161,12 +202,15 @@ import { prefix } from '@/config/global';
 import Trend from '@/components/trend/index.vue';
 import { feedbackService, FEEDBACK_STATUS, FEEDBACK_TYPE } from '@/service/service-feedback';
 import enConfig from 'tdesign-vue/es/locale/en_US';
+import host from '@/config/host';
 import { 
   Drawer as TDrawer,
   Descriptions as TDescriptions,
   DescriptionsItem as TDescriptionsItem,
   Tag as TTag,
   Select as TSelect,
+  Image as TImage,
+  ImageViewer as TImageViewer,
 } from 'tdesign-vue';
 
 import {
@@ -183,6 +227,8 @@ export default {
     TDescriptionsItem,
     TTag,
     TSelect,
+    TImage,
+    TImageViewer,
   },
   data() {
     return {
@@ -190,6 +236,7 @@ export default {
       FEEDBACK_STATUS,
       FEEDBACK_TYPE,
       prefix,
+      apiBaseUrl: process.env.NODE_ENV === 'development' ? 'http://localhost:8080' : host[process.env.NODE_ENV].API,
       formData: {
         type: undefined,
         status: undefined,
@@ -280,6 +327,9 @@ export default {
       ],
       showReplyInput: false,
       replyContent: '',
+      imagePreviewVisible: false,
+      currentImageIndex: 0,
+      isSubmittingReply: false,
     };
   },
   computed: {
@@ -416,6 +466,14 @@ export default {
       try {
         const feedbackDetail = await feedbackService.getFeedbackDetail(row.id);
         if (feedbackDetail) {
+          // 处理图片URL，添加完整的后端URL
+          const images = feedbackDetail.images ? feedbackDetail.images.map(url => {
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              return url;
+            }
+            return `${this.apiBaseUrl}${url}`;
+          }) : [];
+
           this.selectedFeedback = {
             id: feedbackDetail.id,
             userId: feedbackDetail.user_id,
@@ -424,7 +482,9 @@ export default {
             status: feedbackDetail.status,
             priority: feedbackDetail.priority,
             createdAt: new Date(feedbackDetail.created_at).toLocaleString(),
-            imagesCount: feedbackDetail.images ? feedbackDetail.images.length : 0,
+            images: images,
+            adminReply: feedbackDetail.admin_reply,
+            repliedAt: feedbackDetail.replied_at
           };
           this.drawerVisible = true;
         }
@@ -442,8 +502,18 @@ export default {
         const feedbackId = this.data[this.deleteIdx].id;
         const result = await feedbackService.deleteFeedback(feedbackId);
         if (result) {
-          this.data.splice(this.deleteIdx, 1);
-          this.pagination.total = this.data.length;
+          // 保存当前页码
+          const currentPage = this.pagination.current;
+          // 重新获取数据
+          await this.fetchFeedbackData();
+          // 如果当前页码大于1且该页没有数据了，就跳转到前一页
+          if (currentPage > 1 && this.allData.length <= (currentPage - 1) * this.pagination.pageSize) {
+            this.pagination.current = currentPage - 1;
+          } else {
+            // 否则保持在当前页
+            this.pagination.current = currentPage;
+          }
+          this.updatePageData();
           this.$message.success('Delete successfully');
         } else {
           this.$message.error('Failed to delete feedback');
@@ -478,32 +548,68 @@ export default {
         return;
       }
 
+      if (this.isSubmittingReply) {
+        return;
+      }
+
+      this.isSubmittingReply = true;
       try {
-        // TODO: 调用回复API
-        console.log('Submitting reply:', this.replyContent);
-        this.$message.success('Reply submitted successfully');
-        this.showReplyInput = false;
-        this.replyContent = '';
+        const replyData = {
+          admin_id: 1,
+          content: this.replyContent.trim(),
+          send_notification: true
+        };
+
+        const result = await feedbackService.replyFeedback(this.selectedFeedback.id, replyData);
+        if (result) {
+          // 更新反馈状态和优先级
+          await feedbackService.updateFeedback(this.selectedFeedback.id, {
+            description: this.selectedFeedback.description,
+            status: FEEDBACK_STATUS.RESOLVED,
+            priority: 'LOW'
+          });
+
+          this.$message.success('Reply submitted successfully');
+          
+          // 更新当前显示的反馈数据
+          this.selectedFeedback = {
+            ...this.selectedFeedback,
+            status: FEEDBACK_STATUS.RESOLVED,
+            priority: 'LOW',
+            adminReply: this.replyContent.trim(),
+            repliedAt: new Date().toISOString()
+          };
+          
+          // 关闭回复输入框
+          this.showReplyInput = false;
+          this.replyContent = '';
+
+          // 刷新列表数据
+          await this.fetchFeedbackData();
+          this.updatePageData();
+        } else {
+          throw new Error('Failed to submit reply');
+        }
       } catch (error) {
         console.error('Failed to submit reply:', error);
         this.$message.error('Failed to submit reply');
+      } finally {
+        this.isSubmittingReply = false;
       }
     },
     async handlePriorityChange(value) {
       try {
         const result = await feedbackService.updateFeedback(this.selectedFeedback.id, {
-          description: this.selectedFeedback.description, // 保持原有描述
-          priority: value,
+          description: this.selectedFeedback.description,
+          priority: value
         });
         
         if (result) {
           this.$message.success('Priority updated successfully');
-          // 关闭抽屉
-          this.drawerVisible = false;
           // 刷新页面数据
           await this.fetchFeedbackData();
+          this.updatePageData();
         } else {
-          console.error('Update failed: No result returned');
           this.$message.error('Failed to update priority');
           // 恢复原值
           const originalFeedback = this.data.find(item => item.id === this.selectedFeedback.id);
@@ -525,6 +631,43 @@ export default {
           this.selectedFeedback.priority = originalFeedback.priority;
         }
       }
+    },
+    async handleStatusChange(value) {
+      try {
+        const result = await feedbackService.updateFeedback(this.selectedFeedback.id, {
+          description: this.selectedFeedback.description,
+          status: value
+        });
+        
+        if (result) {
+          this.$message.success('Status updated successfully');
+          // 刷新页面数据
+          await this.fetchFeedbackData();
+          this.updatePageData();
+        } else {
+          this.$message.error('Failed to update status');
+          // 恢复原值
+          const originalFeedback = this.data.find(item => item.id === this.selectedFeedback.id);
+          if (originalFeedback) {
+            this.selectedFeedback.status = originalFeedback.status;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update status:', error);
+        this.$message.error('Failed to update status');
+        // 恢复原值
+        const originalFeedback = this.data.find(item => item.id === this.selectedFeedback.id);
+        if (originalFeedback) {
+          this.selectedFeedback.status = originalFeedback.status;
+        }
+      }
+    },
+    previewImage(index) {
+      this.currentImageIndex = index;
+      this.imagePreviewVisible = true;
+    },
+    closeImagePreview() {
+      this.imagePreviewVisible = false;
     },
   },
 };
@@ -624,6 +767,27 @@ export default {
     justify-content: flex-end;
     gap: 8px;
     margin-top: 16px;
+  }
+}
+
+.feedback-images {
+  .image-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}
+
+.admin-reply {
+  padding: 12px;
+  background-color: var(--td-bg-color-component);
+  border-radius: var(--td-radius-medium);
+
+  .reply-time {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--td-text-color-secondary);
   }
 }
 </style>
