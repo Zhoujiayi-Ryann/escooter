@@ -79,14 +79,14 @@ public class OrderServiceImpl implements OrderService {
         Scooter scooter = scooterMapper.findById(request.getScooter_id());
         if (scooter == null) {
             log.error("Scooter does not exist: scooterId={}", request.getScooter_id());
-            throw new RuntimeException("滑板车不存在");
+            throw new RuntimeException("Scooter does not exist");
         }
 
         // 2. 验证开始时间和结束时间
         if (request.getEnd_time().isBefore(request.getStart_time())) {
             log.error("End time cannot be earlier than start time: startTime={}, endTime={}", request.getStart_time(),
                     request.getEnd_time());
-            throw new RuntimeException("结束时间不能早于开始时间");
+            throw new RuntimeException("End time cannot be earlier than start time");
         }
 
         // 3. 检查时间段是否与其他订单重叠
@@ -97,7 +97,7 @@ public class OrderServiceImpl implements OrderService {
         if (!overlappingOrders.isEmpty()) {
             log.error("Scooter already booked during this time period: scooterId={}, startTime={}, endTime={}",
                     request.getScooter_id(), request.getStart_time(), request.getEnd_time());
-            throw new RuntimeException("该时间段内滑板车已被预订");
+            throw new RuntimeException("Scooter is already booked during this time period");
         }
 
         // 4. 计算使用时长（小时）
@@ -120,6 +120,7 @@ public class OrderServiceImpl implements OrderService {
         order.setExtendedDuration(0.0f);
         order.setAddress(request.getPickup_address());
         order.setCreatedAt(LocalDateTime.now());
+        order.setIsDeleted(false);
 
         // 保存订单
         orderMapper.insertOrder(order);
@@ -139,6 +140,7 @@ public class OrderServiceImpl implements OrderService {
         response.setPickup_address(order.getAddress());
         response.setStatus(order.getStatus().getValue());
         response.setCreated_at(order.getCreatedAt());
+        response.setIs_deleted(order.getIsDeleted() != null && order.getIsDeleted() ? 1 : 0);
 
         return Optional.of(response);
     }
@@ -793,7 +795,7 @@ public class OrderServiceImpl implements OrderService {
             // 8. 获取更新后的订单信息
             Order updatedOrder = orderMapper.findById(order.getOrderId());
 
-            // 9. 构建响应
+            // 9. 构建响应，包含所有订单字段
             OrderResponse response = new OrderResponse();
             response.setOrder_id(updatedOrder.getOrderId());
             response.setUser_id(updatedOrder.getUserId());
@@ -907,6 +909,7 @@ public class OrderServiceImpl implements OrderService {
                         response.setPickup_address(order.getAddress());
                         response.setStatus(order.getStatus().getValue());
                         response.setCreated_at(order.getCreatedAt());
+                        response.setIs_deleted(order.getIsDeleted() != null && order.getIsDeleted() ? 1 : 0);
                         return response;
                     })
                     .toList();
@@ -1001,7 +1004,7 @@ public class OrderServiceImpl implements OrderService {
                     response.setPickup_address(order.getAddress());
                     response.setStatus(order.getStatus().getValue());
                     response.setCreated_at(order.getCreatedAt());
-                    response.setIs_deleted(order.getIsDeleted() ? 1 : 0);
+                    response.setIs_deleted(order.getIsDeleted() != null && order.getIsDeleted() ? 1 : 0);
                     return response;
                 })
                 .collect(Collectors.toList());
@@ -1136,6 +1139,107 @@ public class OrderServiceImpl implements OrderService {
         } catch (Exception e) {
             log.error("Failed to get total order count", e);
             throw new RuntimeException("Failed to get total order count");
+        }
+    }
+
+    /**
+     * 管理员为未注册用户创建订单
+     * 创建后直接设置为已支付状态，无需用户付款
+     *
+     * @param request 创建订单请求
+     * @param adminId 管理员ID
+     * @param cost 管理员设置的价格
+     * @return 创建的订单信息
+     */
+    @Override
+    @Transactional
+    public Optional<OrderResponse> createOrderForTempUser(CreateOrderRequest request, Integer adminId, BigDecimal cost) {
+        log.info("Starting create order for temp user by admin: adminId={}, scooterId={}, cost={}", 
+                adminId, request.getScooter_id(), cost);
+
+        try {
+            // 1. 检查管理员是否存在
+            User admin = userMapper.findById(adminId.longValue());
+            if (admin == null) {
+                log.error("Admin does not exist: adminId={}", adminId);
+                throw new RuntimeException("Admin does not exist");
+            }
+
+            // 2. 检查滑板车是否存在
+            Scooter scooter = scooterMapper.findById(request.getScooter_id());
+            if (scooter == null) {
+                log.error("Scooter does not exist: scooterId={}", request.getScooter_id());
+                throw new RuntimeException("Scooter does not exist");
+            }
+
+            // 3. 验证开始时间和结束时间
+            if (request.getEnd_time().isBefore(request.getStart_time())) {
+                log.error("End time cannot be earlier than start time: startTime={}, endTime={}", 
+                        request.getStart_time(), request.getEnd_time());
+                throw new RuntimeException("End time cannot be earlier than start time");
+            }
+
+            // 4. 检查时间段是否与其他订单重叠
+            List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
+                    request.getScooter_id(),
+                    request.getStart_time(),
+                    request.getEnd_time());
+            if (!overlappingOrders.isEmpty()) {
+                log.error("Scooter already booked during this time period: scooterId={}, startTime={}, endTime={}",
+                        request.getScooter_id(), request.getStart_time(), request.getEnd_time());
+                throw new RuntimeException("Scooter is already booked during this time period");
+            }
+
+            // 5. 计算使用时长（小时）
+            Duration duration = Duration.between(request.getStart_time(), request.getEnd_time());
+            float durationHours = (float) Math.ceil(duration.toMinutes() / 60.0);
+            log.info("Rental duration: {} hours", durationHours);
+
+            // 6. 创建订单，直接使用管理员提供的价格，并设置为已支付状态
+            Order order = new Order();
+            order.setUserId(request.getUser_id()); // 用户ID
+            order.setScooterId(request.getScooter_id());
+            order.setStartTime(request.getStart_time());
+            order.setEndTime(request.getEnd_time());
+            order.setDuration(durationHours);
+            order.setCost(cost); // 使用管理员提供的价格
+            order.setStatus(OrderStatus.PAID); // 直接设置为已支付状态
+            order.setExtendedDuration(0.0f);
+            order.setDiscount(null); // 不使用优惠，设置为null
+            order.setAddress(request.getPickup_address());
+            order.setCreatedAt(LocalDateTime.now());
+            order.setIsDeleted(false); // 明确设置isDeleted为false
+
+            // 7. 保存订单
+            orderMapper.insertOrder(order);
+            log.info("Order for temp user created successfully by admin: orderId={}, adminId={}", 
+                    order.getOrderId(), adminId);
+
+            // 8. 更新滑板车状态为已预订
+            scooterMapper.updateScooterStatus(request.getScooter_id(), "booked");
+            log.info("Scooter status updated to booked: scooterId={}", request.getScooter_id());
+
+            // 9. 构建响应，包含所有订单字段
+            OrderResponse response = new OrderResponse();
+            response.setOrder_id(order.getOrderId());
+            response.setUser_id(order.getUserId());
+            response.setScooter_id(order.getScooterId());
+            response.setStart_time(order.getStartTime());
+            response.setEnd_time(order.getEndTime());
+            response.setNew_end_time(order.getNewEndTime());
+            response.setExtended_duration(order.getExtendedDuration());
+            response.setExtended_cost(order.getExtendedCost());
+            response.setCost(order.getCost());
+            response.setDiscount_amount(order.getDiscount());
+            response.setPickup_address(order.getAddress());
+            response.setStatus(order.getStatus().getValue());
+            response.setCreated_at(order.getCreatedAt());
+            response.setIs_deleted(order.getIsDeleted() != null && order.getIsDeleted() ? 1 : 0);
+
+            return Optional.of(response);
+        } catch (Exception e) {
+            log.error("Failed to create order for temp user: {}", e.getMessage(), e);
+            throw e; // 重新抛出异常，让事务回滚
         }
     }
 }

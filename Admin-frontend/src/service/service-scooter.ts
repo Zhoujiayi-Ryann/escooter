@@ -50,6 +50,34 @@ export interface ScooterRequest {
   price: number;
 }
 
+// 管理员临时用户订单请求接口
+export interface AdminTempUserOrderRequest {
+  user_id: number;        // 管理员ID
+  scooter_id: number;     // 滑板车ID
+  pickup_address: string; // 取车地址
+  start_time: string;     // 开始时间，ISO格式
+  end_time: string;       // 结束时间，ISO格式
+  cost: number;           // 订单金额
+}
+
+// 订单响应接口
+export interface OrderResponse {
+  order_id: number;
+  user_id: number;
+  scooter_id: number;
+  start_time: string;
+  end_time: string;
+  new_end_time: string | null;
+  extended_duration: number;
+  extended_cost: number | null;
+  cost: number;
+  discount_amount: number | null;
+  pickup_address: string;
+  status: string;
+  created_at: string;
+  is_deleted: number;
+}
+
 // 表格数据适配接口
 export interface TableScooter {
   id: number;
@@ -179,5 +207,51 @@ export const scooterService = {
       console.error(`删除滑板车(ID: ${scooterId})失败:`, error);
       return false;
     }
+  },
+
+  /**
+   * 管理员为临时用户创建订单
+   * @param orderData 临时用户订单数据
+   * @returns 创建的订单信息，失败返回null
+   */
+  async createOrderForTempUser(orderData: AdminTempUserOrderRequest): Promise<OrderResponse | null> {
+    try {
+      console.log('Admin creating order for temp user:', orderData);
+
+      const response = await axios.post<ApiResponse<OrderResponse>>(
+        `${BASE_URL}/orders/temp-user`,
+        orderData
+      );
+
+      if (response.data.code === 1 && response.data.data) {
+        console.log('Order created successfully for temp user:', response.data.data);
+        return response.data.data;
+      } else {
+        console.error('Order creation for temp user failed:', response.data.msg);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error creating order for temp user:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 格式化日期时间为ISO字符串（保留本地时区信息）
+   * @param date 日期对象或日期字符串
+   * @returns ISO格式的日期时间字符串
+   */
+  formatDateTimeForAPI(date: Date | string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+    // 创建YYYY-MM-DDTHH:MM:SS格式的字符串
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const hours = String(dateObj.getHours()).padStart(2, '0');
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   }
 }; 

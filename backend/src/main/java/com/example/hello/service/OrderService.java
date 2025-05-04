@@ -28,6 +28,17 @@ public interface OrderService {
     Optional<OrderResponse> createOrder(CreateOrderRequest request);
 
     /**
+     * 管理员为未注册用户创建订单
+     * 创建后直接设置为已支付状态，无需用户付款
+     *
+     * @param request 创建订单请求
+     * @param adminId 管理员ID
+     * @param cost 管理员设置的价格
+     * @return 创建的订单信息
+     */
+    Optional<OrderResponse> createOrderForTempUser(CreateOrderRequest request, Integer adminId, BigDecimal cost);
+
+    /**
      * 获取订单详情
      *
      * @param orderId 订单ID

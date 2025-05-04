@@ -32,6 +32,7 @@ com/example/hello/dto/response/RevenueStatisticsResponse.class
 com/example/hello/dto/response/FeedbackDetailResponse.class
 com/example/hello/entity/Scooter.class
 com/example/hello/service/impl/ScooterServiceImpl.class
+com/example/hello/dto/request/AdminTempUserOrderRequest.class
 com/example/hello/mapper/UserMapper.class
 com/example/hello/dto/response/FeedbackDetailResponse$UserInfo.class
 com/example/hello/entity/VerificationCode$VerificationCodeBuilder.class
@@ -103,6 +104,7 @@ com/example/hello/dto/response/FeedbackListResponse$FeedbackImageDto.class
 com/example/hello/dto/response/LoginResponse.class
 com/example/hello/service/EmailService.class
 com/example/hello/controller/FeedbackController.class
+com/example/hello/controller/AdminOrderController.class
 com/example/hello/dto/request/VerifyCodeRequest.class
 com/example/hello/exception/GlobalExceptionHandler.class
 com/example/hello/entity/Notification$NotificationBuilder.class
