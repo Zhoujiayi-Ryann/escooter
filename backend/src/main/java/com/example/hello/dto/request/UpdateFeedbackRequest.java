@@ -14,8 +14,8 @@ public class UpdateFeedbackRequest {
     /**
      * 反馈描述
      */
-    @NotBlank(message = "反馈描述不能为空")
-    @Size(max = 1000, message = "反馈描述不能超过1000个字符")
+    @NotBlank(message = "Feedback description cannot be empty")
+    @Size(max = 1000, message = "Feedback description cannot exceed 1000 characters")
     private String description;
     
     /**
@@ -29,8 +29,8 @@ public class UpdateFeedbackRequest {
     private String priority;
     
     /**
-     * 将状态字符串转换为枚举类型
-     * @return 状态枚举
+     * Convert the status string to an enum type
+     * @return the status enum
      */
     public Feedback.Status getStatusEnum() {
         if (status == null || status.isEmpty()) {

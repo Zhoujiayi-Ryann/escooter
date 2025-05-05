@@ -107,7 +107,7 @@ public class ScooterServiceImpl implements ScooterService {
         logger.info("Get the scooter information, scooterId: {}", scooterId);
         Scooter scooter = scooterMapper.findById(scooterId);
         if (scooter == null) {
-            logger.warn("未找到滑板车, scooterId: {}", scooterId);
+            logger.warn("Scooter not found, scooterId: {}", scooterId);
             return null;
         }
         return ScooterResponse.fromEntity(scooter);

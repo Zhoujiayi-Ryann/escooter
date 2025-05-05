@@ -16,12 +16,12 @@ public class CouponRequest {
     /**
      * 优惠券ID
      */
-    @NotNull(message = "优惠券ID不能为空")
+    @NotNull(message = "Coupon ID cannot be empty")
     private Integer couponId;
     
     /**
      * 订单ID
      */
-    @NotNull(message = "订单ID不能为空")
+    @NotNull(message = "Order ID cannot be empty")
     private Integer orderId;
 } 

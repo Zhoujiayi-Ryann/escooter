@@ -13,13 +13,13 @@ public class ExtendOrderRequest {
     /**
      * 订单ID
      */
-    @NotNull(message = "订单ID不能为空")
+    @NotNull(message = "Order ID cannot be empty")
     private Integer order_id;
 
     /**
      * 新的结束时间
      */
-    @NotNull(message = "新的结束时间不能为空")
-    @Future(message = "新的结束时间必须是将来时间")
+    @NotNull(message = "New end time cannot be empty")
+    @Future(message = "New end time must be a future date")
     private LocalDateTime new_end_time;
 }

@@ -13,15 +13,15 @@ import java.util.List;
  * 反馈提交请求DTO
  */
 public class FeedbackRequest {
-    @NotNull(message = "用户ID不能为空")
+    @NotNull(message = "User ID cannot be empty")
     @JsonProperty("user_id")
     private Long userId;
     
-    @NotNull(message = "反馈类型不能为空")
+    @NotNull(message = "Feedback type cannot be empty")
     @JsonProperty("feedback_type")
     private Feedback.FeedbackType feedbackType;
     
-    @NotBlank(message = "反馈描述不能为空")
+    @NotBlank(message = "Feedback description cannot be empty")
     private String description;
     
     @JsonFormat(pattern = "yyyy-MM-dd")

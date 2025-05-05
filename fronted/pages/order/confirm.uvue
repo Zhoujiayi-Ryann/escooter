@@ -336,14 +336,14 @@ export default {
                   });
                 } else {
                   uni.showToast({
-                    title: detailRes.msg || '获取订单详情失败',
+                    title: detailRes.msg || 'Get order detail failed',
                     icon: 'none'
                   });
                 }
               })
               .catch(err => {
                 uni.showToast({
-                  title: '获取订单详情异常',
+                  title: 'Get order detail failed',
                   icon: 'none'
                 });
                 console.error('Get order detail exception:', err);

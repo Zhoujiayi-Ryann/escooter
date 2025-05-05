@@ -13,23 +13,22 @@ public class ResetPasswordRequest {
     /**
      * 用户邮箱
      */
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
+    @NotBlank(message = "Email cannot be empty")
+    @Email(message = "Invalid email format")
     private String email;
     
     /**
      * 验证码
      */
-    @NotBlank(message = "验证码不能为空")
-    @Pattern(regexp = "^\\d{6}$", message = "验证码必须是6位数字")
+    @NotBlank(message = "Verification code cannot be empty")
+    @Pattern(regexp = "^\\d{6}$", message = "Verification code must be 6 digits")
     private String code;
     
     /**
      * 新密码
      */
-    @NotBlank(message = "新密码不能为空")
-    @Size(min =
-6, max = 20, message = "密码长度必须在6-20个字符之间")
+    @NotBlank(message = "New password cannot be empty")
+    @Size(min = 6, max = 20, message = "Password length must be between 6 and 20 characters")
     private String newPassword;
 
     public String getEmail() {

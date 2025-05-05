@@ -11,8 +11,8 @@ public class ForgotPasswordRequest {
     /**
      * 用户邮箱
      */
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
+    @NotBlank(message = "Email cannot be empty")
+    @Email(message = "Invalid email format")
     private String email;
 
     public String getEmail() {

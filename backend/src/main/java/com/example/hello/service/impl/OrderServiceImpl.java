@@ -260,7 +260,7 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal hourlyPrice = orderMapper.getScooterPrice(order.getScooterId());
             if (hourlyPrice == null) {
                 log.warn("Payment failed: Scooter {} has no price", order.getScooterId());
-                throw new OrderException("滑板车价格不存在");
+                throw new OrderException("Scooter price not found");
             }
 
             // 获取实际租赁时长（小时）
@@ -281,39 +281,39 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal discountAmount = BigDecimal.ZERO;
 
             if (couponRequest != null && couponRequest.getCouponId() != null) {
-                log.info("开始处理优惠券: couponId={}, orderId={}, 订单基础金额={}",
+                log.info("Processing coupon: couponId={}, orderId={}, order base amount={}",
                         couponRequest.getCouponId(), orderId, order.getCost());
 
                 // 5.1 查询优惠券
                 Coupon coupon = couponMapper.findById(couponRequest.getCouponId());
 
                 if (coupon == null) {
-                    log.warn("支付失败: 优惠券{}不存在", couponRequest.getCouponId());
-                    throw new OrderException("优惠券不存在");
+                    log.warn("Payment failed: Coupon {} does not exist", couponRequest.getCouponId());
+                    throw new OrderException("Coupon not found");
                 }
 
                 // 5.2 验证优惠券是否可用
                 if (!coupon.getIsActive()) {
-                    log.warn("支付失败: 优惠券{}已失效", couponRequest.getCouponId());
-                    throw new OrderException("优惠券已失效");
+                    log.warn("Payment failed: Coupon {} is expired", couponRequest.getCouponId());
+                    throw new OrderException("Coupon is expired");
                 }
 
                 // 5.3 验证优惠券是否在有效期内
                 LocalDateTime now = LocalDateTime.now();
                 if (coupon.getValidFrom().isAfter(now.toLocalDate())
                         || coupon.getValidTo().isBefore(now.toLocalDate())) {
-                    log.warn("支付失败: 优惠券{}不在有效期内 (有效期: {} 至 {})",
+                    log.warn("Payment failed: Coupon {} is not valid (valid period: {} to {})",
                             couponRequest.getCouponId(),
                             coupon.getValidFrom(),
                             coupon.getValidTo());
-                    throw new OrderException("优惠券不在有效期内");
+                    throw new OrderException("Coupon is not valid");
                 }
 
                 // 5.4 验证是否满足最低消费
                 if (coupon.getMinSpend() != null && order.getCost().compareTo(coupon.getMinSpend()) < 0) {
-                    log.warn("支付失败: 订单金额{}未达到优惠券最低消费要求{}",
+                    log.warn("Payment failed: Order amount {} does not meet the minimum spend requirement for coupon {}",
                             order.getCost(), coupon.getMinSpend());
-                    throw new OrderException(String.format("订单金额%.2f未达到优惠券最低消费要求%.2f",
+                    throw new OrderException(String.format("Order amount %.2f does not meet the minimum spend requirement for coupon %.2f",
                             order.getCost().doubleValue(),
                             coupon.getMinSpend().doubleValue()));
                 }
@@ -321,16 +321,16 @@ public class OrderServiceImpl implements OrderService {
                 // 5.5 验证用户是否拥有该优惠券
                 boolean userOwnsCoupon = couponMapper.checkUserCoupon(order.getUserId(), coupon.getCouponId());
                 if (!userOwnsCoupon) {
-                    log.warn("支付失败: 用户{}未拥有优惠券{}", order.getUserId(), coupon.getCouponId());
-                    throw new OrderException("您未拥有该优惠券");
+                    log.warn("Payment failed: User {} does not own coupon {}", order.getUserId(), coupon.getCouponId());
+                    throw new OrderException("You do not own this coupon");
                 }
 
                 // 5.6 使用优惠券
                 int updated = couponMapper.useCoupon(order.getUserId(), coupon.getCouponId(), orderId);
                 if (updated <= 0) {
-                    log.warn("支付失败: 优惠券{}已被使用或不属于用户{}",
+                    log.warn("Payment failed: Coupon {} has already been used or does not belong to user {}",
                             coupon.getCouponId(), order.getUserId());
-                    throw new OrderException("优惠券已使用或不属于该用户");
+                    throw new OrderException("Coupon has already been used or does not belong to the user");
                 }
 
                 // 5.7 计算折扣金额
@@ -339,7 +339,7 @@ public class OrderServiceImpl implements OrderService {
                 // 5.8 更新订单折扣信息
                 BigDecimal finalCost = order.getCost().subtract(discountAmount);
                 if (finalCost.compareTo(BigDecimal.ZERO) < 0) {
-                    log.info("折扣金额{}大于订单金额{}，最终价格将被设置为0",
+                    log.info("Discount amount {} is greater than order amount {}, final price will be set to 0",
                             discountAmount, order.getCost());
                     finalCost = BigDecimal.ZERO;
                 }
@@ -348,7 +348,7 @@ public class OrderServiceImpl implements OrderService {
                 order.setCost(finalCost);
                 order.setDiscount(discountAmount);
 
-                log.info("优惠券应用成功: orderId={}, 原价={}, 折扣={}, 最终价格={}",
+                log.info("Coupon applied successfully: orderId={}, original price={}, discount={}, final price={}",
                         orderId, basePrice, discountAmount, finalCost);
             }
 
@@ -746,17 +746,17 @@ public class OrderServiceImpl implements OrderService {
             // 1. 获取订单信息
             Order order = orderMapper.findById(request.getOrder_id());
             if (order == null) {
-                throw new OrderException("订单不存在");
+                throw new OrderException("Order not found");
             }
 
             // 2. 验证订单状态
             if (order.getStatus() != OrderStatus.ACTIVE && order.getStatus() != OrderStatus.PAID) {
-                throw new OrderException("只有进行中或已支付的订单可以延长");
+                throw new OrderException("Only active or paid orders can be extended");
             }
 
             // 3. 验证新的结束时间
             if (!request.getNew_end_time().isAfter(order.getEndTime())) {
-                throw new OrderException("新的结束时间必须晚于当前结束时间");
+                throw new OrderException("New end time must be later than current end time");
             }
 
             // 4. 检查时间段是否与其他订单重叠
@@ -766,7 +766,7 @@ public class OrderServiceImpl implements OrderService {
                     request.getNew_end_time());
             overlappingOrders.removeIf(o -> o.getOrderId().equals(order.getOrderId()));
             if (!overlappingOrders.isEmpty()) {
-                throw new OrderException("该时间段内滑板车已被预订");
+                throw new OrderException("The scooter is already booked for this time period");
             }
 
             // 5. 计算延长时间（小时）
@@ -789,7 +789,7 @@ public class OrderServiceImpl implements OrderService {
                     order.getStatus().getValue());
 
             if (result <= 0) {
-                throw new OrderException("延长订单失败");
+                throw new OrderException("Failed to extend order");
             }
 
             // 8. 获取更新后的订单信息
@@ -810,11 +810,11 @@ public class OrderServiceImpl implements OrderService {
 
             return Optional.of(response);
         } catch (OrderException e) {
-            log.error("延长订单失败: {}", e.getMessage());
+            log.error("Failed to extend order: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("延长订单失败", e);
-            throw new OrderException("延长订单失败: " + e.getMessage());
+            log.error("Failed to extend order", e);
+            throw new OrderException("Failed to extend order: " + e.getMessage());
         }
     }
 

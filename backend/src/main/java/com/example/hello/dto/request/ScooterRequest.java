@@ -15,13 +15,13 @@ public class ScooterRequest {
     /**
      * 纬度
      */
-    @NotNull(message = "纬度不能为空")
+    @NotNull(message = "Latitude cannot be empty")
     private BigDecimal location_lat;
     
     /**
      * 经度
      */
-    @NotNull(message = "经度不能为空")
+    @NotNull(message = "Longitude cannot be empty")
     private BigDecimal location_lng;
     
     /**
@@ -32,16 +32,16 @@ public class ScooterRequest {
     /**
      * 电池电量
      */
-    @NotNull(message = "电池电量不能为空")
-    @Min(value = 0, message = "电池电量最小为0")
-    @Max(value = 100, message = "电池电量最大为100")
+    @NotNull(message = "Battery level cannot be empty")
+    @Min(value = 0, message = "Battery level must be at least 0")
+    @Max(value = 100, message = "Battery level must be at most 100")
     private Integer battery_level;
     
     /**
      * 价格（每小时）
      */
-    @NotNull(message = "价格不能为空")
-    @Min(value = 0, message = "价格不能为负数")
+    @NotNull(message = "Price cannot be empty")
+    @Min(value = 0, message = "Price cannot be negative")
     private BigDecimal price;
     
     // Getters and Setters
