@@ -211,15 +211,25 @@ const fetchOrderDetail = async () => {
         return;
       }
 
+      const baseCost = data.cost ?? 0;
+      const extendedCost = data.extended_cost ?? 0;
+      const totalCost = baseCost + extendedCost;
+      
+      const baseDuration = data.duration ?? 0;
+      const extendedDuration = data.extended_duration ?? 0;
+      const totalDuration = baseDuration + extendedDuration;
+      
+      const finalEndTime = data.new_end_time || data.end_time;
+      
       order.value = {
         orderId: data.order_id,
         scooterId: data.scooter_id,
         startTime: formatToCST(data.start_time),
-        endTime: formatToCST(data.end_time),
-        duration: formatDuration(data.start_time, data.end_time),
-        cost: data.cost ?? 0,
+        endTime: formatToCST(finalEndTime),
+        duration: `${totalDuration} hour${totalDuration !== 1 ? 's' : ''}`,
+        cost: totalCost,
         address: data.address || 'Unknown',
-		scooterLocation: data.pickup_address || 'Unknown',
+        scooterLocation: data.pickup_address || 'Unknown'
       };
 
       // ✅ 正确设置 location

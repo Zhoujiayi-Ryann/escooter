@@ -158,21 +158,16 @@ export default {
   this.dataLoading = true;
   try {
     const res = await getAllCoupons();
-    console.log("Fetched coupons:", res); // ✅调试信息
-
     if (res.code === 1 && Array.isArray(res.data)) {
-      this.allData = res.data.map(c => ({
-        ...c,
-        status: c.is_active ? 'active' : 'inactive'
-      }));
+      this.allData = res.data; // ✅ 正确解包
       this.pagination.total = this.allData.length;
-      this.fetchData(); // ✅更新当前页数据
+      this.fetchData(); // ✅ 触发分页数据更新
     } else {
       this.$message.error(res.msg || 'Failed to fetch coupons');
     }
-  } catch (error) {
-    this.$message.error('Network error while fetching coupons');
-    console.error('fetchCoupons error:', error);
+  } catch (e) {
+    this.$message.error('Failed to fetch coupons');
+    console.error('Fetch error:', e);
   } finally {
     this.dataLoading = false;
   }

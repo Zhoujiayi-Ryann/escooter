@@ -126,13 +126,21 @@ const fetchOrderDetail = async () => {
         return;
       }
 
+      const baseCost = data.cost ?? 0;
+      const extendedCost = data.extended_cost ?? 0;
+      const totalCost = baseCost + extendedCost;
+      
+      const baseDuration = data.duration ?? 0;
+      const extendedDuration = data.extended_duration ?? 0;
+      const totalDuration = baseDuration + extendedDuration;
+      
       order.value = {
         orderId: data.order_id,
         scooterId: data.scooter_id,
         scooterLocation: data.pickup_address || 'Unknown',
         battery: data.scooter_info?.battery_level ?? 'N/A',
-        duration: formatDuration(data.start_time),
-        cost: data.cost ?? 0
+        duration: `${baseDuration + extendedDuration} hour${baseDuration + extendedDuration > 1 ? 's' : ''}`,
+        cost: totalCost
       };
 
       // ✅ 正确设置 location

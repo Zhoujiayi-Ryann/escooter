@@ -185,16 +185,21 @@ function formatDuration(startStr, endStr) {
       const data = res.data;
 	  console.log('🛠️ 获取到的订单数据：', data);
 
+     const hasExtension = !!data.new_end_time;
+     
+     const totalCost = (data.cost ?? 0) + (data.extended_cost ?? 0);
+     const totalDurationHours = (data.duration ?? 0) + (data.extended_duration ?? 0);
+     const endTime = hasExtension ? data.new_end_time : data.end_time;
+     
      order.value = {
        orderId: data.order_id,
        scooterId: data.scooter_id,
        scooterLocation: data.pickup_address || 'Unknown',
        battery: data.scooter_info?.battery_level ?? 'N/A',
        bookTime: formatToCST(data.start_time),
-       orderTime: formatToCST(data.created_at),  // 后备字段
-        duration: formatDuration(data.start_time, data.end_time),
-
-       price: data.cost ?? 0
+       orderTime: formatToCST(data.created_at),
+       duration: `${totalDurationHours} hour${totalDurationHours > 1 ? 's' : ''}`,
+       price: totalCost
      };
      
      location.value = {

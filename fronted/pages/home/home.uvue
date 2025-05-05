@@ -22,7 +22,7 @@
 		<view class="sidebar"
 		:class="{ 'sidebar-open': showSidebar }">			
 			<view class="user-info">
-				<text class="greeting">Welcome, {{ username || 'Guest' }}!</text>
+				<text class="greeting">Welcome, <br>{{ username || 'Guest' }}!</text>
 			</view>
 			<view class="payment-section">
 				<view class="payment-hint">

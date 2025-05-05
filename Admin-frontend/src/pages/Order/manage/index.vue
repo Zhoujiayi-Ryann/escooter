@@ -63,21 +63,21 @@
         @close="drawerVisible = false"
         :footer="false"
       >
-        <div class="order-info">
-          <div class="info-row"><span>Order ID:</span> {{ currentOrder.order_id }}</div>
-          <div class="info-row"><span>User ID:</span> {{ currentOrder.user_id }}</div>
-          <div class="info-row"><span>Scooter ID:</span> {{ currentOrder.scooter_id }}</div>
-          <div class="info-row"><span>Start:</span> {{ currentOrder.start_time }}</div>
-          <div class="info-row"><span>End:</span> {{ currentOrder.end_time }}</div>
-          <!-- <div class="info-row"><span>Duration:</span> {{ currentOrder.duration }} hrs</div> -->
-          <div class="info-row"><span>Cost:</span> ${{ currentOrder.cost }}</div>
-          <div class="info-row"><span>Status:</span>
-            <t-tag :theme="badgeTheme(currentOrder.status)" variant="light" size="small">
-  {{ currentOrder.status }}
-</t-tag>
-          </div>
-          <div class="info-row"><span>Address:</span> {{ currentOrder.pickup_address }}</div>
-        </div>
+      <t-descriptions :column="1" bordered size="small">
+  <t-descriptions-item label="Order ID">#{{ currentOrder.order_id }}</t-descriptions-item>
+  <t-descriptions-item label="User ID">{{ currentOrder.user_id }}</t-descriptions-item>
+  <t-descriptions-item label="Scooter ID">{{ currentOrder.scooter_id }}</t-descriptions-item>
+  <t-descriptions-item label="Start Time">{{ currentOrder.start_time }}</t-descriptions-item>
+  <t-descriptions-item label="End Time">{{ currentOrder.end_time }}</t-descriptions-item>
+  <t-descriptions-item label="Cost">${{ currentOrder.cost }}</t-descriptions-item>
+  <t-descriptions-item label="Status">
+    <t-tag :theme="badgeTheme(currentOrder.status)" variant="light" size="small">
+      {{ currentOrder.status }}
+    </t-tag>
+  </t-descriptions-item>
+  <t-descriptions-item label="Pickup Address">{{ currentOrder.pickup_address }}</t-descriptions-item>
+</t-descriptions>
+
       </t-drawer>
     </t-card>
   </t-config-provider>
@@ -296,6 +296,10 @@ export default {
 .order-info .info-row span {
   font-weight: 600;
   color: var(--td-text-color-secondary, #333);
+}
+:deep(.t-descriptions__label) {
+  width: 120px;
+  font-weight: 600;
 }
 
 </style>

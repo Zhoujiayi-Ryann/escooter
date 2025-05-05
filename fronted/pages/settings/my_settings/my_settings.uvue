@@ -17,7 +17,7 @@
       </van-cell>
 
       <!-- Membership Banner -->
-      <van-notice-bar scrollable text="Save up to 200 CNY per month by becoming a member, click to learn more!" />
+      <van-notice-bar scrollable text="Member users will receive surprise benefits during holidays, and randomly drop out great value coupons! Up to £ 100 coupon, you can save more on riding!" />
 	  <!-- Mileage -->
 	  <view class="mileage-card">
 	    <van-row gutter="20">
@@ -101,30 +101,29 @@ export default {
   methods: {
 	getUserInformation() {
 	  const userInfo = userApi.getUserInfo();
-
+	
 	  if (userInfo) {
-		console.log('已加载完整用户信息:', userInfo);
-
-		this.user.name = userInfo.username || '游客';
-		this.user.id = (userInfo.user_id || userInfo.userId || 0).toString();
-
-		// ✅ 头像处理：拼接后端路径
-		const avatarPath = userInfo.avatar_path;
-		this.user.avatar = avatarPath
-		  ? `http://localhost:8080${avatarPath}`  // ← 修改为你的后端地址
-		  : '/static/avatar/userp.jpg';
-
-		const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
-		const spent = userInfo.totalSpent || userInfo.total_spent || 0;
-
-		this.mileage.hours = parseFloat(usageHours).toFixed(1);
-		this.mileage.spent = parseFloat(spent);
+	    this.user.name = userInfo.username || '游客';
+	    this.user.id = String(userInfo.user_id || userInfo.userId || 0);
+	
+	    // ✅ 不再拼接后端地址，avatar_path 就是完整的 URL
+	    const avatarPath = userInfo.avatar_path;
+	    this.user.avatar = avatarPath && avatarPath.trim() !== ''
+	      ? avatarPath
+	      : '/static/avatar/userp.jpg';
+		console.log('👤 当前用户头像地址:', this.user.avatar); 
+	
+	    const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
+	    const spent = userInfo.totalSpent || userInfo.total_spent || 0;
+	
+	    this.mileage.hours = parseFloat(usageHours).toFixed(1);
+	    this.mileage.spent = parseFloat(spent);
 	  } else {
-		this.user.name = '游客';
-		this.user.id = '0';
-		this.user.avatar = '/static/avatar/userp.jpg';
-		this.mileage.hours = 0;
-		this.mileage.spent = 0;
+	    this.user.name = '游客';
+	    this.user.id = '0';
+	    this.user.avatar = '/static/avatar/userp.jpg';
+	    this.mileage.hours = 0;
+	    this.mileage.spent = 0;
 	  }
 	},
     handleLogout() {
