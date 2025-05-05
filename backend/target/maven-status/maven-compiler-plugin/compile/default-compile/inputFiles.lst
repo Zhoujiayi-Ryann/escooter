@@ -73,6 +73,7 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/exception/OrderException.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/LoginRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/LoginResponse.java
+/home/devbox/project/backend/src/main/java/com/example/hello/controller/UserAvatarController.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/FeedbackDetailResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/config/WebConfig.java
 /home/devbox/project/backend/src/main/java/com/example/hello/controller/BankCardController.java

@@ -78,6 +78,7 @@ com/example/hello/service/impl/CouponServiceImpl.class
 com/example/hello/dto/response/UserCouponNotificationResponse$UserCouponNotificationResponseBuilder.class
 com/example/hello/service/UserService.class
 com/example/hello/dto/request/AddCreditCardRequest.class
+com/example/hello/controller/UserAvatarController.class
 com/example/hello/entity/UserCoupon.class
 com/example/hello/dto/response/FeedbackListResponse$FeedbackListResponseBuilder.class
 com/example/hello/config/DatabaseConfig.class

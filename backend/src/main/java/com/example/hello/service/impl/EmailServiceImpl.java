@@ -99,6 +99,28 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendOrderConfirmationEmail(Order order, String to) {
         try {
+            // 参数验证
+            if (order == null) {
+                log.error("Failed to send order confirmation email: Order object is null");
+                return;
+            }
+            
+            if (to == null || to.trim().isEmpty()) {
+                log.error("Failed to send order confirmation email: Recipient email is null or empty");
+                return;
+            }
+            
+            // 检查必要字段
+            if (order.getOrderId() == null) {
+                log.error("Failed to send order confirmation email: Order ID is null");
+                return;
+            }
+            
+            if (order.getScooterId() == null) {
+                log.error("Failed to send order confirmation email: Scooter ID is null, orderId={}", order.getOrderId());
+                return;
+            }
+            
             // 获取滑板车信息
             Scooter scooter = scooterMapper.findById(order.getScooterId());
             if (scooter == null) {
@@ -114,30 +136,38 @@ public class EmailServiceImpl implements EmailService {
             // 添加用户名变量 - 从订单用户ID获取用户名，如果无法获取则使用"Customer"
             context.setVariable("userName", "Customer"); // 默认值，如果有用户服务可以获取实际用户名
             
-            // 尝试获取用户名（这里仅作示例，实际实现应该调用用户服务）
-            try {
-                // 这里可以添加获取用户名的代码
-                // 例如: String username = userService.getUserById(order.getUserId()).getUsername();
-                // 如果能获取到用户名，则设置为真实用户名
-                // context.setVariable("userName", username);
-            } catch (Exception e) {
-                log.warn("Could not retrieve username for userId={}, using default", order.getUserId());
-                // 使用默认值继续执行，不中断邮件发送
+            // 订单基本信息
+            context.setVariable("orderId", order.getOrderId());
+            
+            // 安全处理时间格式
+            if (order.getStartTime() != null) {
+                context.setVariable("startTime", order.getStartTime().format(DATE_TIME_FORMATTER));
+            } else {
+                context.setVariable("startTime", "Not specified");
             }
             
-            context.setVariable("orderId", order.getOrderId());
-            context.setVariable("startTime", order.getStartTime().format(DATE_TIME_FORMATTER));
-            context.setVariable("endTime", order.getEndTime().format(DATE_TIME_FORMATTER));
-            context.setVariable("duration", order.getDuration());
-            context.setVariable("address", order.getAddress());
-            context.setVariable("scooterId", scooter.getScooterId());
-            context.setVariable("batteryLevel", scooter.getBatteryLevel());
+            if (order.getEndTime() != null) {
+                context.setVariable("endTime", order.getEndTime().format(DATE_TIME_FORMATTER));
+            } else {
+                context.setVariable("endTime", "Not specified");
+            }
             
-            // 计算原价和折扣
-            BigDecimal originalCost = order.getCost().add(order.getDiscount());
+            // 安全处理其他字段
+            context.setVariable("duration", order.getDuration() != null ? order.getDuration() : 0);
+            context.setVariable("address", order.getAddress() != null ? order.getAddress() : "Not specified");
+            
+            // 滑板车信息
+            context.setVariable("scooterId", scooter.getScooterId() != null ? scooter.getScooterId() : "Unknown");
+            context.setVariable("batteryLevel", scooter.getBatteryLevel() != null ? scooter.getBatteryLevel() : 0);
+            
+            // 计算原价和折扣，安全处理null值
+            BigDecimal cost = order.getCost() != null ? order.getCost() : BigDecimal.ZERO;
+            BigDecimal discount = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+            BigDecimal originalCost = cost.add(discount);
+            
             context.setVariable("originalCost", originalCost);
-            context.setVariable("discount", order.getDiscount());
-            context.setVariable("finalCost", order.getCost());
+            context.setVariable("discount", discount);
+            context.setVariable("finalCost", cost);
             
             // 使用模板引擎处理邮件模板
             String emailContent = templateEngine.process("mail/order-confirmation", context);
@@ -165,19 +195,103 @@ public class EmailServiceImpl implements EmailService {
         final int MAX_RETRIES = 3;
         if (retryCount > MAX_RETRIES) {
             log.error("Failed to send order confirmation email after {} retries: orderId={}, recipient={}, error={}",
-                    MAX_RETRIES, order.getOrderId(), to, previousException.getMessage());
+                    MAX_RETRIES, order != null ? order.getOrderId() : "null", to, previousException.getMessage());
             return;
         }
         
         try {
+            // 参数验证
+            if (order == null) {
+                log.error("Failed to retry sending email: Order object is null");
+                return;
+            }
+            
+            if (to == null || to.trim().isEmpty()) {
+                log.error("Failed to retry sending email: Recipient email is null or empty");
+                return;
+            }
+            
             // 退避策略 - 每次重试等待时间递增
             Thread.sleep(1000 * retryCount);
             log.info("Retrying to send order confirmation email, attempt {}/{}: orderId={}, recipient={}",
                     retryCount, MAX_RETRIES, order.getOrderId(), to);
-            sendOrderConfirmationEmail(order, to);
+            
+            // 直接在这里重新实现邮件发送逻辑，避免递归调用sendOrderConfirmationEmail方法
+            // 检查必要字段
+            if (order.getOrderId() == null) {
+                log.error("Failed to retry sending email: Order ID is null");
+                return;
+            }
+            
+            if (order.getScooterId() == null) {
+                log.error("Failed to retry sending email: Scooter ID is null, orderId={}", order.getOrderId());
+                return;
+            }
+            
+            // 获取滑板车信息
+            Scooter scooter = scooterMapper.findById(order.getScooterId());
+            if (scooter == null) {
+                log.error("Failed to retry email: Scooter information not found, scooterId={}", order.getScooterId());
+                return;
+            }
+            
+            // 构建邮件主题
+            String subject = "Order payment successful - Order number: " + order.getOrderId();
+            
+            // 准备模板变量
+            Context context = new Context(Locale.US);
+            context.setVariable("userName", "Customer");
+            context.setVariable("orderId", order.getOrderId());
+            
+            // 安全处理时间格式
+            if (order.getStartTime() != null) {
+                context.setVariable("startTime", order.getStartTime().format(DATE_TIME_FORMATTER));
+            } else {
+                context.setVariable("startTime", "Not specified");
+            }
+            
+            if (order.getEndTime() != null) {
+                context.setVariable("endTime", order.getEndTime().format(DATE_TIME_FORMATTER));
+            } else {
+                context.setVariable("endTime", "Not specified");
+            }
+            
+            // 安全处理其他字段
+            context.setVariable("duration", order.getDuration() != null ? order.getDuration() : 0);
+            context.setVariable("address", order.getAddress() != null ? order.getAddress() : "Not specified");
+            
+            // 滑板车信息
+            context.setVariable("scooterId", scooter.getScooterId() != null ? scooter.getScooterId() : "Unknown");
+            context.setVariable("batteryLevel", scooter.getBatteryLevel() != null ? scooter.getBatteryLevel() : 0);
+            
+            // 计算原价和折扣，安全处理null值
+            BigDecimal cost = order.getCost() != null ? order.getCost() : BigDecimal.ZERO;
+            BigDecimal discount = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+            BigDecimal originalCost = cost.add(discount);
+            
+            context.setVariable("originalCost", originalCost);
+            context.setVariable("discount", discount);
+            context.setVariable("finalCost", cost);
+            
+            // 使用模板引擎处理邮件模板
+            String emailContent = templateEngine.process("mail/order-confirmation", context);
+            
+            // 发送HTML邮件
+            sendHtmlEmail(to, subject, emailContent);
+            log.info("Retry successful: Order confirmation email sent, orderId: {}, recipient: {}", order.getOrderId(), to);
+            
         } catch (Exception e) {
             log.warn("Retry {} failed: {}", retryCount, e.getMessage());
-            retryOrderConfirmationEmail(order, to, retryCount + 1, e);
+            // 增加重试次数并继续重试
+            if (retryCount < MAX_RETRIES) {
+                try {
+                    Thread.sleep(1000 * retryCount); // 重试前等待时间
+                    retryOrderConfirmationEmail(order, to, retryCount + 1, e);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    log.error("Retry interrupted: {}", ie.getMessage());
+                }
+            }
         }
     }
 }
