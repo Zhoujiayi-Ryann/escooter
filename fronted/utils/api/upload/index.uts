@@ -68,12 +68,24 @@ export const uploadApi = {
      * @returns 上传结果
      */
     uploadAvatar(filePath: string, userId: number): Promise<Result<string>> {
-        return request({
-            url: BASE_URL + '/users/avatar/upload/' + userId,
-            method: 'POST',
-            filePath: filePath,
-            name: 'file'
-        })
+        return new Promise((resolve, reject) => {
+            uni.uploadFile({
+                url: `${BASE_URL}/users/avatar/upload/${userId}`,
+                filePath: filePath,
+                name: 'file',
+                success: (res) => {
+                    try {
+                        const result = JSON.parse(res.data) as Result<string>;
+                        resolve(result);
+                    } catch (e) {
+                        reject(new Error('Response failed'));
+                    }
+                },
+                fail: (err) => {
+                    reject(new Error(`Fail to upload file: ${err.errMsg}`));
+                }
+            });
+        });
     }
 }
 
