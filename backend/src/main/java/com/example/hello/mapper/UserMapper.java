@@ -30,7 +30,7 @@ public interface UserMapper {
         @Select("SELECT * FROM Users WHERE email = #{email}")
         User findByEmail(String email);
 
-        @Update("UPDATE users SET username = #{username}, password = #{password}, " +
+        @Update("UPDATE Users SET username = #{username}, password = #{password}, " +
                 "email = #{email}, phone_number = #{phoneNumber}, " +
                 "avatar_path = #{avatarPath} WHERE user_id = #{userId}")
         void updateUser(User user);
