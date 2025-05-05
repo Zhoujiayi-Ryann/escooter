@@ -2,7 +2,9 @@ package com.example.hello.service.impl;
 
 import com.example.hello.entity.Order;
 import com.example.hello.entity.Scooter;
+import com.example.hello.entity.User;
 import com.example.hello.mapper.ScooterMapper;
+import com.example.hello.mapper.UserMapper;
 import com.example.hello.service.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,9 @@ public class EmailServiceImpl implements EmailService {
     
     @Autowired
     private ScooterMapper scooterMapper;
+    
+    @Autowired
+    private UserMapper userMapper;
     
     @Autowired
     private TemplateEngine templateEngine;
@@ -133,8 +138,28 @@ public class EmailServiceImpl implements EmailService {
             
             // 准备模板变量
             Context context = new Context(Locale.US);
-            // 添加用户名变量 - 从订单用户ID获取用户名，如果无法获取则使用"Customer"
-            context.setVariable("userName", "Customer"); // 默认值，如果有用户服务可以获取实际用户名
+            
+            // 获取实际用户名
+            String userName = "Customer"; // 默认值
+            try {
+                if (order.getUserId() != null) {
+                    User user = userMapper.findById(order.getUserId().longValue());
+                    if (user != null && user.getUsername() != null && !user.getUsername().trim().isEmpty()) {
+                        userName = user.getUsername();
+                        log.info("Found username: {} for userId: {}", userName, order.getUserId());
+                    } else {
+                        log.warn("User not found or username is empty for userId: {}", order.getUserId());
+                    }
+                } else {
+                    log.warn("User ID is null in order: {}", order.getOrderId());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get username for userId: {}, error: {}", order.getUserId(), e.getMessage());
+                // 使用默认值继续执行，不中断邮件发送
+            }
+            
+            // 设置用户名变量
+            context.setVariable("userName", userName);
             
             // 订单基本信息
             context.setVariable("orderId", order.getOrderId());
@@ -240,7 +265,28 @@ public class EmailServiceImpl implements EmailService {
             
             // 准备模板变量
             Context context = new Context(Locale.US);
-            context.setVariable("userName", "Customer");
+            
+            // 获取实际用户名
+            String userName = "Customer"; // 默认值
+            try {
+                if (order.getUserId() != null) {
+                    User user = userMapper.findById(order.getUserId().longValue());
+                    if (user != null && user.getUsername() != null && !user.getUsername().trim().isEmpty()) {
+                        userName = user.getUsername();
+                        log.info("Retry found username: {} for userId: {}", userName, order.getUserId());
+                    } else {
+                        log.warn("Retry: User not found or username is empty for userId: {}", order.getUserId());
+                    }
+                } else {
+                    log.warn("Retry: User ID is null in order: {}", order.getOrderId());
+                }
+            } catch (Exception e) {
+                log.warn("Retry: Failed to get username for userId: {}, error: {}", order.getUserId(), e.getMessage());
+                // 使用默认值继续
+            }
+            
+            // 设置用户名变量
+            context.setVariable("userName", userName);
             context.setVariable("orderId", order.getOrderId());
             
             // 安全处理时间格式
