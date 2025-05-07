@@ -88,7 +88,13 @@ public class OrderServiceImpl implements OrderService {
                     request.getEnd_time());
             throw new RuntimeException("End time cannot be earlier than start time");
         }
+        //验证开始时间
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime earliestAllowed = now.minusMinutes(3);
 
+        if (request.getStart_time().isBefore(earliestAllowed)) {
+            throw new IllegalArgumentException("Start time must be at least 2 minutes from now");
+        }
         // 3. 检查时间段是否与其他订单重叠
         List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
                 request.getScooter_id(),
@@ -125,6 +131,10 @@ public class OrderServiceImpl implements OrderService {
         // 保存订单
         orderMapper.insertOrder(order);
         log.info("Order created successfully: orderId={}", order.getOrderId());
+
+        // 更新滑板车状态为已预订(booked)
+        scooterMapper.updateScooterStatus(request.getScooter_id(), Scooter.Status.booked.name());
+        log.info("Scooter status updated to booked: scooterId={}", request.getScooter_id());
 
         // 构建响应，包含所有订单字段
         OrderResponse response = new OrderResponse();
@@ -638,6 +648,10 @@ public class OrderServiceImpl implements OrderService {
             int deleted = orderMapper.deleteOrder(orderId, OrderStatus.PENDING.getValue());
 
             if (deleted > 0) {
+                // 4. 将滑板车状态恢复为空闲(free)
+                scooterMapper.updateScooterStatus(order.getScooterId(), Scooter.Status.free.name());
+                log.info("Scooter status reset to free after order deletion: scooterId={}", order.getScooterId());
+                
                 log.info("Order {} deletion successful", orderId);
                 return true;
             } else {
@@ -729,6 +743,10 @@ public class OrderServiceImpl implements OrderService {
                     // 如果是普通订单（new_end_time为空），直接删除
                     log.info("Deleting timeout pending order: orderId={}", order.getOrderId());
                     orderMapper.deleteOrder(order.getOrderId(), OrderStatus.PENDING.getValue());
+                    
+                    // 将滑板车状态恢复为空闲(free)
+                    scooterMapper.updateScooterStatus(order.getScooterId(), Scooter.Status.free.name());
+                    log.info("Scooter status reset to free after timeout order deletion: scooterId={}", order.getScooterId());
                 }
             }
 

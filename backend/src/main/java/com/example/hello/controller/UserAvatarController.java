@@ -34,7 +34,7 @@ public class UserAvatarController {
         logger.info("Received avatar upload request for user: {}", userId);
         
         if (file.isEmpty()) {
-            return Result.error("请选择文件");
+            return Result.error("Please select a file");
         }
         
         try {
@@ -61,11 +61,11 @@ public class UserAvatarController {
             updateRequest.setAvatar_path(relativePath);
             userService.updateUser(userId, updateRequest);
             
-            return Result.success(relativePath, "头像上传成功");
+            return Result.success(relativePath, "Avatar upload successful");
             
         } catch (IOException e) {
-            logger.error("头像上传失败", e);
-            return Result.error("头像上传失败: " + e.getMessage());
+            logger.error("Avatar upload failed", e);
+            return Result.error("Avatar upload failed: " + e.getMessage());
         }
     }
 } 
