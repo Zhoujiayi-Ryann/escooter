@@ -76,6 +76,12 @@ public class UserServiceImpl implements UserService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Username or password is incorrect");
         }
+        
+        // 验证账号是否被禁用
+        if (user.getIsDisabled() != null && user.getIsDisabled()) {
+            logger.warn("User {} attempted to login but account is disabled", user.getUsername());
+            throw new RuntimeException("Account has been disabled");
+        }
 
         // 生成token
         String token = jwtUtil.generateToken(user.getUserId(), user.getUsername());
@@ -100,6 +106,12 @@ public class UserServiceImpl implements UserService {
         // 验证密码
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Username or password is incorrect");
+        }
+        
+        // 验证账号是否被禁用
+        if (user.getIsDisabled() != null && user.getIsDisabled()) {
+            logger.warn("Admin {} attempted to login but account is disabled", user.getUsername());
+            throw new RuntimeException("Account has been disabled");
         }
 
         // 验证是否为管理员
