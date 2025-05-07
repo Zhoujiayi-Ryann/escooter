@@ -39,8 +39,8 @@
 </template>
 
           <template #op="{ rowIndex }">
-            <a class="t-button-link" @click="handleView(rowIndex)">View</a>
-            <a class="t-button-link" @click="promptDelete(rowIndex)">Delete</a>
+            <a class="t-button-link" @click="handleView(rowIndex)">View Details</a>
+            <!-- <a class="t-button-link" @click="promptDelete(rowIndex)">Delete</a> -->
           </template>
         </t-table>
       </div>
@@ -67,9 +67,10 @@
   <t-descriptions-item label="Order ID">#{{ currentOrder.order_id }}</t-descriptions-item>
   <t-descriptions-item label="User ID">{{ currentOrder.user_id }}</t-descriptions-item>
   <t-descriptions-item label="Scooter ID">{{ currentOrder.scooter_id }}</t-descriptions-item>
-  <t-descriptions-item label="Start Time">{{ currentOrder.start_time }}</t-descriptions-item>
-  <t-descriptions-item label="End Time">{{ currentOrder.end_time }}</t-descriptions-item>
-  <t-descriptions-item label="Cost">${{ currentOrder.cost }}</t-descriptions-item>
+  <t-descriptions-item label="Start Time">{{ formatDate(currentOrder.start_time) }}</t-descriptions-item>
+<t-descriptions-item label="End Time">{{ formatDate(currentOrder.end_time) }}</t-descriptions-item>
+
+  <t-descriptions-item label="Cost">￡{{ currentOrder.cost }}</t-descriptions-item>
   <t-descriptions-item label="Status">
     <t-tag :theme="badgeTheme(currentOrder.status)" variant="light" size="small">
       {{ currentOrder.status }}
@@ -118,23 +119,12 @@ export default {
         { title: 'Scooter ID', colKey: 'scooter_id', width: 120 },
         { title: 'Start Time', colKey: 'start_time', width: 190 },
         { title: 'End Time', colKey: 'end_time', width: 190 },
-        // {
-        //     title: 'Duration (hrs)',
-        //     colKey: 'duration_custom',
-        //     width: 120,
-        //     cell: ({ row }) => {
-        //       if (!row || !row.start_time || !row.end_time) return '--';
-        //       const start = new Date(row.start_time);
-        //       const end = new Date(row.end_time);
-        //       const duration = (end - start) / 3600000;
-        //       return isNaN(duration) ? '--' : duration.toFixed(1);
-        //     },
-        //   },
-        { title: 'Cost', colKey: 'cost', width: 100 },
+        { title: 'Cost(￡)', colKey: 'cost', width: 100 },
         { title: 'Status', colKey: 'status', width: 100 },
         { title: 'Address', colKey: 'pickup_address', width: 180 },
         { title: 'Actions', colKey: 'op', fixed: 'right', width: 160 },
       ],
+
     };
   },
 
@@ -164,6 +154,11 @@ export default {
   },
 
   methods: {
+    formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const pad = n => (n < 10 ? '0' + n : n);
+        return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+      },
     badgeTheme(status) {
       switch (status) {
         case 'completed': return 'success';
@@ -182,8 +177,12 @@ export default {
         console.log('Fetched orders:', res);
 
         if (res.code === 1 && Array.isArray(res.data)) {
-          this.orders = res.data;
-          this.pagination.total = res.data.length;
+          this.orders = res.data.map(order => ({
+            ...order,
+            start_time: new Date(order.start_time).toLocaleString(),
+            end_time: new Date(order.end_time).toLocaleString(),
+          }));
+          this.pagination.total = this.orders.length;
         } else {
           this.$message.error(res.msg || 'Failed to fetch orders');
         }
