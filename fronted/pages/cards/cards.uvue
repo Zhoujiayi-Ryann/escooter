@@ -119,6 +119,8 @@
 				uni.showModal({
 					title: 'Delete Card',
 					content: 'Are you sure you want to delete this card?？',
+					confirmText: 'Confirm',
+					cancelText: 'Cancel',
 					success: (res) => {
 						if (res.confirm) {
 							const userId = userApi.getUserId();
