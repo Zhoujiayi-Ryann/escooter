@@ -44,7 +44,7 @@ public class FileUploadController {
         logger.info("Received image upload request, file count: {}", files.length);
         
         if (files.length == 0) {
-            return Result.error("没有选择文件");
+            return Result.error("No files selected");
         }
         
         try {
@@ -90,11 +90,11 @@ public class FileUploadController {
             }
             
             logger.info("Image upload successful, URL list: {}", uploadedUrls);
-            return Result.success(uploadedUrls, "图片上传成功");
+            return Result.success(uploadedUrls, "Image upload successful");
             
         } catch (IOException e) {
             logger.error("Image upload failed", e);
-            return Result.error("图片上传失败: " + e.getMessage());
+            return Result.error("Image upload failed: " + e.getMessage());
         }
     }
 } 

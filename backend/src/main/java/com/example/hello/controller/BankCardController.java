@@ -37,33 +37,33 @@ public class BankCardController {
     public ResponseEntity<Result<AddCreditCardResponse>> addBankCard(@RequestBody AddCreditCardRequest request) {
         // 参数校验
         if (request.getUser_id() == null) {
-            return ResponseEntity.badRequest().body(Result.error("用户ID不能为空"));
+            return ResponseEntity.badRequest().body(Result.error("User ID is required"));
         }
         if (request.getCard_number() == null || request.getCard_number().isEmpty()) {
-            return ResponseEntity.badRequest().body(Result.error("银行卡号不能为空"));
+            return ResponseEntity.badRequest().body(Result.error("Card number is required"));
         }
         if (request.getSecurity_code() == null || request.getSecurity_code().isEmpty()) {
-            return ResponseEntity.badRequest().body(Result.error("安全码不能为空"));
+            return ResponseEntity.badRequest().body(Result.error("Security code is requiredy code is requiredy code is required"));
         }
         if (request.getExpiry_date() == null) {
-            return ResponseEntity.badRequest().body(Result.error("到期日期不能为空"));
+            return ResponseEntity.badRequest().body(Result.error("Expiry date is required"));
         }
         if (request.getExpiry_date().isBefore(LocalDate.now())) {
-            return ResponseEntity.badRequest().body(Result.error("到期日期必须是将来的日期"));
+            return ResponseEntity.badRequest().body(Result.error("Expiry date must be a future date"));
         }
 
         // 控制器层额外验证银行卡号
         if (!CreditCardUtils.isValidCardNumber(request.getCard_number())) {
-            return ResponseEntity.badRequest().body(Result.error("银行卡号无效"));
+            return ResponseEntity.badRequest().body(Result.error("Invalid card number"));
         }
         
         // 调用服务添加银行卡
         Optional<AddCreditCardResponse> responseOpt = creditCardService.addCreditCard(request);
         
         if (responseOpt.isPresent()) {
-            return ResponseEntity.ok(Result.success(responseOpt.get(), "银行卡添加成功"));
+            return ResponseEntity.ok(Result.success(responseOpt.get(), "Successfully added bank cardSuccessfully added bank card"));
         } else {
-            return ResponseEntity.badRequest().body(Result.error("添加银行卡失败"));
+            return ResponseEntity.badRequest().body(Result.error("Failed to add bank card"));
         }
     }
     
@@ -79,12 +79,12 @@ public class BankCardController {
         
         // 参数校验
         if (userId == null) {
-            return ResponseEntity.badRequest().body(Result.error("用户ID不能为空"));
+            return ResponseEntity.badRequest().body(Result.error("User ID is required"));
         }
         
         // 调用服务获取银行卡列表
         List<CreditCardResponse> cards = creditCardService.getCreditCardsByUserId(userId);
-        return ResponseEntity.ok(Result.success(cards, "获取银行卡列表成功"));
+        return ResponseEntity.ok(Result.success(cards, "Successfully retrieved bank card list"));
     }
     
     /**
@@ -100,23 +100,23 @@ public class BankCardController {
         
         // 参数校验
         if (cardId == null) {
-            return ResponseEntity.badRequest().body(Result.error("银行卡ID不能为空"));
+            return ResponseEntity.badRequest().body(Result.error("Card ID is required"));
         }
         if (userId == null) {
-            return ResponseEntity.badRequest().body(Result.error("用户ID不能为空"));
+            return ResponseEntity.badRequest().body(Result.error("User ID is required"));
         }
         
         // 校验银行卡是否属于该用户
         if (!creditCardService.checkCardBelongsToUser(cardId, userId)) {
-            return ResponseEntity.badRequest().body(Result.error("此银行卡不存在于此用户"));
+            return ResponseEntity.badRequest().body(Result.error("This card does not exist in this user"));
         }
         
         // 调用服务删除银行卡
         boolean success = creditCardService.deleteCreditCard(cardId);
         if (success) {
-            return ResponseEntity.ok(Result.success("删除成功", "删除银行卡成功"));
+            return ResponseEntity.ok(Result.success("Successfully deleted", "Successfully deleted bank card"));
         } else {
-            return ResponseEntity.badRequest().body(Result.error("删除银行卡失败"));
+            return ResponseEntity.badRequest().body(Result.error("Failed to delete bank card"));
         }
     }
 } 

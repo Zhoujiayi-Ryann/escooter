@@ -33,7 +33,7 @@ public class CreateOrderRequest {
      * 开始时间
      */
     @NotNull(message = "Start time cannot be empty")
-    @FutureOrPresent(message = "Start time must be the current or future time")
+    // @FutureOrPresent(message = "Start time must be the current or future time")
     private LocalDateTime start_time;
     
     /**
