@@ -24,11 +24,11 @@
 						<van-card
 							v-for="(order, index) in filteredOrders"
 							:key="index"
-							:price="order.price"
+							:price="order.statusCode === 1 ? '' : '£' + order.price"
 							:desc="order.orderTime"
 							:title="order.type"
 							:tag="order.status"
-							currency="£"
+							currency=""
 							thumb="/static/bikelogo/escooter_car2.png"
 							class="order-card"
 						>
@@ -247,6 +247,8 @@ export default {
 			uni.showModal({
 				title: 'Tip',
 				content: 'Are you sure to delete this order?',
+				confirmText: 'Confirm',
+				cancelText: 'Cancel',
 				success: (res) => {
 					if (res.confirm) {
 						// 调用软删除订单API

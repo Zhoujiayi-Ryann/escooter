@@ -131,8 +131,8 @@
 			:chosen-coupon="chosenCoupon"
 			:disabled-coupons="disabledCoupons"
 			@change="onChange"
-			@exchange="onExchange"
 			:enable-amount="false"
+			:show-exchange-bar = "false"
 		  />
 		</van-popup>
 
