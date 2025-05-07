@@ -819,7 +819,8 @@ public class OrderServiceImpl implements OrderService {
             response.setUser_id(updatedOrder.getUserId());
             response.setScooter_id(updatedOrder.getScooterId());
             response.setStart_time(updatedOrder.getStartTime());
-            response.setEnd_time(updatedOrder.getNewEndTime());
+            response.setEnd_time(updatedOrder.getEndTime());
+            response.setNew_end_time(updatedOrder.getNewEndTime());
             response.setCost(updatedOrder.getCost());
             response.setStatus(updatedOrder.getStatus().getValue());
             response.setPickup_address(updatedOrder.getAddress());
