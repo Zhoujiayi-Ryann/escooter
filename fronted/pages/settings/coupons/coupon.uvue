@@ -75,123 +75,125 @@ import { couponApi } from '@/utils/api/coupon';
 import { userApi } from '@/utils/api/user';
 
 export default {
-	data() {
-		return {
-			activeTab: 0, // 默认显示可用优惠券
-			coupons: [],
-			disabledCoupons: [],
-			loading: false
-		}
-	},
-	onLoad() {
-		this.fetchCoupons();
-	},
-	methods: {
-		navigateBack() {
-			const pages = getCurrentPages();
-			if (pages.length > 1) {
-				// 如果有上级页面，返回上级页面
-				uni.navigateBack({
-					delta: 1
-				});
-			} else {
-				// 如果没有上级页面，返回主页
-				uni.navigateTo({
-					url: '/pages/home/home'
-				});
-			}
-		},
-		formatDate(timestamp) {
-			const date = new Date(timestamp * 1000);
-			return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-		},
-		async fetchCoupons() {
-			this.loading = true;
-			// 从userApi获取当前用户ID，如果未登录则使用默认值0
-			const userId = userApi.getUserId(0);
-			
-			// 检查是否有user_id字段
-			if (userId === 0) {
-				// 尝试直接从用户信息中获取user_id
-				const userInfo = userApi.getUserInfo();
-				if (userInfo && userInfo.user_id) {
-					console.log('使用user_id字段从用户信息中获取ID:', userInfo.user_id);
-					this.fetchCouponsWithUserId(userInfo.user_id);
-				} else {
-					// 用户未登录，可以显示提示或跳转到登录页
-					uni.showToast({
-						title: '请先登录',
-						icon: 'none'
-					});
-					this.loading = false;
-				}
-				return;
-			}
-			
-			// 使用获取到的userId继续获取优惠券信息
-			this.fetchCouponsWithUserId(userId);
-		},
-		async fetchCouponsWithUserId(userId) {
-			try {
-				console.log('获取用户优惠券，用户ID:', userId);
-				const response = await couponApi.getAvailableCoupons(userId);
-				console.log('优惠券API返回结果:', response);
-				
-				if (response.code === 1 && response.data) {
-					// 修改这里的筛选逻辑
-					const now = new Date();
-					
-					// 处理返回数据中的coupons属性
-					const coupons = Array.isArray(response.data) ? response.data : (response.data.coupons || []);
-					
-					this.coupons = coupons.filter(coupon => 
-						new Date(coupon.valid_to) > now && 
-						coupon.is_active === true &&
-						coupon.is_used === false &&
-						coupon.status === "able"
-					).map(coupon => this.formatCouponData(coupon));
-					
-					this.disabledCoupons = coupons.filter(coupon => 
-						new Date(coupon.valid_to) <= now || 
-						coupon.is_active !== true ||
-						coupon.is_used === true ||
-						coupon.status !== "able"
-					).map(coupon => this.formatCouponData(coupon));
-					console.log('可用优惠券:', this.coupons);
-					console.log('不可用优惠券:', this.disabledCoupons);
-				} else {
-					uni.showToast({
-						title: '获取优惠券失败',
-						icon: 'none'
-					});
-				}
-			} catch (error) {
-				console.error('获取优惠券失败:', error);
-				uni.showToast({
-					title: '获取优惠券失败，请重试',
-					icon: 'none'
-				});
-			} finally {
-				this.loading = false;
-			}
-		},
-		formatCouponData(coupon) {
-			return {
-				id: coupon.coupon_id,
-				coupon_name: coupon.coupon_name,
-				name: coupon.coupon_name,
-				denominations: coupon.coupon_amount || 0, // 直接使用原始金额，不乘以100
-				condition: coupon.min_spend > 0 ? `MinSpent £${coupon.min_spend}` : 'No MinSpent',
-				originCondition: coupon.min_spend || 0,
-				startAt: coupon.valid_from ? new Date(coupon.valid_from).getTime() / 1000 : Date.now() / 1000,
-				endAt: coupon.valid_to ? new Date(coupon.valid_to).getTime() / 1000 : (Date.now() / 1000 + 86400 * 30),
-				valueDesc: `£${coupon.coupon_amount || 0}`,
-				description: coupon.description || 'Rent Coupon'
-			};
-		}
-	}
-}
+  data() {
+    return {
+      activeTab: 0, // Default tab: available coupons
+      coupons: [],
+      disabledCoupons: [],
+      loading: false
+    };
+  },
+  onLoad() {
+    this.fetchCoupons();
+  },
+  methods: {
+    navigateBack() {
+      const pages = getCurrentPages();
+      if (pages.length > 1) {
+        // If there is a previous page, navigate back
+        uni.navigateBack({
+          delta: 1
+        });
+      } else {
+        // If no previous page, redirect to home
+        uni.navigateTo({
+          url: '/pages/home/home'
+        });
+      }
+    },
+    formatDate(timestamp) {
+      const date = new Date(timestamp * 1000);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    },
+    async fetchCoupons() {
+      this.loading = true;
+
+      // Get user ID from userApi, default to 0 if not logged in
+      const userId = userApi.getUserId(0);
+
+      // Check if user_id field is present
+      if (userId === 0) {
+        // Try to get user_id from user info
+        const userInfo = userApi.getUserInfo();
+        if (userInfo && userInfo.user_id) {
+          console.log('Using user_id from user info:', userInfo.user_id);
+          this.fetchCouponsWithUserId(userInfo.user_id);
+        } else {
+          // User not logged in, show a message or redirect
+          uni.showToast({
+            title: 'Please log in first',
+            icon: 'none'
+          });
+          this.loading = false;
+        }
+        return;
+      }
+
+      // Continue to fetch coupons using retrieved userId
+      this.fetchCouponsWithUserId(userId);
+    },
+    async fetchCouponsWithUserId(userId) {
+      try {
+        console.log('Fetching coupons for userId:', userId);
+        const response = await couponApi.getAvailableCoupons(userId);
+        console.log('Coupon API response:', response);
+
+        if (response.code === 1 && response.data) {
+          const now = new Date();
+
+          // Handle "coupons" property from response
+          const coupons = Array.isArray(response.data) ? response.data : (response.data.coupons || []);
+
+          this.coupons = coupons.filter(coupon =>
+            new Date(coupon.valid_to) > now &&
+            coupon.is_active === true &&
+            coupon.is_used === false &&
+            coupon.status === "able"
+          ).map(coupon => this.formatCouponData(coupon));
+
+          this.disabledCoupons = coupons.filter(coupon =>
+            new Date(coupon.valid_to) <= now ||
+            coupon.is_active !== true ||
+            coupon.is_used === true ||
+            coupon.status !== "able"
+          ).map(coupon => this.formatCouponData(coupon));
+
+          console.log('Available coupons:', this.coupons);
+          console.log('Unavailable coupons:', this.disabledCoupons);
+        } else {
+          uni.showToast({
+            title: 'Failed to retrieve coupons',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        console.error('Failed to retrieve coupons:', error);
+        uni.showToast({
+          title: 'Failed to retrieve coupons. Please try again.',
+          icon: 'none'
+        });
+      } finally {
+        this.loading = false;
+      }
+    },
+    formatCouponData(coupon) {
+      return {
+        id: coupon.coupon_id,
+        coupon_name: coupon.coupon_name,
+        name: coupon.coupon_name,
+        denominations: coupon.coupon_amount || 0, // Use original amount directly
+        condition: coupon.min_spend > 0 ? `MinSpent £${coupon.min_spend}` : 'No MinSpent',
+        originCondition: coupon.min_spend || 0,
+        startAt: coupon.valid_from ? new Date(coupon.valid_from).getTime() / 1000 : Date.now() / 1000,
+        endAt: coupon.valid_to ? new Date(coupon.valid_to).getTime() / 1000 : (Date.now() / 1000 + 86400 * 30),
+        valueDesc: `£${coupon.coupon_amount || 0}`,
+        description: coupon.description || 'Rent Coupon'
+      };
+    }
+  }
+};
 </script>
+
 
 <style>
 .coupon-page {

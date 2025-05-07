@@ -136,7 +136,7 @@ export default {
         .catch(err => {
           this.emailError = true;
           this.emailErrorMessage = 'Server error, please try again later.';
-          console.error('发送验证码失败:', err);
+          console.error('Failed to send verification code:', err);
         })
         .finally(() => {
           this.isLoading = false;
@@ -172,7 +172,7 @@ export default {
         })
         .catch(err => {
           uni.showToast({ title: 'Server error, please try again later', icon: 'none' });
-          console.error('验证码验证失败:', err);
+          console.error('Verification code verification failed:', err);
         })
         .finally(() => {
           this.isLoading = false;

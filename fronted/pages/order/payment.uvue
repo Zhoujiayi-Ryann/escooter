@@ -7,6 +7,7 @@
 			</view>
 			<text class="header-title"> Payment Confirm</text>
 		</view>
+		<scroll-view scroll-y class="scroll-content" :scroll-with-animation="true">
 		<van-cell-group inset class="order-card">
 			<van-cell title="Scooter Number" :value="orderInfo.scooterCode" />
 			  <van-cell center title="Scooter Style">
@@ -83,7 +84,7 @@
 				</template>
 			</van-cell>
 		</van-cell-group>
-
+</scroll-view>
 		<view class="bottom-button">
 			<van-button type="primary" block round @click="showPasswordInput">
 				Confirm Payment
@@ -249,7 +250,7 @@
 							endTime: this.orderInfo.endTime
 						});
 					} catch (e) {
-						console.error('解析日期时间出错:', e);
+						console.error('Error parsing date and time:', e);
 					}
 				}
 				
@@ -614,12 +615,12 @@
 						console.log('最终可用优惠券数量:', this.coupons.length);
 						console.log('最终不可用优惠券数量:', this.disabledCoupons.length);
 					} else {
-						console.warn('获取优惠券失败:', result.message);
+						console.warn('Failed to obtain coupon:', result.message);
 						this.coupons = [];
 						this.disabledCoupons = [];
 					}
 				} catch (error) {
-					console.error('加载优惠券时出错:', error);
+					console.error('Failed to obtain coupon:', error);
 					this.coupons = [];
 					this.disabledCoupons = [];
 				}
@@ -648,13 +649,13 @@
 						startDateTime = new Date(`${this.orderInfo.startDate} ${this.orderInfo.startTime}`);
 						endDateTime = new Date(`${this.orderInfo.endDate} ${this.orderInfo.endTime}`);
 					} else {
-						console.error('缺少必要的日期时间信息');
+						console.error('Lack of necessary date and time information');
 						return 'N/A';
 					}
 					
 					// 检查日期是否有效
 					if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-						console.error('无效的日期格式:', startDateTime, endDateTime);
+						console.error('Invalid date format:', startDateTime, endDateTime);
 						return 'N/A';
 					}
 					
@@ -687,7 +688,7 @@
 						return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
 					}
 				} catch (error) {
-					console.error('计算租赁时间出错:', error);
+					console.error('Error in calculating lease term:', error);
 					return 'N/A';
 				}
 			},
@@ -704,6 +705,14 @@
   display: flex;
   flex-direction: column;
   gap: 25rpx;
+}
+.scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 140rpx;
+}
+.scroll-content > :deep(.van-cell-group) {
+  margin-bottom: 30rpx;
 }
 .back-btn{
   position: absolute;
@@ -752,10 +761,11 @@
 .payment-method {
   background: #ffffff;
   border-radius: 24rpx !important;
-  padding: 20rpx 30rpx !important;
+  padding: 20rpx 20rpx !important;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
   margin-left: 0;
   margin-right: 0;
+   margin-bottom: 30rpx;
   font-size: 32rpx;
 }
 .scooter-preview {
@@ -933,7 +943,7 @@
   border-radius: 48rpx !important;
   background: linear-gradient(to right, #82b1ff, #007aff) !important;
   box-shadow: 0 6px 14px rgba(0, 122, 255, 0.25) !important;
-  margin-bottom: 30rpx;
+  margin-bottom: 20rpx;
 }
 
 /* 调整 van-coupon 内部容器样式 */

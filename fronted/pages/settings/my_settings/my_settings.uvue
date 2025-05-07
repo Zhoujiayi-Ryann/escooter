@@ -78,7 +78,7 @@ export default {
   data() {
     return {
       user: {
-        name: '游客',
+        name: 'Guest',
         id: '0',
         avatar: ''
       },
@@ -95,52 +95,52 @@ export default {
     this.getUserInformation();
   },
   onShow() {
-    // 每次页面显示时更新用户信息，确保数据最新
+    // Refresh user information each time the page is shown to ensure up-to-date data
     this.getUserInformation();
   },
   methods: {
-	getUserInformation() {
-	  const userInfo = userApi.getUserInfo();
-	
-	  if (userInfo) {
-	    this.user.name = userInfo.username || '游客';
-	    this.user.id = String(userInfo.user_id || userInfo.userId || 0);
-	
-	    // ✅ 不再拼接后端地址，avatar_path 就是完整的 URL
-	    const avatarPath = userInfo.avatar_path;
-	    this.user.avatar = avatarPath && avatarPath.trim() !== ''
-	      ? avatarPath
-	      : '/static/avatar/userp.jpg';
-		console.log('👤 当前用户头像地址:', this.user.avatar); 
-	
-	    const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
-	    const spent = userInfo.totalSpent || userInfo.total_spent || 0;
-	
-	    this.mileage.hours = parseFloat(usageHours).toFixed(1);
-	    this.mileage.spent = parseFloat(spent);
-	  } else {
-	    this.user.name = '游客';
-	    this.user.id = '0';
-	    this.user.avatar = '/static/avatar/userp.jpg';
-	    this.mileage.hours = 0;
-	    this.mileage.spent = 0;
-	  }
-	},
+    getUserInformation() {
+      const userInfo = userApi.getUserInfo();
+
+      if (userInfo) {
+        this.user.name = userInfo.username || 'Guest';
+        this.user.id = String(userInfo.user_id || userInfo.userId || 0);
+
+        // ✅ No need to concatenate base URL, avatar_path is already a full URL
+        const avatarPath = userInfo.avatar_path;
+        this.user.avatar = avatarPath && avatarPath.trim() !== ''
+          ? avatarPath
+          : '/static/avatar/userp.jpg';
+        console.log('👤 Current user avatar URL:', this.user.avatar);
+
+        const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
+        const spent = userInfo.totalSpent || userInfo.total_spent || 0;
+
+        this.mileage.hours = parseFloat(usageHours).toFixed(1);
+        this.mileage.spent = parseFloat(spent);
+      } else {
+        this.user.name = 'Guest';
+        this.user.id = '0';
+        this.user.avatar = '/static/avatar/userp.jpg';
+        this.mileage.hours = 0;
+        this.mileage.spent = 0;
+      }
+    },
     handleLogout() {
-      // 调用API退出登录
+      // Call API to log out
       userApi.logout();
-      
-      // 显示提示信息
+
+      // Show toast message
       uni.showToast({
-        title: '已退出登录',
+        title: 'Logged out',
         icon: 'success'
       });
-      
-      // 更新本地用户信息为游客状态
-      this.user.name = '游客';
+
+      // Reset user data to guest state
+      this.user.name = 'Guest';
       this.user.id = '0';
-      
-      // 延迟后跳转到登录页面
+
+      // Navigate to login page after delay
       setTimeout(() => {
         uni.navigateTo({
           url: '/pages/login/login'
@@ -152,33 +152,33 @@ export default {
         url: '/pages/settings/card/card'
       });
     },
-	navigateTo(page) {
-	  const map = {
-	    orders: '/pages/settings/orders/orders',
-	    card: '/pages/cards/cards',
-	    help: '/pages/help/help',
-	    notify: '/pages/notification/notification'
-	  };
-	
-	  if (map[page]) {
-	    uni.navigateTo({ url: map[page] });
-	  }
-	},
+    navigateTo(page) {
+      const map = {
+        orders: '/pages/settings/orders/orders',
+        card: '/pages/cards/cards',
+        help: '/pages/help/help',
+        notify: '/pages/notification/notification'
+      };
 
-	goFeedback() {
-	  uni.navigateTo({
-	    url: '/pages/feedback/feedback'
-	  });
-	},
-	gochange() {
-	  uni.navigateTo({
-	    url: '/pages/settings/change/change'
-	  });
-	}
+      if (map[page]) {
+        uni.navigateTo({ url: map[page] });
+      }
+    },
+
+    goFeedback() {
+      uni.navigateTo({
+        url: '/pages/feedback/feedback'
+      });
+    },
+    gochange() {
+      uni.navigateTo({
+        url: '/pages/settings/change/change'
+      });
+    }
   }
-  
 }
 </script>
+
 
 
 <style scoped>

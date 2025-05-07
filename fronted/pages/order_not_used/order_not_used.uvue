@@ -79,17 +79,17 @@ const order = ref({
   price: 0
 });
 
-// 添加页面加载参数，存储到本地变量
+// Add page load parameter, stored in local variable
 let pageOrderId = null;
 
-// onLoad生命周期，接收参数
+// onLoad lifecycle to receive parameters
 onLoad((query) => {
-  console.log('📦 order_not_used onLoad接收参数:', query);
+  console.log('📦 order_not_used onLoad received params:', query);
   if (query && query.orderId) {
     pageOrderId = query.orderId;
-    console.log('📦 从onLoad获取到的orderId:', pageOrderId);
+    console.log('📦 orderId received from onLoad:', pageOrderId);
   }
-  // 立即获取订单信息
+  // Fetch order info immediately
   fetchOrderDetail();
 });
 
@@ -103,135 +103,132 @@ const anchors = [
 ];
 const panelHeight = ref(anchors[0]);
 
-// 获取订单详情函数（带调试日志）
+// Function to fetch order detail (with debug logs)
 const fetchOrderDetail = async () => {
-  // 尝试多种方式获取orderId
   let rawId;
-  
-  // 首先检查从onLoad获取的参数
+
+  // First, check if we got it from onLoad
   if (pageOrderId) {
     rawId = pageOrderId;
-    console.log('📦 使用onLoad方法获取的orderId =', rawId);
+    console.log('📦 Using orderId from onLoad =', rawId);
   }
-  // 方法1：从route query中获取
+  // Method 1: from router query
   else if (router && router.currentRoute && router.currentRoute.value && router.currentRoute.value.query) {
     rawId = router.currentRoute.value.query.orderId;
-    console.log('📦 从router.query获取的orderId =', rawId);
+    console.log('📦 orderId from router.query =', rawId);
   }
-  
-  // 方法2：如果上面的方法失败，尝试从URL中解析参数
+
+  // Method 2: try to parse from page URL
   if (!rawId) {
     try {
       const pages = getCurrentPages();
       const currentPage = pages[pages.length - 1];
       const options = currentPage.$page?.options;
-      console.log('📦 当前页面options:', options);
+      console.log('📦 current page options:', options);
       if (options && options.orderId) {
         rawId = options.orderId;
-        console.log('📦 从页面options获取的orderId =', rawId);
+        console.log('📦 orderId from page options =', rawId);
       }
     } catch (err) {
-      console.error('📦 获取页面参数失败:', err);
+      console.error('📦 Failed to get page parameters:', err);
     }
   }
-  
-  // 如果还是没有，使用测试ID（仅用于开发测试）
+
+  // If still missing, use test ID (dev only)
   if (!rawId) {
-    console.warn('⚠️ 无法从常规渠道获取orderId，使用开发测试ID');
-    rawId = '1'; // 使用一个测试ID，仅用于开发
+    console.warn('⚠️ Failed to get orderId from normal sources, using test ID');
+    rawId = '1';
   }
 
   const orderId = Number(rawId);
-  console.log('📦 处理后的orderId (数字) =', orderId, typeof orderId);
-  
+  console.log('📦 Parsed orderId (number) =', orderId, typeof orderId);
+
   if (!orderId || isNaN(orderId)) {
-    uni.showToast({ title: '订单 ID 无效', icon: 'none', duration: 3000 });
-    console.warn('⚠️ orderId 不合法:', rawId, '->',  orderId);
+    uni.showToast({ title: 'Invalid Order ID', icon: 'none', duration: 3000 });
+    console.warn('⚠️ Invalid orderId:', rawId, '->', orderId);
     return;
   }
-function formatToCST(utcStr) {
-  if (!utcStr) return 'N/A';
-  const date = new Date(utcStr);
-  if (isNaN(date.getTime())) return 'Invalid Date';
 
-  // 转为中国时间
-  const offsetMs = 0;
-  const cstDate = new Date(date.getTime() + offsetMs);
+  function formatToCST(utcStr) {
+    if (!utcStr) return 'N/A';
+    const date = new Date(utcStr);
+    if (isNaN(date.getTime())) return 'Invalid Date';
 
-  return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;
-}
-function formatDuration(startStr, endStr) {
-  const start = new Date(startStr);
-  const end = new Date(endStr);
-  if (isNaN(start) || isNaN(end)) return 'Unknown';
+    const offsetMs = 0;
+    const cstDate = new Date(date.getTime() + offsetMs);
 
-  const diffMs = end.getTime() - start.getTime();
-  const hours = diffMs / (1000 * 60 * 60);
-
-  if (hours < 24) {
-    return `${Math.round(hours)} hour`;
-  } else {
-    const days = Math.floor(hours / 24);
-    return `${days} day`;
+    return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;
   }
-}
+
+  function formatDuration(startStr, endStr) {
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    if (isNaN(start) || isNaN(end)) return 'Unknown';
+
+    const diffMs = end.getTime() - start.getTime();
+    const hours = diffMs / (1000 * 60 * 60);
+
+    if (hours < 24) {
+      return `${Math.round(hours)} hour`;
+    } else {
+      const days = Math.floor(hours / 24);
+      return `${days} day`;
+    }
+  }
 
   try {
-    console.log('📡 发起请求: /orders/' + orderId);
+    console.log('📡 Requesting: /orders/' + orderId);
     const res = await orderApi.getOrderInfo(orderId);
-    console.log('✅ 接口响应结果:', res);
+    console.log('✅ API response:', res);
 
     if (res.code === 1 && res.data) {
       const data = res.data;
-	  console.log('🛠️ 获取到的订单数据：', data);
+      console.log('🛠️ Retrieved order data:', data);
 
-     const hasExtension = !!data.new_end_time;
-     
-     const totalCost = (data.cost ?? 0) + (data.extended_cost ?? 0);
-     const totalDurationHours = (data.duration ?? 0) + (data.extended_duration ?? 0);
-     const endTime = hasExtension ? data.new_end_time : data.end_time;
-     
-     order.value = {
-       orderId: data.order_id,
-       scooterId: data.scooter_id,
-       scooterLocation: data.pickup_address || 'Unknown',
-       battery: data.scooter_info?.battery_level ?? 'N/A',
-       bookTime: formatToCST(data.start_time),
-       orderTime: formatToCST(data.created_at),
-       duration: `${totalDurationHours} hour${totalDurationHours > 1 ? 's' : ''}`,
-       price: totalCost
-     };
-     
-     location.value = {
-       lat: data.scooter_info?.latitude ?? 0,
-       lng: data.scooter_info?.longitude ?? 0
-     };
-     
-     // ✅ 确保赋值后再执行
-     loadScooterLocation();
+      const hasExtension = !!data.new_end_time;
 
+      const totalCost = (data.cost ?? 0) + (data.extended_cost ?? 0);
+      const totalDurationHours = (data.duration ?? 0) + (data.extended_duration ?? 0);
+      const endTime = hasExtension ? data.new_end_time : data.end_time;
 
+      order.value = {
+        orderId: data.order_id,
+        scooterId: data.scooter_id,
+        scooterLocation: data.pickup_address || 'Unknown',
+        battery: data.scooter_info?.battery_level ?? 'N/A',
+        bookTime: formatToCST(data.start_time),
+        orderTime: formatToCST(data.created_at),
+        duration: `${totalDurationHours} hour${totalDurationHours > 1 ? 's' : ''}`,
+        price: totalCost
+      };
 
-      console.log('📍 设置地图坐标:', location.value);
+      location.value = {
+        lat: data.scooter_info?.latitude ?? 0,
+        lng: data.scooter_info?.longitude ?? 0
+      };
+
+      loadScooterLocation();
+
+      console.log('📍 Set map coordinates:', location.value);
       loadScooterLocation();
     } else {
-      console.error('❌ 获取失败:', res.msg);
-      uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
+      console.error('❌ Fetch failed:', res.msg);
+      uni.showToast({ title: res.msg || 'Failed to fetch order', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 网络请求异常:', err);
-    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+    console.error('🚨 Network request failed:', err);
+    uni.showToast({ title: 'Network error, please try again later', icon: 'none' });
   }
 };
 
 const formatTime = (isoString) => {
   const date = new Date(isoString);
-  return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
 const loadScooterLocation = () => {
   if (!location.value.lat || !location.value.lng) {
-    console.warn('📌 无法设置 marker：位置信息无效', location.value);
+    console.warn('📌 Invalid coordinates for marker', location.value);
     return;
   }
 
@@ -239,7 +236,7 @@ const loadScooterLocation = () => {
     id: 1,
     latitude: location.value.lat,
     longitude: location.value.lng,
-    iconPath: '/static/order_details/maker.svg', // ✅ 确保路径存在
+    iconPath: '/static/order_details/maker.svg',
     width: 32,
     height: 32,
     callout: {
@@ -252,9 +249,8 @@ const loadScooterLocation = () => {
       color: "#057cff",
       fontWeight: 'bold',
     }
-
   }];
-  console.log('📍 markers 设置完成:', markers.value);
+  console.log('📍 Markers setup complete:', markers.value);
 };
 
 const goToHelp = () => {
@@ -268,38 +264,32 @@ const handleBack = () => {
     uni.reLaunch({ url: '/pages/home/home' });
   }
 };
+
 const goToUse = async () => {
   if (!order.value.orderId) {
-    uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
+    uni.showToast({ title: 'Missing Order ID', icon: 'none' });
     return;
   }
-  
+
   try {
-    // 调用 activateOrder 方法激活订单
     const res = await orderApi.activateOrder(order.value.orderId);
     if (res.code === 1) {
-      // 成功激活订单
-      uni.showToast({ title: '订单已激活，开始使用车辆', icon: 'success' });
-      
-      // 跳转到 "order_in_progress" 页面
+      uni.showToast({ title: 'Order activated. You can now use the scooter.', icon: 'success' });
+
       uni.navigateTo({
         url: `/pages/order_in_progress/order_in_progress_home?orderId=${order.value.orderId}`
       });
     } else {
-      // 如果激活订单失败
-      uni.showToast({ title: res.msg || '激活订单失败', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Failed to activate order', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 激活订单请求失败:', err);
-    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+    console.error('🚨 Failed to activate order:', err);
+    uni.showToast({ title: 'Network error, please try again later', icon: 'none' });
   }
 };
 
-
-// 组件挂载后执行
-// 组件挂载后执行
+// Run after component is mounted
 onMounted(() => {
-  // 如果onLoad已经触发了fetchOrderDetail，就不需要再次调用
   if (!pageOrderId) {
     fetchOrderDetail();
   }

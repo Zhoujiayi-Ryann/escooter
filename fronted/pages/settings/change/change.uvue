@@ -13,8 +13,11 @@
     <view class="form-item avatar-form">
       <view class="label">Avatar</view>
       <view class="avatar-preview" @click="chooseAvatar">
-        <image class="avatar-img" :src="user.avatar_path || defaultAvatar" mode="aspectFill" />
-
+		<image
+		  class="avatar-img"
+		  :src="avatarSrc"
+		  mode="aspectFill"
+		/>
       </view>
     </view>
 
@@ -75,6 +78,7 @@ export default {
     return {
       editing: '',
       user: {},
+      avatar_path: '',
       form: {
         name: '',
         email: '',
@@ -85,75 +89,102 @@ export default {
     };
   },
   onLoad() {
+    // Load cached data first to immediately show avatar and user info
+    const cachedUser = userApi.getUserInfo();
+    if (cachedUser) {
+      this.user = cachedUser;
+      this.form.name = cachedUser.username || '';
+      this.form.email = cachedUser.email || '';
+      this.form.phone = cachedUser.phoneNumber || '';
+      this.form.avatar = cachedUser.avatar_path || '';
+    }
+
+    // Then fetch the latest data from the backend asynchronously
     this.loadUserInfo();
   },
+  onShow() {
+    this.loadUserInfo();
+  },
+
+  computed: {
+    avatarSrc() {
+      const path = this.user.avatar;
+      console.log('🖼 avatar_path is:', path);
+      return path && path.trim() !== '' ? path : this.defaultAvatar;
+    }
+  },
   methods: {
-   async loadUserInfo() {
-     try {
-       const userId = userApi.getUserId();
-       console.log("🧾 获取到 userId:", userId);
-   
-       if (!userId || userId === 0) {
-         uni.showToast({ title: '用户未登录', icon: 'none' });
-         console.warn('❌ userId 无效，可能未登录或本地未保存用户信息');
-         return;
-       }
-   
-       const res = await userApi.getUserDetail(userId);
-       console.log("📦 用户详情接口响应:", res);
-   
-       if (res.code === 1 && res.data) {
-         this.user = res.data;
-         this.form.name = res.data.username || '';
-         this.form.email = res.data.email || '';
-         this.form.phone = res.data.phoneNumber || '';
-         this.form.avatar = res.data.avatar_path || '';
-         console.log('✅ 用户数据加载成功:', this.user);
-       } else {
-         console.error("❌ 加载失败，后端返回错误:", res);
-         uni.showToast({ title: `加载失败：${res.msg || '未知错误'}`, icon: 'none' });
-       }
-     } catch (err) {
-       console.error("🔥 加载用户信息出错:", err);
-       uni.showToast({ title: '网络请求失败', icon: 'none' });
-     }
-   },
+    async loadUserInfo() {
+      try {
+        const userId = userApi.getUserId();
+        console.log("🧾 Retrieved userId:", userId);
 
-	async chooseAvatar() {
-	  try {
-	    const res = await uni.chooseImage({ count: 1 });
-	    const filePath = res.tempFilePaths[0];
-	
-	    const userId = userApi.getUserId();
-	
-	    // 👉 真正上传头像到服务器
-	    const uploadRes = await uploadApi.uploadAvatar(filePath, userId);
-	
-	    if (uploadRes.code === 1) {
-	      const newAvatarUrl = uploadRes.data; // 接口返回上传后的图片URL
-	
-	      // 本地更新头像
-	      this.user.avatar_path = newAvatarUrl;
-	      this.form.avatar = newAvatarUrl;
-	
-	      // 更新本地缓存
-	      userApi.updateLocalUserInfo({ avatar_path: newAvatarUrl });
-	
-	      uni.showToast({ title: '头像已更新', icon: 'success' });
-	    } else {
-	      uni.showToast({ title: uploadRes.msg || '头像上传失败', icon: 'none' });
-	    }
-	  } catch (err) {
-	    console.error('❌ 上传头像出错:', err);
-	    uni.showToast({ title: '上传失败', icon: 'none' });
-	  }
-	},
+        if (!userId || userId === 0) {
+          uni.showToast({ title: 'Not logged in', icon: 'none' });
+          console.warn('❌ Invalid userId, might not be logged in or cached info missing');
+          return;
+        }
 
+        const res = await userApi.getUserDetail(userId);
+        console.log("📦 User detail API response:", res);
 
+        if (res.code === 1 && res.data) {
+          this.user = res.data;
+          this.form.name = res.data.username || '';
+          this.form.email = res.data.email || '';
+          this.form.phone = res.data.phoneNumber || '';
+          this.form.avatar = res.data.avatar_path || '';
+          const avatarPath = res.data.avatarPath;
+          this.user.avatar = avatarPath && avatarPath.trim() !== ''
+            ? avatarPath
+            : '/static/avatar/userp.jpg';
+          console.log('👤 Current user avatar path:', this.user.avatar);
+
+          console.log('✅ User data loaded successfully:', this.user);
+        } else {
+          console.error("❌ Failed to load, backend returned error:", res);
+          uni.showToast({ title: `Load failed: ${res.msg || 'Unknown error'}`, icon: 'none' });
+        }
+      } catch (err) {
+        console.error("🔥 Error loading user info:", err);
+        uni.showToast({ title: 'Network request failed', icon: 'none' });
+      }
+    },
+
+    async chooseAvatar() {
+      try {
+        const res = await uni.chooseImage({ count: 1 });
+        const filePath = res.tempFilePaths[0];
+
+        const userId = userApi.getUserId();
+
+        // 👉 Actually upload the avatar to server
+        const uploadRes = await uploadApi.uploadAvatar(filePath, userId);
+
+        if (uploadRes.code === 1) {
+          const newAvatarUrl = uploadRes.data; // URL returned by API after upload
+
+          // Update avatar locally
+          this.user.avatar_path = newAvatarUrl;
+          this.user.avatar = newAvatarUrl; // ✅ Update displayed avatar
+          this.form.avatar = newAvatarUrl;
+
+          // Update local cache
+          userApi.updateLocalUserInfo({ avatar_path: newAvatarUrl });
+
+          uni.showToast({ title: 'Avatar updated', icon: 'success' });
+        } else {
+          uni.showToast({ title: uploadRes.msg || 'Avatar upload failed', icon: 'none' });
+        }
+      } catch (err) {
+        console.error('❌ Avatar upload error:', err);
+        uni.showToast({ title: 'Upload failed', icon: 'none' });
+      }
+    },
 
     async toggleEdit(field) {
       if (this.editing === field) {
-        // 保存操作
+        // Save operation
         const userId = userApi.getUserId();
         if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email)) {
           uni.showToast({ title: 'Invalid email', icon: 'none' });
@@ -177,17 +208,17 @@ export default {
             userApi.updateLocalUserInfo(res.data);
             uni.showToast({ title: 'Updated', icon: 'success' });
           } else {
-            uni.showToast({ title: '更新失败', icon: 'none' });
+            uni.showToast({ title: 'Update failed', icon: 'none' });
           }
         } catch (e) {
-          uni.showToast({ title: '请求失败', icon: 'none' });
+          uni.showToast({ title: 'Request failed', icon: 'none' });
         }
 
         this.editing = '';
       } else {
         this.form[field] = field === 'name' ? this.user.username
-                           : field === 'email' ? this.user.email
-                           : this.user.phoneNumber;
+                          : field === 'email' ? this.user.email
+                          : this.user.phoneNumber;
         this.editing = field;
       }
     },
@@ -217,6 +248,7 @@ export default {
   }
 };
 </script>
+
 
 
 <style scoped>

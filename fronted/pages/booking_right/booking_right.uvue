@@ -33,45 +33,47 @@ export default {
     };
   },
   onLoad(query) {
-    console.log('📦 booking_right 收到的参数:', query);
+    console.log('📦 booking_right received query:', query);
     this.orderId = query.orderId;
-    // 添加更多调试信息
-    console.log('✅ 接收到的 orderId 值:', this.orderId);
-    console.log('✅ orderId 类型:', typeof this.orderId);
+
+    // Debug info
+    console.log('✅ Received orderId value:', this.orderId);
+    console.log('✅ orderId type:', typeof this.orderId);
     
-    // 如果orderId是字符串，尝试确保它是有效数字
+    // If orderId is a string, try converting it to a number
     if (typeof this.orderId === 'string') {
       const numId = Number(this.orderId);
       if (!isNaN(numId)) {
-        console.log('✅ orderId 已转换为数字:', numId);
+        console.log('✅ orderId converted to number:', numId);
       } else {
-        console.warn('⚠️ orderId 不是有效数字:', this.orderId);
+        console.warn('⚠️ orderId is not a valid number:', this.orderId);
       }
     }
   },
   methods: {
-    goToHome() {
+    navigateToHome() {
       uni.navigateTo({ url: '/pages/home/home' });
     },
-    goToOrderDetails() {
+    navigateToOrderDetails() {
       if (!this.orderId) {
-        uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
+        uni.showToast({ title: 'Order ID is missing', icon: 'none' });
         return;
       }
-      console.log('🔀 跳转到order_not_used, orderId =', this.orderId);
-      
-      // 转换为字符串，确保URL参数正确
+
+      console.log('🔀 Navigating to order_not_used, orderId =', this.orderId);
+
+      // Convert to string to ensure correct URL encoding
       const orderId = String(this.orderId);
-      
-      // 使用navigateTo而不是reLaunch，这样可以保留历史记录
+
+      // Use navigateTo instead of reLaunch to keep history
       uni.navigateTo({
         url: `/pages/order_not_used/order_not_used_home?orderId=${orderId}`,
         success: () => {
-          console.log('✅ 跳转成功');
+          console.log('✅ Navigation succeeded');
         },
         fail: (err) => {
-          console.error('❌ 跳转失败:', err);
-          // 尝试另一种跳转方法
+          console.error('❌ Navigation failed:', err);
+          // Fallback to redirectTo
           uni.redirectTo({
             url: `/pages/order_not_used/order_not_used_home?orderId=${orderId}`
           });
@@ -80,7 +82,6 @@ export default {
     }
   }
 };
-
 </script>
 
 <style>

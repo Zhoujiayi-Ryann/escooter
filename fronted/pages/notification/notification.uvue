@@ -20,131 +20,148 @@
 </template>
 
 <script>
-import { userApi } from '../../utils/api/user/index.uts'
-import { notificationApi } from '../../utils/api/notification/index.uts'
+import { userApi } from '../../utils/api/user/index.uts';
+import { notificationApi } from '../../utils/api/notification/index.uts';
 
 export default {
-	data() {
-		return {
-			notifications: [],
-			hasUnread: false,
-			checkInterval: null
-		}
-	},
-	onShow() {
-		this.fetchNotifications()
-		this.checkUnreadNotifications()
-		this.startAutoCheck()
-	},
-	onHide() {
-		this.stopAutoCheck()
-	},
-	onUnload() {
-		this.stopAutoCheck()
-	},
-	methods: {
-		startAutoCheck() {
-			this.stopAutoCheck()
-			this.checkInterval = setInterval(() => {
-				this.checkUnreadNotifications()
-			}, 30000)
-		},
-		stopAutoCheck() {
-			if (this.checkInterval) {
-				clearInterval(this.checkInterval)
-				this.checkInterval = null
-			}
-		},
-		handleBack() {
-			const pages = getCurrentPages();
-			if (pages.length > 1) {
-				uni.navigateBack();
-			} else {
-				uni.reLaunch({ url: '/pages/home/home' });
-			}
-		},
-		async checkUnreadNotifications() {
-			const userId = userApi.getUserId();
-			if (!userId) {
-				this.hasUnread = false;
-				return;
-			}
-			try {
-				const res = await notificationApi.countUserUnreadNotifications(userId);
-				if (res.code === 1) {
-					this.hasUnread = res.data > 0;
-				} else {
-					this.hasUnread = false;
-				}
-			} catch (err) {
-				console.error('获取未读通知数量失败:', err);
-				this.hasUnread = false;
-			}
-		},
-		async fetchNotifications() {
-			const userId = userApi.getUserId();
-			if (!userId) {
-				this.notifications = [];
-				return;
-			}
+  data() {
+    return {
+      notifications: [],
+      hasUnread: false,
+      checkInterval: null
+    };
+  },
+  onShow() {
+    this.fetchNotifications();
+    this.checkUnreadNotifications();
+    this.startAutoCheck();
+  },
+  onHide() {
+    this.stopAutoCheck();
+  },
+  onUnload() {
+    this.stopAutoCheck();
+  },
+  methods: {
+    // Start periodic check for unread notifications
+    startAutoCheck() {
+      this.stopAutoCheck();
+      this.checkInterval = setInterval(() => {
+        this.checkUnreadNotifications();
+      }, 30000); // every 30 seconds
+    },
 
-			try {
-				const res = await notificationApi.getUserNotifications(userId);
-				console.log('通知接口返回原始数据：', res.data);
-				
-				if (res.code === 1 && Array.isArray(res.data)) {
-					this.notifications = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-					await this.markAllAsRead(userId);
-				} else {
-					this.notifications = [];
-				}
-			} catch (err) {
-				console.error('获取通知失败:', err);
-				this.notifications = [];
-			}
-		},
-		async markAllAsRead(userId) {
-			try {
-				const res = await notificationApi.markAllAsRead(userId);
-				if (res.code === 1) {
-					console.log('所有通知已标记为已读');
-					this.hasUnread = false;
-				}
-			} catch (err) {
-				console.error('标记通知已读失败:', err);
-			}
-		},
-		goToPages(type) {
-			if (type === 'COUPON') {
-				uni.navigateTo({
-					url: '/pages/settings/coupons/coupon'
-				});
-			} else if (type === 'COMMENT_REPLY') {
-				uni.navigateTo({
-					url: '/pages/feedback/detail'
-				});
-			}
-		},
-		formatTime(timestamp) {
-			if (!timestamp) return '';
-			const date = new Date(timestamp);
-			const year = date.getFullYear();
-			const month = String(date.getMonth() + 1).padStart(2, '0');
-			const day = String(date.getDate()).padStart(2, '0');
-			const hours = String(date.getHours()).padStart(2, '0');
-			const minutes = String(date.getMinutes()).padStart(2, '0');
-			return `${year}-${month}-${day} ${hours}:${minutes}`;
-		}
-	}
-}
+    // Stop the periodic check
+    stopAutoCheck() {
+      if (this.checkInterval) {
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+    },
+
+    // Back navigation handler
+    handleBack() {
+      const pages = getCurrentPages();
+      if (pages.length > 1) {
+        uni.navigateBack();
+      } else {
+        uni.reLaunch({ url: '/pages/home/home' });
+      }
+    },
+
+    // Check for unread notifications
+    async checkUnreadNotifications() {
+      const userId = userApi.getUserId();
+      if (!userId) {
+        this.hasUnread = false;
+        return;
+      }
+      try {
+        const res = await notificationApi.countUserUnreadNotifications(userId);
+        if (res.code === 1) {
+          this.hasUnread = res.data > 0;
+        } else {
+          this.hasUnread = false;
+        }
+      } catch (err) {
+        console.error('Failed to check unread notifications:', err);
+        this.hasUnread = false;
+      }
+    },
+
+    // Fetch all notifications for the current user
+    async fetchNotifications() {
+      const userId = userApi.getUserId();
+      if (!userId) {
+        this.notifications = [];
+        return;
+      }
+
+      try {
+        const res = await notificationApi.getUserNotifications(userId);
+        console.log('Raw notification data:', res.data);
+
+        if (res.code === 1 && Array.isArray(res.data)) {
+          this.notifications = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          await this.markAllAsRead(userId);
+        } else {
+          this.notifications = [];
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+        this.notifications = [];
+      }
+    },
+
+    // Mark all notifications as read
+    async markAllAsRead(userId) {
+      try {
+        const res = await notificationApi.markAllAsRead(userId);
+        if (res.code === 1) {
+          console.log('All notifications marked as read');
+          this.hasUnread = false;
+        }
+      } catch (err) {
+        console.error('Failed to mark notifications as read:', err);
+      }
+    },
+
+    // Navigate to related pages based on notification type
+    goToPages(type) {
+      if (type === 'COUPON') {
+        uni.navigateTo({
+          url: '/pages/settings/coupons/coupon'
+        });
+      } else if (type === 'COMMENT_REPLY') {
+        uni.navigateTo({
+          url: '/pages/feedback/detail'
+        });
+      }
+    },
+
+    // Format timestamp into readable time string
+    formatTime(timestamp) {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+  }
+};
 </script>
+
 
 <style>
 .container {
-	flex: 1;
-	background: linear-gradient(to bottom, #e0f0ff, #ffffff);
-	min-height: 100vh;
-	padding: 20px;
+	  height: 100vh;
+	  overflow-y: auto;
+	  background: linear-gradient(to bottom, #e0f0ff, #ffffff);
+	  padding: 20px;
+	  box-sizing: border-box;
 }
 
 .header {

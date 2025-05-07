@@ -50,194 +50,165 @@
 </template>
 
 <script>
-	import { feedbackApi } from '../../utils/api/feedback/index.uts';
-	import { FeedbackType } from '../../utils/api/types';
-	import { userApi } from '../../utils/api/user/index.uts';
-	import { uploadApi } from '../../utils/api/upload/index.uts';
-	
-	export default {
-		data() {
-			return {
-				typeArray: ['Using Problems', 'Experience Feedback'],
-				typeIndex: 0,
-				description: '',
-				images: [],
-				date: '',
-				orderNumber: '',
-				isSubmitting: false,
-				// 上传后的图片URL
-				uploadedImageUrls: []
-			}
-		},
-		methods: {
-			onTypeChange(e) {
-				this.typeIndex = e.detail.value
-			},
-			onDateChange(e) {
-				this.date = e.detail.value
-			},
-			async chooseImage() {
-				try {
-					const res = await uni.chooseImage({
-						count: 3 - this.images.length,
-						sizeType: ['compressed'],
-						sourceType: ['album', 'camera']
-					})
-					this.images = [...this.images, ...res.tempFilePaths]
-				} catch (err) {
-					console.error('Fail to load the picture', err)
-				}
-			},
-			previewImage(index) {
-				uni.previewImage({
-					urls: this.images,
-					current: index
-				})
-			},
-			// 删除指定索引的图片
-			deleteImage(index) {
-				// 显示确认弹窗
-				uni.showModal({
-					title: 'Confirm Deletion',
-					content: 'Are you sure to delete this image?',
-					success: (res) => {
-						if (res.confirm) {
-							// 用户点击确认，删除图片
-							this.images.splice(index, 1);
-							// 同时删除已上传的图片URL（如果有）
-							if (this.uploadedImageUrls.length > index) {
-								this.uploadedImageUrls.splice(index, 1);
-							}
-						}
-					}
-				});
-			},
-			async submitFeedback() {
-				// 表单验证
-				if (!this.description) {
-					uni.showToast({
-						title: 'Please explain your problems',
-						icon: 'none'
-					})
-					return
-				}
-				
-				// 防止重复提交
-				if (this.isSubmitting) {
-					return;
-				}
-				this.isSubmitting = true;
-				
-				// 显示加载中
-				uni.showLoading({
-					title: 'Trying to submit...'
-				})
-				
-				try {
-					// 1. 上传图片（如果有）
-					if (this.images.length > 0) {
-						try {
-							uni.showLoading({
-								title: 'Uploading images...'
-							});
-							this.uploadedImageUrls = await uploadApi.uploadFeedbackImages(this.images);
-							console.log('图片上传成功:', this.uploadedImageUrls);
-						} catch (error) {
-							console.error('图片上传失败:', error);
-							uni.hideLoading();
-							uni.showToast({
-								title: 'Failed to upload images!',
-								icon: 'none'
-							});
-							// 继续提交，但不包含图片
-							this.uploadedImageUrls = [];
-						}
-					}
-					
-					// 2. 获取用户ID
-					const userId = userApi.getUserId();
-					if (!userId) {
-						throw new Error('User ID not found, please login first');
-					}
-					
-					// 3. 准备反馈数据
-					const feedbackData = {
-						user_id: userId,
-						feedback_type: this.typeIndex === 0 ? FeedbackType.USING_PROBLEM : FeedbackType.EXPERIENCE_FEEDBACK,
-						description: this.description,
-						bill_number: this.orderNumber || undefined
-					};
-					
-					// 4. 处理日期 - 使用后端可接受的格式
-					if (this.date) {
-						// 将日期格式化为 yyyy-MM-dd 格式，不带时间部分
-						feedbackData.happening_time = this.date;
-					}
-					
-					// 5. 添加上传的图片URL（如果有）
-					if (this.uploadedImageUrls.length > 0) {
-						feedbackData.image_urls = this.uploadedImageUrls;
-					}
-					
-					console.log('提交反馈数据:', feedbackData);
-					
-					// 6. 调用API提交反馈
-					uni.showLoading({
-						title: 'Submitting feedback...'
-					});
-					
-					const response = await feedbackApi.submitFeedback(feedbackData);
-					
-					// 隐藏加载框
-					uni.hideLoading();
-					
-					if (response.code === 1) {
-						// 显示成功提示
-						uni.showToast({
-							title: 'Submit successfully!',
-							icon: 'success'
-						});
-						
-						// 重置表单
-						this.description = '';
-						this.images = [];
-						this.uploadedImageUrls = [];
-						this.date = '';
-						this.orderNumber = '';
-						
-						// 1.5秒后返回上一页
-						setTimeout(() => {
-							uni.navigateBack();
-						}, 1500);
-					} else {
-						throw new Error(response.msg || 'Submit failed');
-					}
-				} catch (err) {
-					console.error('提交反馈失败:', err);
-					
-					// 隐藏加载框
-					uni.hideLoading();
-					
-					// 显示错误提示
-					uni.showToast({
-						title: err.message || 'Fail to submit!',
-						icon: 'none'
-					});
-				} finally {
-					this.isSubmitting = false;
-				}
-			},
-			handleBack() {
-			  const pages = getCurrentPages();
-			  if (pages.length > 1) {
-			    uni.navigateBack();
-			  } else {
-			    uni.reLaunch({ url: '/pages/settings/my_settings/my_settings' });
-			  }
-			}
-		}
-	}
+import { feedbackApi } from '../../utils/api/feedback/index.uts';
+import { FeedbackType } from '../../utils/api/types';
+import { userApi } from '../../utils/api/user/index.uts';
+import { uploadApi } from '../../utils/api/upload/index.uts';
+
+export default {
+  data() {
+    return {
+      typeArray: ['Using Problems', 'Experience Feedback'],
+      typeIndex: 0,
+      description: '',
+      images: [],
+      date: '',
+      orderNumber: '',
+      isSubmitting: false,
+      uploadedImageUrls: []
+    };
+  },
+  methods: {
+    onTypeChange(e) {
+      this.typeIndex = e.detail.value;
+    },
+    onDateChange(e) {
+      this.date = e.detail.value;
+    },
+    async chooseImage() {
+      try {
+        const res = await uni.chooseImage({
+          count: 3 - this.images.length,
+          sizeType: ['compressed'],
+          sourceType: ['album', 'camera']
+        });
+        this.images = [...this.images, ...res.tempFilePaths];
+      } catch (err) {
+        console.error('Failed to choose image:', err);
+      }
+    },
+    previewImage(index) {
+      uni.previewImage({
+        urls: this.images,
+        current: index
+      });
+    },
+    deleteImage(index) {
+      uni.showModal({
+        title: 'Confirm Deletion',
+        content: 'Are you sure you want to delete this image?',
+        success: (res) => {
+          if (res.confirm) {
+            this.images.splice(index, 1);
+            if (this.uploadedImageUrls.length > index) {
+              this.uploadedImageUrls.splice(index, 1);
+            }
+          }
+        }
+      });
+    },
+    async submitFeedback() {
+      if (!this.description) {
+        uni.showToast({
+          title: 'Please describe the issue',
+          icon: 'none'
+        });
+        return;
+      }
+
+      if (this.isSubmitting) return;
+      this.isSubmitting = true;
+
+      uni.showLoading({
+        title: 'Submitting...'
+      });
+
+      try {
+        if (this.images.length > 0) {
+          try {
+            uni.showLoading({ title: 'Uploading images...' });
+            this.uploadedImageUrls = await uploadApi.uploadFeedbackImages(this.images);
+            console.log('Uploaded images:', this.uploadedImageUrls);
+          } catch (error) {
+            console.error('Image upload failed:', error);
+            uni.hideLoading();
+            uni.showToast({
+              title: 'Failed to upload images',
+              icon: 'none'
+            });
+            this.uploadedImageUrls = [];
+          }
+        }
+
+        const userId = userApi.getUserId();
+        if (!userId) throw new Error('User ID not found. Please log in.');
+
+        const feedbackData = {
+          user_id: userId,
+          feedback_type: this.typeIndex === 0 ? FeedbackType.USING_PROBLEM : FeedbackType.EXPERIENCE_FEEDBACK,
+          description: this.description,
+          bill_number: this.orderNumber || undefined
+        };
+
+        if (this.date) {
+          feedbackData.happening_time = this.date;
+        }
+
+        if (this.uploadedImageUrls.length > 0) {
+          feedbackData.image_urls = this.uploadedImageUrls;
+        }
+
+        console.log('Submitting feedback data:', feedbackData);
+
+        uni.showLoading({
+          title: 'Submitting feedback...'
+        });
+
+        const response = await feedbackApi.submitFeedback(feedbackData);
+
+        uni.hideLoading();
+
+        if (response.code === 1) {
+          uni.showToast({
+            title: 'Submitted successfully!',
+            icon: 'success'
+          });
+
+          this.description = '';
+          this.images = [];
+          this.uploadedImageUrls = [];
+          this.date = '';
+          this.orderNumber = '';
+
+          setTimeout(() => {
+            uni.navigateBack();
+          }, 1500);
+        } else {
+          throw new Error(response.msg || 'Submission failed');
+        }
+      } catch (err) {
+        console.error('Feedback submission failed:', err);
+        uni.hideLoading();
+        uni.showToast({
+          title: err.message || 'Submission failed',
+          icon: 'none'
+        });
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+    handleBack() {
+      const pages = getCurrentPages();
+      if (pages.length > 1) {
+        uni.navigateBack();
+      } else {
+        uni.reLaunch({ url: '/pages/settings/my_settings/my_settings' });
+      }
+    }
+  }
+};
 </script>
+
 
 <style>
 	.feedback-container {

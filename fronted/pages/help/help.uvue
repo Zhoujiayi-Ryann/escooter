@@ -128,11 +128,12 @@
 
 <style>
 .container {
-  flex: 1;
+  /* flex: 1; */
   background: linear-gradient(to bottom, #e6f2ff, #ffffff);
   min-height: 100vh;
   padding: 32rpx;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .page-title {

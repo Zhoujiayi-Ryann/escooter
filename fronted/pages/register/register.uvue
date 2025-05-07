@@ -170,7 +170,7 @@ export default {
 
       if (this.usernameError || this.emailError || this.phoneError || this.passwordError) {
         uni.showToast({ 
-          title: '请修正输入错误', 
+          title: 'Please correct the input error', 
           icon: 'none' 
         });
         return;
@@ -179,9 +179,9 @@ export default {
       // 密码匹配检查
       if (this.password !== this.confirmPassword) {
         this.confirmPasswordError = true;
-        this.confirmPasswordErrorMessage = '两次输入的密码不一致';
+        this.confirmPasswordErrorMessage = 'Entered passwords differ!';
         uni.showToast({ 
-          title: '两次输入的密码不一致', 
+          title: 'Entered passwords differ!', 
           icon: 'none' 
         });
         return;
@@ -197,7 +197,7 @@ export default {
 
         if (res.code === 1) {  // 注意这里使用 1 表示成功
           uni.showToast({
-            title: res.msg || '注册成功',
+            title: res.msg || 'registered successfully',
             icon: 'success'
           });
           
@@ -207,16 +207,16 @@ export default {
           }, 1500);
         } else {
           uni.showToast({
-            title: res.msg || '注册失败',
+            title: res.msg || 'login has failed',
             icon: 'none'
           });
         }
       } catch (error) {
         uni.showToast({
-          title: '注册失败，请稍后重试',
+          title: 'login has failed',
           icon: 'none'
         });
-        console.error('注册错误:', error);
+        console.error('login has failed:', error);
       }
     },
 

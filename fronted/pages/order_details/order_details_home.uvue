@@ -192,7 +192,7 @@ const fetchOrderDetail = async () => {
   const rawId = router.currentRoute.value.query.orderId;
   const orderId = Number(rawId);
   if (!orderId || isNaN(orderId)) {
-    uni.showToast({ title: '订单 ID 无效', icon: 'none' });
+    uni.showToast({ title: 'Order ID is invalid', icon: 'none' });
     return;
   }
 
@@ -207,7 +207,7 @@ const fetchOrderDetail = async () => {
 
       // ✅ 如果坐标为空，给出提示
       if (!lat || !lng) {
-        uni.showToast({ title: '车辆位置信息无效', icon: 'none' });
+        uni.showToast({ title: 'Invalid vehicle location information', icon: 'none' });
         return;
       }
 
@@ -240,11 +240,11 @@ const fetchOrderDetail = async () => {
 
       loadScooterLocation();
     } else {
-      uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Order retrieval failed', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 网络异常:', err);
-    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+    console.error('🚨 network anomaly:', err);
+    uni.showToast({ title: 'Network malfunction, please try again later', icon: 'none' });
   }
 };
 

@@ -43,7 +43,11 @@
             <view class="value address">{{ order.scooterLocation }}</view>
           </view>
           <view class="info-item"><text class="label">Battery:</text><text class="value">{{ order.battery }}%</text></view>
-          <view class="info-item"><text class="label">Usage Time:</text><text class="value">{{ order.duration }}</text></view>
+          <view class="info-item">
+            <text class="label">Time Elapsed:</text>
+            <text class="value">{{ order.usedDuration }}</text>
+          </view>
+		  <view class="info-item"><text class="label">Usage Time:</text><text class="value">{{ order.duration }}</text></view>
           <view class="divider"></view>
           <view class="info-item"><text class="label">Price:</text><text class="value">￡{{ order.cost }}</text></view>
         </view>
@@ -77,6 +81,7 @@ const order = ref({
   scooterLocation: '',
   battery: '',
   duration: '',
+  usedDuration: '',
   cost: 0
 });
 
@@ -100,14 +105,14 @@ function formatDuration(startStr) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  return `${hours}h ${minutes}m`;
+  return `${hours}hour ${minutes}min`;
 }
 
 const fetchOrderDetail = async () => {
   const rawId = router.currentRoute.value.query.orderId;
   const orderId = Number(rawId);
   if (!orderId || isNaN(orderId)) {
-    uni.showToast({ title: '订单 ID 无效', icon: 'none' });
+    uni.showToast({ title: 'Invalid order ID', icon: 'none' });
     return;
   }
 
@@ -116,33 +121,35 @@ const fetchOrderDetail = async () => {
     if (res.code === 1 && res.data) {
       const data = res.data;
 
-      // 👇 确保后端字段正确
+      // Ensure coordinates from backend are valid
       const lat = data.scooter_info?.latitude;
       const lng = data.scooter_info?.longitude;
 
-      // ✅ 如果坐标为空，给出提示
+      // If coordinates are invalid, show toast
       if (!lat || !lng) {
-        uni.showToast({ title: '车辆位置信息无效', icon: 'none' });
+        uni.showToast({ title: 'Invalid scooter location', icon: 'none' });
         return;
       }
-	  const baseCost = data.cost ?? 0;
-	  const extendedCost = data.extended_cost ?? 0;
-	  const totalCost = baseCost + extendedCost;
-	  
-	  const baseDuration = data.duration ?? 0;
-	  const extendedDuration = data.extended_duration ?? 0;
-	  const totalDuration = baseDuration + extendedDuration;
+
+      const baseCost = data.cost ?? 0;
+      const extendedCost = data.extended_cost ?? 0;
+      const totalCost = baseCost + extendedCost;
+
+      const baseDuration = data.duration ?? 0;
+      const extendedDuration = data.extended_duration ?? 0;
+      const totalDuration = baseDuration + extendedDuration;
 
       order.value = {
         orderId: data.order_id,
         scooterId: data.scooter_id,
         scooterLocation: data.pickup_address || 'Unknown',
         battery: data.scooter_info?.battery_level ?? 'N/A',
-        duration: `${baseDuration + extendedDuration} hour${baseDuration + extendedDuration > 1 ? 's' : ''}`,
+        duration: `${totalDuration} hour${totalDuration > 1 ? 's' : ''}`,
+        usedDuration: formatDuration(data.start_time),
         cost: totalCost
       };
 
-      // ✅ 正确设置 location
+      // Set scooter location for map
       location.value = {
         lat,
         lng
@@ -150,14 +157,13 @@ const fetchOrderDetail = async () => {
 
       loadScooterLocation();
     } else {
-      uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Failed to retrieve order', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 网络异常:', err);
-    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+    console.error('🚨 Network error:', err);
+    uni.showToast({ title: 'Network error. Please try again later.', icon: 'none' });
   }
 };
-
 
 const loadScooterLocation = () => {
   if (!location.value.lat || !location.value.lng) return;
@@ -170,7 +176,6 @@ const loadScooterLocation = () => {
     width: 32,
     height: 32,
     callout: {
-      // ✅ 改这里：使用与页面中一致的地址
       content: order.value.scooterLocation || `Scooter SC${order.value.scooterId}`,
       display: 'ALWAYS',
       fontSize: 15,
@@ -183,7 +188,7 @@ const loadScooterLocation = () => {
 };
 
 const handleBack = () => {
-    uni.reLaunch({ url: '/pages/home/home' });
+  uni.reLaunch({ url: '/pages/home/home' });
 };
 
 const goToHelp = () => {
@@ -192,28 +197,24 @@ const goToHelp = () => {
 
 const goToReturn = async () => {
   if (!order.value.orderId) {
-    uni.showToast({ title: '订单 ID 缺失', icon: 'none' });
+    uni.showToast({ title: 'Missing order ID', icon: 'none' });
     return;
   }
 
   try {
-    // 调用 activateOrder 方法激活订单
     const res = await orderApi.completeOrder(order.value.orderId);
     if (res.code === 1) {
-      // 成功激活订单，显示提示信息
-      uni.showToast({ title: '订单已完成，开始还车', icon: 'success' });
+      uni.showToast({ title: 'Order completed. Please return the vehicle.', icon: 'success' });
 
-      // 跳转到订单详情页，或根据需求跳转到其他页面
       uni.navigateTo({
         url: `/pages/order_details/order_details_home?orderId=${order.value.orderId}`
       });
     } else {
-      // 如果激活订单失败
-      uni.showToast({ title: res.msg || '激活订单失败', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Failed to complete the order', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 激活订单请求失败:', err);
-    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+    console.error('🚨 Failed to complete order:', err);
+    uni.showToast({ title: 'Network error. Please try again later.', icon: 'none' });
   }
 };
 
@@ -224,8 +225,8 @@ const goHome = () => {
 onMounted(() => {
   fetchOrderDetail();
 });
-
 </script>
+
 
 
 <style scoped>

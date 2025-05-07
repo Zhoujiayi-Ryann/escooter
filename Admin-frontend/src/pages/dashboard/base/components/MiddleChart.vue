@@ -23,11 +23,11 @@
     </t-col>
     <t-col :xs="12" :xl="3">
       <t-card title="Sales Channels" :subtitle="currentMonth" class="dashboard-chart-card" :bordered="false">
-        <div
+        <!-- <div
           id="countContainer"
           ref="countContainer"
           :style="{ width: `${resizeTime * 326}px`, height: `${resizeTime * 326}px`, margin: '0 auto' }"
-        ></div>
+        ></div> -->
       </t-card>
     </t-col>
   </t-row>

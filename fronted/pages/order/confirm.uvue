@@ -382,7 +382,7 @@ export default {
         if (res && res.status === 0) {
           this.address = res.result.address;
         } else {
-          console.error('地址解析失败：', res);
+          console.error('Address resolution request failed：', res);
           // 保持经纬度显示
         }
         // 清理回调函数
@@ -397,7 +397,7 @@ export default {
       
       // 处理加载错误
       script.onerror = () => {
-        console.error('地址解析请求失败');
+        console.error('Address resolution request failed');
         delete window[callbackName];
         document.body.removeChild(script);
       };
@@ -417,12 +417,12 @@ export default {
           if (res.data && res.data.status === 0) {
             this.address = res.data.result.address;
           } else {
-            console.error('地址解析失败：', res.data);
+            console.error('Address resolution request failed：', res.data);
             // 保持经纬度显示
           }
         },
         fail: (err) => {
-          console.error('请求失败：', err);
+          console.error('request failed：', err);
           // 保持经纬度显示
         }
       });

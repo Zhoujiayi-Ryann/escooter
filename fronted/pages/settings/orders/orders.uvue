@@ -264,15 +264,15 @@ export default {
 								} else {
 									// API调用失败，显示错误信息
 									uni.showToast({
-										title: res.msg || '删除失败',
+										title: res.msg || 'Delete failed',
 										icon: 'none'
 									});
 								}
 							})
 							.catch(err => {
-								console.error('删除订单出错:', err);
+								console.error('Network error, please try again later:', err);
 								uni.showToast({
-									title: '网络错误，请稍后重试',
+									title: 'Network error, please try again later',
 									icon: 'none'
 								});
 							});
@@ -311,15 +311,15 @@ export default {
 								} else {
 									// API调用失败，显示错误信息
 									uni.showToast({
-										title: res.msg || '取消失败',
+										title: res.msg || 'Cancel failed',
 										icon: 'none'
 									});
 								}
 							})
 							.catch(err => {
-								console.error('取消订单出错:', err);
+								console.error('Cancel order error:', err);
 								uni.showToast({
-									title: '网络错误，请稍后重试',
+									title: 'Network error, please try again later',
 									icon: 'none'
 								});
 							});
@@ -539,7 +539,7 @@ export default {
 				.catch(err => {
 					console.error('获取订单出错:', err);
 					uni.showToast({
-						title: '网络错误，请稍后重试',
+						title: 'Network error, please try again later',
 						icon: 'none'
 					});
 				})
@@ -659,15 +659,15 @@ export default {
 						});
 					} else {
 						uni.showToast({
-							title: res.msg || '获取订单详情失败',
+							title: res.msg || 'Failed to obtain order details',
 							icon: 'none'
 						});
 					}
 				})
 				.catch(err => {
-					console.error('获取订单详情出错:', err);
+					console.error('Failed to obtain order details:', err);
 					uni.showToast({
-						title: '网络错误，请稍后重试',
+						title: 'Network error, please try again later',
 						icon: 'none'
 					});
 				})

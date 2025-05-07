@@ -136,63 +136,12 @@ function formatDuration(startStr, endStr) {
   return `${hours}h ${minutes}min`;
 }
 
-// ✅ 获取订单详情
-// const fetchOrderDetail = async () => {
-//   const rawId = router.currentRoute.value.query.orderId;
-//   const orderId = Number(rawId);
 
-//   try {
-//     const res = await orderApi.getOrderDetail(orderId);
-//     if (res.code === 1 && res.data) {
-//       const data = res.data;
-
-//       order.value = {
-//         orderId: data.order_id,
-//         scooterId: data.scooter_id,
-//         startTime: formatTime(data.start_time),
-//         endTime: formatTime(data.end_time),
-//         duration: formatDuration(data.start_time, data.end_time),
-//         cost: data.cost ?? 0,
-//         address: data.address || 'Unknown',
-//       };
-
-//       const lat = data.location_lat;
-//       const lng = data.location_lng;
-
-//       if (!lat || !lng) {
-//         uni.showToast({ title: '坐标无效', icon: 'none' });
-//         return;
-//       }
-
-//       location.value = { lat, lng };
-
-//       markers.value = [{
-//         id: 1,
-//         latitude: lat,
-//         longitude: lng,
-//         iconPath: "/static/order_details/maker.svg",
-//         width: 32,
-//         height: 32,
-//         callout: {
-//           content: order.value.address || `Scooter SC${order.value.scooterId}`,
-//           display: 'ALWAYS',
-//           fontSize: 15,
-//           borderRadius: 5,
-//           padding: 5,
-//           bgColor: "#ffffff",
-//           color: "#007aff",
-//         }
-//       }];
-//     }
-//   } catch (e) {
-//     uni.showToast({ title: '网络异常', icon: 'none' });
-//   }
-// };
 const fetchOrderDetail = async () => {
   const rawId = router.currentRoute.value.query.orderId;
   const orderId = Number(rawId);
   if (!orderId || isNaN(orderId)) {
-    uni.showToast({ title: '订单 ID 无效', icon: 'none' });
+    uni.showToast({ title: 'Order ID is invalid', icon: 'none' });
     return;
   }
 
@@ -207,7 +156,7 @@ const fetchOrderDetail = async () => {
 
       // ✅ 如果坐标为空，给出提示
       if (!lat || !lng) {
-        uni.showToast({ title: '车辆位置信息无效', icon: 'none' });
+        uni.showToast({ title: 'Invalid vehicle location information', icon: 'none' });
         return;
       }
 
@@ -241,11 +190,11 @@ const fetchOrderDetail = async () => {
 
       loadScooterLocation();
     } else {
-      uni.showToast({ title: res.msg || '订单获取失败', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Order retrieval failed', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 网络异常:', err);
-    uni.showToast({ title: '网络异常，请稍后再试', icon: 'none' });
+    console.error('🚨 Network exception:', err);
+    uni.showToast({ title: 'Network malfunction, please try again later', icon: 'none' });
   }
 };
 

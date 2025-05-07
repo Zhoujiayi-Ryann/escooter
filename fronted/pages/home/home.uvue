@@ -435,7 +435,7 @@ export default {
 				if (page === 'confirm') {
 					if (this.selected === null) {
 						uni.showToast({
-							title: '请选择一个滑板车',
+							title: 'Please choose a scooter',
 							icon: 'none'
 						});
 						return;
@@ -445,7 +445,7 @@ export default {
 					const selectedScooter = this.scooters.find(s => s.scooterId === this.selected);
 					if (!selectedScooter) {
 						uni.showToast({
-							title: '未找到滑板车信息',
+							title: 'Scooter information not found',
 							icon: 'none'
 						});
 						return;
@@ -742,7 +742,7 @@ export default {
 						});
 					}
 				} else {
-					console.error('获取滑板车失败:', res.msg);
+					console.error('Failed to obtain scooter:', res.msg);
 					uni.showToast({
 						title: 'Failed to get available scooters',
 						icon: 'none',
@@ -750,7 +750,7 @@ export default {
 					});
 				}
 			}).catch(err => {
-				console.error('获取滑板车异常:', err);
+				console.error('Abnormal acquisition of skateboard:', err);
 				uni.showToast({
 					title: 'Network request exception',
 					icon: 'none',
@@ -773,7 +773,7 @@ export default {
 		checkUnstartedOrder() {
 			// 先检查用户是否已登录
 			if (!userApi.isLoggedIn()) {
-				console.log('用户未登录，跳过检查未开始订单');
+				console.log('The user has not logged in, skipping the check and not starting the order');
 				this.orderTipInfo.show = false;
 				return;
 			}
@@ -836,7 +836,7 @@ export default {
 										});
 									}
 								}).catch(err => {
-									console.error('获取订单详情失败:', err);
+									console.error('Failed to obtain order details:', err);
 									uni.showToast({
 										title: 'Network request exception',
 										icon: 'none'
@@ -878,7 +878,7 @@ export default {
 					this.orderTipInfo.show = false;
 				}
 			}).catch(err => {
-				console.error('获取订单失败:', err);
+				console.error('Failed to obtain order:', err);
 				this.orderTipInfo.show = false;
 			});
 		},
@@ -896,7 +896,7 @@ export default {
 					this.hasUnreadNotifications = false;
 				}
 			} catch (err) {
-				console.error('获取未读通知数量失败:', err);
+				console.error('Failed to retrieve the number of unread notifications:', err);
 				this.hasUnreadNotifications = false;
 			}
 		}

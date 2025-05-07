@@ -158,7 +158,7 @@ export default {
         })
         .catch(err => {
           uni.showToast({ title: 'Server error, please try again later', icon: 'none' });
-          console.error('重置密码失败:', err);
+          console.error('Password reset failed:', err);
         })
         .finally(() => {
           this.isLoading = false;

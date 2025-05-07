@@ -96,7 +96,7 @@
 </template>
 
 <script>
-// 导入重构后的API
+// Import the refactored API
 import { userApi, setToken } from '../../utils/api';
 
 export default {
@@ -104,18 +104,18 @@ export default {
     return {
       username: '',
       password: '',
-      showPassword: false, // 是否显示密码
-      usernameError: false, // 用户名长度错误
-      passwordError: false,  // 密码长度错误
-	  focusedInput: ''
-    }
+      showPassword: false, // Whether to show password
+      usernameError: false, // Username length error
+      passwordError: false, // Password length error
+      focusedInput: ''
+    };
   },
   methods: {
     async handleLogin() {
-      // 表单验证
+      // Form validation
       if (!this.username || !this.password) {
         uni.showToast({
-          title: '请输入用户名和密码',
+          title: 'Please enter username and password',
           icon: 'none'
         });
         return;
@@ -127,59 +127,55 @@ export default {
           password: this.password
         });
 
-        if (res.code === 1) {  // 注意这里使用 1 表示成功
-          // 显示登录中提示
+        if (res.code === 1) {
+          // Show loading message
           uni.showLoading({
-            title: '登录中...'
+            title: 'Logging in...'
           });
-        
-          // 保存token
+
+          // Save token
           setToken(res.data.token);
-          
-          // 获取用户详细信息
+
+          // Get detailed user info
           try {
             const detailRes = await userApi.getUserDetail(res.data.user_id);
             if (detailRes.code === 1) {
-              // 合并详细信息和token
               const fullUserInfo = {
                 ...detailRes.data,
                 token: res.data.token
               };
-              
-              // 只在这里保存一次完整用户信息
               userApi.saveUserInfo(fullUserInfo);
-              console.log('已保存完整用户信息:', fullUserInfo);
+              console.log('Saved full user info:', fullUserInfo);
             } else {
-              // 如果获取详情失败，至少保存基本信息
               const basicUserInfo = {
                 user_id: res.data.user_id,
                 username: res.data.username,
                 token: res.data.token
               };
               userApi.saveUserInfo(basicUserInfo);
-              console.log('获取详情失败，保存基本用户信息');
+              console.log('Failed to fetch details. Saved basic user info.');
             }
           } catch (detailError) {
-            console.error('获取用户详情失败:', detailError);
-            // 获取详情失败，保存基本信息
+            console.error('Failed to get user details:', detailError);
             const basicUserInfo = {
               user_id: res.data.user_id,
               username: res.data.username,
               token: res.data.token
             };
             userApi.saveUserInfo(basicUserInfo);
-            console.log('获取详情失败，保存基本用户信息');
+            console.log('Error while fetching details. Saved basic info.');
           }
-        
-          // 隐藏加载提示
+
+          // Hide loading
           uni.hideLoading();
-          
+
+          // Show success message
           uni.showToast({
-            title: res.msg || '登录成功',
+            title: res.msg || 'Login successful',
             icon: 'success'
           });
-          
-          // 登录成功后跳转到首页
+
+          // Redirect to homepage
           setTimeout(() => {
             uni.reLaunch({
               url: '/pages/home/home'
@@ -187,42 +183,47 @@ export default {
           }, 1500);
         } else {
           uni.showToast({
-            title: res.msg || '登录失败',
+            title: res.msg || 'Login failed',
             icon: 'none'
           });
         }
       } catch (error) {
         uni.showToast({
-          title: '登录失败，请稍后重试',
+          title: 'Login failed. Please try again later.',
           icon: 'none'
         });
-        console.error('登录错误:', error);
+        console.error('Login error:', error);
       }
     },
-	// 切换密码可见性
-	togglePasswordVisibility() {
-	      this.showPassword = !this.showPassword;
-	},
+
+    // Toggle password visibility
+    togglePasswordVisibility() {
+      this.showPassword = !this.showPassword;
+    },
+
     goToRegister() {
-      // TODO: 跳转到注册页面
       uni.navigateTo({
         url: '/pages/register/register'
       });
     },
-	// 验证用户名长度
-	validateUsername() {
-	      this.usernameError = this.username.length > 15;
-	},
-	
-	// 验证密码长度
-	validatePassword() {
-	      this.passwordError = this.password.length > 15;
-	},
+
+    // Validate username length
+    validateUsername() {
+      this.usernameError = this.username.length > 15;
+    },
+
+    // Validate password length
+    validatePassword() {
+      this.passwordError = this.password.length > 15;
+    },
+
     forgetPassword() {
       uni.navigateTo({
-        url: '/pages/forget/forget'  // 根据你 forget 密码页面的路径调整
+        url: '/pages/forget/forget'
       });
     }
+
+    // Social login stubs (optional):
     // loginWithWeChat() {
     //   uni.showToast({ title: 'Logging in with WeChat', icon: 'none' });
     // },
@@ -233,8 +234,9 @@ export default {
     //   uni.showToast({ title: 'Logging in with Weibo', icon: 'none' });
     // }
   }
-}
+};
 </script>
+
 
 <style scoped>
 /* 整体背景浅色 */

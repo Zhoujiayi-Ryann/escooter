@@ -228,7 +228,7 @@ const onSave = () => {
       }
     })
     .catch(err => {
-      console.error('添加银行卡失败:', err);
+      console.error('Failed to add bank card:', err);
       showToast('Network error, please try again');
     })
     .finally(() => {
