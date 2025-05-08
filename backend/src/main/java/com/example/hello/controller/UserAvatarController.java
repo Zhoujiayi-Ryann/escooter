@@ -7,6 +7,7 @@ import com.example.hello.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,8 +25,11 @@ public class UserAvatarController {
     @Autowired
     private UserService userService;
     
-    // 修改上传目录为fronted/static/settings
-    private final String uploadDir = "../fronted/static/settings";
+    @Value("${app.avatar.upload.dir}")
+    private String uploadDir;
+    
+    @Value("${app.server.url:https://khnrsggvzudb.sealoshzh.site}")
+    private String serverUrl;
     
     @PostMapping("/avatar/upload/{userId}")
     public Result<String> uploadAvatar(
@@ -42,26 +46,30 @@ public class UserAvatarController {
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
+                logger.info("Created directory: {}", uploadPath);
             }
             
             // 生成唯一文件名
             String originalFilename = file.getOriginalFilename();
-            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String extension = originalFilename != null ? 
+                originalFilename.substring(originalFilename.lastIndexOf(".")) : ".jpg";
             String newFilename = "avatar_" + userId + "_" + UUID.randomUUID().toString() + extension;
             
             // 保存文件
             Path filePath = uploadPath.resolve(newFilename);
             Files.copy(file.getInputStream(), filePath);
+            logger.info("Saved avatar file: {}", filePath);
             
-            // 返回相对路径（相对于fronted目录）
-            String relativePath = "/static/settings/" + newFilename;
+            // 返回完整URL路径
+            String relativePath = "/api/avatar/" + newFilename;
+            String fullUrl = serverUrl + relativePath;
             
-            // 更新数据库中的头像路径
+            // 更新数据库中的头像路径（存储相对路径）
             UpdateUserRequest updateRequest = new UpdateUserRequest();
             updateRequest.setAvatar_path(relativePath);
             userService.updateUser(userId, updateRequest);
             
-            return Result.success(relativePath, "Avatar upload successful");
+            return Result.success(fullUrl, "Avatar upload successful");
             
         } catch (IOException e) {
             logger.error("Avatar upload failed", e);
