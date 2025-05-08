@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -32,6 +33,9 @@ public class UserServiceImpl implements UserService {
     private JwtUtil jwtUtil;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    @Value("${app.server.url:https://khnrsggvzudb.sealoshzh.site}")
+    private String serverUrl;
 
     @Override
     @Transactional
@@ -137,6 +141,10 @@ public class UserServiceImpl implements UserService {
         if (user != null) {
             // 出于安全考虑，清除密码信息
             user.setPassword(null);
+            // 如果头像路径是相对路径，添加服务器URL
+            if (user.getAvatarPath() != null && !user.getAvatarPath().startsWith("http")) {
+                user.setAvatarPath(serverUrl + user.getAvatarPath());
+            }
         }
         return user;
     }

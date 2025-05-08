@@ -24,6 +24,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${app.upload.dir:${user.dir}/src/main/resources/static/feedback}")
     private String uploadDir;
 
+    @Value("${app.avatar.upload.dir}")
+    private String avatarUploadDir;
+
     /**
      * 配置CORS映射
      */
@@ -75,6 +78,10 @@ public class WebConfig implements WebMvcConfigurer {
         // 配置反馈图片访问路径
         registry.addResourceHandler("/api/feedback/images/**")
                 .addResourceLocations("file:" + uploadDir + "/images/");
+                
+        // 配置头像访问路径
+        registry.addResourceHandler("/api/avatar/**")
+                .addResourceLocations("file:" + avatarUploadDir + "/");
                 
         // 配置静态资源访问路径
         registry.addResourceHandler("/static/**")

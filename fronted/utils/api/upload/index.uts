@@ -76,6 +76,13 @@ export const uploadApi = {
                 success: (res) => {
                     try {
                         const result = JSON.parse(res.data) as Result<string>;
+                        if (result.code === 1) {
+                            // 确保返回的URL是完整的
+                            const avatarUrl = result.data.startsWith('http') ? 
+                                result.data : 
+                                `${BASE_URL}${result.data}`;
+                            result.data = avatarUrl;
+                        }
                         resolve(result);
                     } catch (e) {
                         reject(new Error('Response failed'));
