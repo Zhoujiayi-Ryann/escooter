@@ -1,38 +1,34 @@
 <template>
-	<view>
-		<image class="logo" src="/static/logo.png"></image>
-		<view class="text-area">
-			<text class="title">{{title}}</text>
-		</view>
-	</view>
+  <view class="index-page">
+    <text class="loading-text">Checking login status...</text>
+  </view>
 </template>
 
 <script>
-	export default {
-		data() {
-			return {
-				title: 'Hello'
-			}
-		},
-		onLoad() {
+import { userApi } from '../../utils/api/user'; // 引入你已有的工具模块
 
-		},
-		methods: {
+export default {
+  onLoad() {
+    const isLoggedIn = userApi.isLoggedIn(); // 你已有的登录判断逻辑
 
-		}
-	}
+    // 使用 redirectTo 避免页面栈堆积
+    uni.redirectTo({
+      url: isLoggedIn ? '/pages/home/home' : '/pages/login/login'
+    });
+  }
+};
 </script>
 
-<style>
-	.logo {
-		height: 100px;
-		width: 100px;
-		margin: 100px auto 25px auto;
-	}
-
-	.title {
-		font-size: 18px;
-		color: #8f8f94;
-    text-align: center;
-	}
+<style scoped>
+.index-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f0f8ff;
+}
+.loading-text {
+  font-size: 16px;
+  color: #666;
+}
 </style>

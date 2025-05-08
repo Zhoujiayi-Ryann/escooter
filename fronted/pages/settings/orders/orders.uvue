@@ -347,6 +347,11 @@ export default {
 		        if (res.data.next_start_time) {
 		          // 如果有下一个订单，使用下一个订单的开始时间作为最大可选日期
 		          this.maxDate = new Date(res.data.next_start_time);
+		        } else if (res.data.max_extended_hours > 0) {
+		          // 如果没有下一个订单但有最大延长时间，计算最大可选日期
+		          const maxDate = new Date(res.data.current_end_time);
+		          maxDate.setHours(maxDate.getHours() + res.data.max_extended_hours);
+		          this.maxDate = maxDate;
 		        } else {
 		          // 默认情况下最大可延长一年
 		          this.maxDate = new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate());
@@ -432,9 +437,7 @@ export default {
 		            orderId: orderData.order_id ? orderData.order_id.toString() : "",
 		            scooterCode: orderData.scooter_id ? orderData.scooter_id.toString() : this.currentExtendOrder.type,
 		            address: orderData.pickup_address || "未知地点",
-		            cost: orderData.extended_cost !== null && orderData.extended_cost !== undefined ? 
-		              orderData.extended_cost.toString() : 
-		              (orderData.cost !== null && orderData.cost !== undefined ? orderData.cost.toString() : "0"),
+		            cost: orderData.extended_cost !== null && orderData.extended_cost !== undefined ? orderData.extended_cost.toString() : "0",
 		            discountAmount: orderData.discount_amount !== null && orderData.discount_amount !== undefined ? orderData.discount_amount.toString() : "0",
 		            startDate: orderData.start_time ? this.formatDatePart(new Date(orderData.start_time)) : "",
 		            startTime: orderData.start_time ? this.formatTimePart(new Date(orderData.start_time)) : "",
@@ -442,7 +445,6 @@ export default {
 		            endTime: orderData.end_time ? this.formatTimePart(new Date(orderData.end_time)) : "",
 		            days: orderData.extended_duration ? orderData.extended_duration / 24 : 1
 		          };
-				  console.log("orderInfo:",orderInfo)
 		          // 编码并跳转到支付页面
 		          const orderInfoStr = encodeURIComponent(JSON.stringify(orderInfo));
 		          uni.navigateTo({
@@ -643,9 +645,7 @@ export default {
 							orderId: orderData.order_id ? orderData.order_id.toString() : "",
 							scooterCode: orderData.scooter_id ? orderData.scooter_id.toString() : "",
 							address: orderData.pickup_address || "Unknown",
-							cost: orderData.extended_cost !== null && orderData.extended_cost !== undefined ? 
-							  orderData.extended_cost.toString() : 
-							  (orderData.cost !== null && orderData.cost !== undefined ? orderData.cost.toString() : "0"),
+							cost: orderData.cost !== null && orderData.cost !== undefined ? orderData.cost.toString() : "0",
 							discountAmount: orderData.discount_amount !== null && orderData.discount_amount !== undefined ? orderData.discount_amount.toString() : "0",
 							startDate: orderData.start_time ? this.formatDatePart(new Date(orderData.start_time)) : "",
 							startTime: orderData.start_time ? this.formatTimePart(new Date(orderData.start_time)) : "",
