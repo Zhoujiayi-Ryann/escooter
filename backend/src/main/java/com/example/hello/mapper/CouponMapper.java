@@ -65,7 +65,8 @@ public interface CouponMapper {
      * @return 影响的行数
      */
     @Update("UPDATE Users_Coupons SET is_used = 1, order_id = #{orderId} " +
-            "WHERE user_id = #{userId} AND coupon_id = #{couponId} AND is_used = 0")
+            "WHERE user_id = #{userId} AND coupon_id = #{couponId} AND is_used = 0 " +
+            "LIMIT 1")
     int useCoupon(@Param("userId") Integer userId, @Param("couponId") Integer couponId, @Param("orderId") Integer orderId);
 
     /**
@@ -94,7 +95,8 @@ public interface CouponMapper {
      * @return 如果用户拥有该优惠券且未使用则返回true，否则返回false
      */
     @Select("SELECT COUNT(*) > 0 FROM Users_Coupons " +
-            "WHERE user_id = #{userId} AND coupon_id = #{couponId} AND is_used = 0")
+            "WHERE user_id = #{userId} AND coupon_id = #{couponId} AND is_used = 0 " +
+            "LIMIT 1")
     boolean checkUserCoupon(@Param("userId") Integer userId, @Param("couponId") Integer couponId);
 
     /**
