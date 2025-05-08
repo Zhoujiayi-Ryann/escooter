@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = 'http://172.20.10.2:8080/api';
 
 export interface RevenueResponse {
     totalRevenue: number;

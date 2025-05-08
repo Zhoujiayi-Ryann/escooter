@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-const BASE_URL = 'http://172.20.10.2:8080/api';
+const BASE_URL = 'https://khnrsggvzudb.sealoshzh.site/api';
 
 // 滑板车状态映射
 export const SCOOTER_STATUS = {

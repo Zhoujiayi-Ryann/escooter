@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = 'https://khnrsggvzudb.sealoshzh.site/api';
 
 // 订单状态枚举
 export enum OrderStatus {

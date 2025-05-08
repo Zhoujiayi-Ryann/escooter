@@ -76,7 +76,9 @@
               <t-input v-model="vehicleForm.scooterCode" disabled />
             </t-form-item>
             <t-form-item label="Location" name="location">
-              <t-input v-model="vehicleForm.location" :placeholder="isEdit ? '' : 'Please enter location'" />
+              <!-- 将输入框改为选择站点 -->
+              <t-select v-model="vehicleForm.stationId" :options="STATION_OPTIONS" :disabled="isEdit"
+                placeholder="Please select a station" @change="handleStationChange" />
             </t-form-item>
             <t-form-item label="Battery" name="battery">
               <t-input-number v-model="vehicleForm.battery" :min="0" :max="100" :disabled="isEdit" />
@@ -117,8 +119,11 @@
             <t-form-item label="Vehicle No.">
               <t-input v-model="payForm.scooterCode" disabled />
             </t-form-item>
+            <t-form-item label="Station">
+              <t-input v-model="payForm.stationName" disabled />
+            </t-form-item>
             <t-form-item label="Location" name="pickupLocation">
-              <t-input v-model="payForm.pickupLocation" placeholder="Please enter pickup location" />
+              <t-input v-model="payForm.pickupLocation" disabled />
             </t-form-item>
             <t-form-item label="Time Range" name="timeRange">
               <t-date-range-picker v-model="payForm.timeRange" enable-time-picker />
@@ -287,6 +292,50 @@ const loadTMapSDK = () => {
 // 在组件挂载时加载缓存
 loadCacheFromStorage();
 
+// 添加利兹市的站点数据
+const LEEDS_STATIONS = [
+  { id: 1, name: 'Leeds City Centre', lat: 53.7997, lng: -1.5492 },
+  { id: 2, name: 'University of Leeds', lat: 53.8067, lng: -1.5550 },
+  { id: 3, name: 'Leeds Train Station', lat: 53.7947, lng: -1.5478 },
+  { id: 4, name: 'Headingley', lat: 53.8175, lng: -1.5786 },
+  { id: 5, name: 'Roundhay Park', lat: 53.8382, lng: -1.4990 },
+  { id: 6, name: 'Kirkstall Abbey', lat: 53.8204, lng: -1.6066 },
+  { id: 7, name: 'White Rose Shopping Centre', lat: 53.7583, lng: -1.5775 },
+  { id: 8, name: 'Temple Newsam', lat: 53.7794, lng: -1.4647 },
+  { id: 9, name: 'Elland Road Stadium', lat: 53.7778, lng: -1.5724 },
+  { id: 10, name: 'Leeds Dock', lat: 53.7913, lng: -1.5339 },
+];
+
+// 站点选项
+const STATION_OPTIONS = LEEDS_STATIONS.map(station => ({
+  label: station.name,
+  value: station.id
+}));
+
+// 根据站点ID获取站点信息
+const getStationById = (stationId) => {
+  return LEEDS_STATIONS.find(station => station.id === stationId);
+};
+
+// 根据站点ID获取位置字符串
+const getLocationStringFromStationId = (stationId) => {
+  const station = getStationById(stationId);
+  if (station) {
+    return `${station.name} (${station.lat}, ${station.lng})`;
+  }
+  return '';
+};
+
+// 从位置字符串中提取站点ID
+const getStationIdFromLocationString = (locationString) => {
+  for (const station of LEEDS_STATIONS) {
+    if (locationString.includes(`(${station.lat}, ${station.lng})`)) {
+      return station.id;
+    }
+  }
+  return null;
+};
+
 export default Vue.extend({
   name: 'VehicleManagement',
   components: {
@@ -299,8 +348,7 @@ export default Vue.extend({
       scooterCode: '',
       city: '',
       location: '',
-      locationLat: 0,
-      locationLng: 0,
+      stationId: null, // 添加站点ID字段
       battery: 100,
       status: VEHICLE_STATUS.free,
       lastRentTime: '',
@@ -314,6 +362,7 @@ export default Vue.extend({
       VEHICLE_STATUS,
       VEHICLE_STATUS_OPTIONS,
       CITY_OPTIONS,
+      STATION_OPTIONS, // 添加站点选项
 
       // 筛选表单数据
       formData: {
@@ -329,14 +378,14 @@ export default Vue.extend({
       columns: [
         { colKey: 'row-select', type: 'multiple', width: 64, fixed: 'left' },
         { title: 'Vehicle No.', colKey: 'scooterCode', width: 120, fixed: 'left' },
-        { title: 'City', colKey: 'city', width: 120 },
+        { title: 'Station', colKey: 'station', width: 150 },
         { title: 'Location', colKey: 'location', width: 180, ellipsis: true },
         { title: 'Battery', colKey: 'battery', width: 150, cell: { col: 'battery' } },
         { title: 'Status', colKey: 'status', width: 120, cell: { col: 'status' } },
         { title: 'Last Rental Time', colKey: 'lastRentTime', width: 180 },
         { title: 'Price(£/min)', colKey: 'price', width: 120 },
         { title: 'Actions', colKey: 'op', width: 160 },
-        { title: '', colKey: 'delete', width: 60 }, // 添加删除列
+        { title: '', colKey: 'delete', width: 60 },
       ],
       pagination: {
         pageSize: 10,
@@ -384,13 +433,15 @@ export default Vue.extend({
       payFormVisible: false,
       payForm: {
         scooterCode: '',
+        stationName: '', // 添加站点名称字段
         pickupLocation: '',
+        stationId: null,
         timeRange: [],
         amount: 0,
       },
       payRules: {
         scooterCode: [{ required: true, message: 'Please enter vehicle number', type: 'error' }],
-        pickupLocation: [{ required: true, message: 'Please enter pickup location', type: 'error' }],
+        stationId: [{ required: true, message: 'Please select a station', type: 'error' }], // 修改验证规则
         timeRange: [{ required: true, message: 'Please select time range', type: 'error' }],
         amount: [{ required: true, message: 'Please enter amount', type: 'error' }],
       },
@@ -477,16 +528,29 @@ export default Vue.extend({
           // 提取经纬度
           const locationMatch = scooter.location.match(/\(([^,]+),\s*([^)]+)\)/);
           let city = '未知城市';
+          let stationId = null;
+          let stationName = '未知站点';
           
           if (locationMatch && locationMatch.length === 3) {
             const lat = parseFloat(locationMatch[1]);
             const lng = parseFloat(locationMatch[2]);
             city = await getCityFromLocation(lat, lng);
+            
+            // 查找最近的站点
+            stationId = getStationIdFromLocationString(scooter.location);
+            if (stationId) {
+              const station = getStationById(stationId);
+              if (station) {
+                stationName = station.name;
+              }
+            }
           }
 
           return {
             ...scooter,
-            city: city
+            city: city,
+            station: stationName,
+            stationId: stationId
           };
         }));
 
@@ -618,6 +682,7 @@ export default Vue.extend({
             scooterCode: `SC-${1000 + scooterDetail.scooter_id}`,
             city: row.city, // 使用表格中的城市数据
             location: row.location,
+            stationId: row.stationId || getStationIdFromLocationString(row.location), // 优先使用行数据中的站点ID
             battery: scooterDetail.battery_level,
             status: SCOOTER_STATUS[scooterDetail.status],
             lastRentTime: scooterDetail.last_used_date
@@ -627,11 +692,17 @@ export default Vue.extend({
           };
         } else {
           // 如果获取详情失败，使用表格中的数据
-          this.vehicleForm = { ...row };
+          this.vehicleForm = { 
+            ...row,
+            stationId: row.stationId || getStationIdFromLocationString(row.location) // 优先使用行数据中的站点ID
+          };
         }
       } catch (error) {
         console.error('Failed to get vehicle details:', error);
-        this.vehicleForm = { ...row };
+        this.vehicleForm = { 
+          ...row,
+          stationId: row.stationId || getStationIdFromLocationString(row.location) // 优先使用行数据中的站点ID
+        };
       }
 
       this.isEdit = true;
@@ -818,23 +889,20 @@ export default Vue.extend({
     async onFormSubmit({ validateResult, firstError }) {
       if (validateResult === true) {
         try {
-          // 解析地址获取经纬度
-          const addressResult = await this.parseAddress(this.vehicleForm.location);
-          if (!addressResult.success) {
-            this.$message.error('地址解析失败：' + addressResult.error);
-            return;
-          }
-
-          // 更新表单数据
-          this.vehicleForm.locationLat = addressResult.lat;
-          this.vehicleForm.locationLng = addressResult.lng;
-          this.vehicleForm.city = addressResult.city;
+          // 获取选中站点的经纬度
+          const station = getStationById(this.vehicleForm.stationId);
+          const lat = station ? station.lat : 0;
+          const lng = station ? station.lng : 0;
+          
+          // 构建位置字符串，包含站点名称
+          const locationString = station ? `${station.name} (${lat}, ${lng})` : `(${lat}, ${lng})`;
 
           if (this.isEdit) {
             // 编辑现有车辆
+            // 构建请求数据
             const requestData = {
-              location_lat: this.vehicleForm.locationLat,
-              location_lng: this.vehicleForm.locationLng,
+              location_lat: lat,
+              location_lng: lng,
               battery_level: this.vehicleForm.battery,
               status: Object.keys(VEHICLE_STATUS).find(
                 key => VEHICLE_STATUS[key] === this.vehicleForm.status
@@ -842,25 +910,25 @@ export default Vue.extend({
               price: this.vehicleForm.price,
             };
 
+            // 调用API更新车辆
             const updateResult = await scooterService.updateScooter(
               this.vehicleForm.id,
               requestData
             );
 
             if (updateResult) {
-              const idx = this.data.findIndex(item => item.id === this.vehicleForm.id);
-              if (idx > -1) {
-                this.data[idx] = { ...this.vehicleForm };
-                this.$message.success('编辑成功');
-              }
+              // 更新成功后刷新数据
+              await this.fetchData();
+              this.$message.success('Edit successful');
             } else {
-              this.$message.error('更新车辆失败');
+              this.$message.error('Failed to update vehicle');
             }
           } else {
             // 添加新车辆
+            // 构建请求数据
             const requestData = {
-              location_lat: this.vehicleForm.locationLat,
-              location_lng: this.vehicleForm.locationLng,
+              location_lat: lat,
+              location_lng: lng,
               battery_level: this.vehicleForm.battery,
               status: Object.keys(VEHICLE_STATUS).find(
                 key => VEHICLE_STATUS[key] === this.vehicleForm.status
@@ -868,22 +936,24 @@ export default Vue.extend({
               price: this.vehicleForm.price,
             };
 
+            // 调用API添加车辆
             const newScooterId = await scooterService.addScooter(requestData);
 
             if (newScooterId) {
+              // 重新获取数据以确保显示最新状态
               await this.fetchData();
-              this.$message.success('添加成功');
+              this.$message.success('Add successful');
             } else {
-              this.$message.error('添加车辆失败');
+              this.$message.error('Failed to add vehicle');
             }
           }
           this.formVisible = false;
         } catch (error) {
-          console.error('提交车辆表单失败:', error);
-          this.$message.error('操作失败，请重试');
+          console.error('Submit vehicle form failed:', error);
+          this.$message.error('Operation failed, please try again');
         }
       } else {
-        console.log('表单验证失败:', firstError);
+        console.log('Form validation failed:', firstError);
         this.$message.error(firstError);
       }
     },
@@ -927,9 +997,16 @@ export default Vue.extend({
 
     // 添加支付
     handlePay(row) {
+      // 获取站点信息
+      const stationId = row.stationId || getStationIdFromLocationString(row.location);
+      const station = getStationById(stationId);
+      const stationName = station ? station.name : '未知站点';
+      
       this.payForm = {
         scooterCode: row.scooterCode,
-        pickupLocation: '',
+        stationName: stationName, // 添加站点名称
+        pickupLocation: row.location, // 直接使用车辆当前位置
+        stationId: stationId, // 从位置字符串中提取站点ID
         timeRange: [],
         amount: 0,
       };
@@ -950,7 +1027,7 @@ export default Vue.extend({
           
           // 获取当前管理员ID
           const currentUser = this.$store.state.user?.userInfo || {};
-          const adminId = currentUser.userId || 5; // 默认为1如果没有获取到
+          const adminId = currentUser.userId || 5; // 默认为5如果没有获取到
           
           // 格式化开始和结束时间
           const startTime = scooterService.formatDateTimeForAPI(this.payForm.timeRange[0]);
@@ -960,7 +1037,7 @@ export default Vue.extend({
           const orderData = {
             user_id: adminId,
             scooter_id: scooterId,
-            pickup_address: this.payForm.pickupLocation,
+            pickup_address: this.payForm.pickupLocation, // 使用车辆当前位置
             start_time: startTime,
             end_time: endTime,
             cost: this.payForm.amount
@@ -992,6 +1069,24 @@ export default Vue.extend({
     // 关闭支付侧边栏
     onPayDialogClose() {
       this.payFormVisible = false;
+    },
+
+    // 站点选择变化处理
+    handleStationChange(stationId) {
+      if (stationId) {
+        this.vehicleForm.location = getLocationStringFromStationId(stationId);
+      } else {
+        this.vehicleForm.location = '';
+      }
+    },
+
+    // 支付表单站点选择变化处理
+    handlePayStationChange(stationId) {
+      if (stationId) {
+        this.payForm.pickupLocation = getLocationStringFromStationId(stationId);
+      } else {
+        this.payForm.pickupLocation = '';
+      }
     },
   },
 });
