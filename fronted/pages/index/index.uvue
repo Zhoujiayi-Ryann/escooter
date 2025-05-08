@@ -13,7 +13,7 @@ export default {
 
     // 使用 redirectTo 避免页面栈堆积
     uni.redirectTo({
-      url: isLoggedIn ? '/pages/home/home' : '/pages/login/login'
+      url: isLoggedIn ? '/pages/home/home' : '/pages/loading/loading'
     });
   }
 };

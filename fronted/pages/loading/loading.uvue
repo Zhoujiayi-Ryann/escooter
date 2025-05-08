@@ -46,7 +46,7 @@ const slides = ref([
   },
   {
     image: '/static/loading/img3.png',
-    title: 'Experience a whole new taxi service',
+    title: 'Experience a whole new escooter service',
     description: 'Discover smarter travel options with us',
   },
 ]);

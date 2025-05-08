@@ -32,7 +32,7 @@
 		
 		<view class="section">
 			<text class="label">Happening Time (optimal)</text>
-			<picker mode="multiSelector" :value="dateArr" :range="dateRange" @change="onDateChange" @columnchange="onDateColumnChange" cancel-text="Cancel" confirm-text="Confirm">
+			<picker mode="date" :value="date" @change="onDateChange">
 				<view class="picker">
 					{{date || 'Please select time'}}
 					<text class="picker-arrow">▼</text>
@@ -57,19 +57,12 @@ import { uploadApi } from '../../utils/api/upload/index.uts';
 
 export default {
   data() {
-	const date = new Date()
-    const years = Array.from({length: 10}, (_, i) => date.getFullYear() - 5 + i)
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    const days = Array.from({length: 31}, (_, i) => i + 1)
-
     return {
       typeArray: ['Using Problems', 'Experience Feedback'],
       typeIndex: 0,
       description: '',
       images: [],
       date: '',
-	  dateArr: [5, date.getMonth(), date.getDate() - 1],
-      dateRange: [years, months, days],
       orderNumber: '',
       isSubmitting: false,
       uploadedImageUrls: []
@@ -79,35 +72,8 @@ export default {
     onTypeChange(e) {
       this.typeIndex = e.detail.value;
     },
-	onDateColumnChange(e) {
-      const { column, value } = e.detail
-      const currentDate = new Date()
-      const tempDateArr = [...this.dateArr]
-      tempDateArr[column] = value
-      
-      // 根据年月更新天数
-      if (column === 0 || column === 1) {
-        const year = this.dateRange[0][tempDateArr[0]]
-        const month = tempDateArr[1] + 1
-        const daysInMonth = new Date(year, month, 0).getDate()
-        this.dateRange[2] = Array.from({length: daysInMonth}, (_, i) => i + 1)
-        
-        // 如果当前选择的日期超过了新的月份最大天数，则调整为最后一天
-        if (tempDateArr[2] >= daysInMonth) {
-          tempDateArr[2] = daysInMonth - 1
-        }
-      }
-      
-      this.dateArr = tempDateArr
-    },
     onDateChange(e) {
-      const [yearIndex, monthIndex, dayIndex] = e.detail.value
-      const year = this.dateRange[0][yearIndex]
-      const month = monthIndex + 1
-      const day = this.dateRange[2][dayIndex]
-      
-      this.date = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-      this.formatDate = `${this.dateRange[1][monthIndex]} ${day}, ${year}`
+      this.date = e.detail.value;
     },
     async chooseImage() {
       try {
