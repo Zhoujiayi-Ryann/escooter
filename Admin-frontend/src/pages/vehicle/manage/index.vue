@@ -76,7 +76,7 @@
               <t-input v-model="vehicleForm.scooterCode" disabled />
             </t-form-item>
             <t-form-item label="Location" name="location">
-              <t-input v-model="vehicleForm.location" :disabled="isEdit" placeholder="Please enter location" />
+              <t-input v-model="vehicleForm.location" :placeholder="isEdit ? '' : 'Please enter location'" />
             </t-form-item>
             <t-form-item label="Battery" name="battery">
               <t-input-number v-model="vehicleForm.battery" :min="0" :max="100" :disabled="isEdit" />
@@ -299,6 +299,8 @@ export default Vue.extend({
       scooterCode: '',
       city: '',
       location: '',
+      locationLat: 0,
+      locationLng: 0,
       battery: 100,
       status: VEHICLE_STATUS.free,
       lastRentTime: '',
@@ -395,6 +397,7 @@ export default Vue.extend({
       
       // 用户选项
       userOptions: [] as IUser[],
+      locationSearching: false,
     };
   },
 
@@ -782,25 +785,56 @@ export default Vue.extend({
       this.deleteIdx = -1;
     },
 
-    // 提交车辆表单
+    // 解析地址为经纬度
+    async parseAddress(address: string) {
+      try {
+        const response = await fetch(`https://apis.map.qq.com/ws/geocoder/v1/?address=${encodeURIComponent(address)}&key=4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ`);
+        const data = await response.json();
+        
+        if (data.status === 0) {
+          const { lat, lng } = data.result.location;
+          return {
+            success: true,
+            lat,
+            lng,
+            city: data.result.address_components.city
+          };
+        } else {
+          return {
+            success: false,
+            error: data.message
+          };
+        }
+      } catch (error) {
+        console.error('地址解析请求失败:', error);
+        return {
+          success: false,
+          error: '地址解析请求失败'
+        };
+      }
+    },
+
+    // 修改提交表单方法
     async onFormSubmit({ validateResult, firstError }) {
       if (validateResult === true) {
         try {
+          // 解析地址获取经纬度
+          const addressResult = await this.parseAddress(this.vehicleForm.location);
+          if (!addressResult.success) {
+            this.$message.error('地址解析失败：' + addressResult.error);
+            return;
+          }
+
+          // 更新表单数据
+          this.vehicleForm.locationLat = addressResult.lat;
+          this.vehicleForm.locationLng = addressResult.lng;
+          this.vehicleForm.city = addressResult.city;
+
           if (this.isEdit) {
             // 编辑现有车辆
-            // 从表单数据中提取经纬度信息
-            const locationMatch = this.vehicleForm.location.match(/\(([^,]+),\s*([^)]+)\)/);
-            let lat = 0, lng = 0;
-
-            if (locationMatch && locationMatch.length === 3) {
-              lat = parseFloat(locationMatch[1]);
-              lng = parseFloat(locationMatch[2]);
-            }
-
-            // 构建请求数据
             const requestData = {
-              location_lat: lat,
-              location_lng: lng,
+              location_lat: this.vehicleForm.locationLat,
+              location_lng: this.vehicleForm.locationLng,
               battery_level: this.vehicleForm.battery,
               status: Object.keys(VEHICLE_STATUS).find(
                 key => VEHICLE_STATUS[key] === this.vehicleForm.status
@@ -808,32 +842,25 @@ export default Vue.extend({
               price: this.vehicleForm.price,
             };
 
-            // 调用API更新车辆
             const updateResult = await scooterService.updateScooter(
               this.vehicleForm.id,
               requestData
             );
 
             if (updateResult) {
-              // 更新本地数据
               const idx = this.data.findIndex(item => item.id === this.vehicleForm.id);
               if (idx > -1) {
                 this.data[idx] = { ...this.vehicleForm };
-                this.$message.success('Edit successful');
+                this.$message.success('编辑成功');
               }
             } else {
-              this.$message.error('Failed to update vehicle');
+              this.$message.error('更新车辆失败');
             }
           } else {
             // 添加新车辆
-            // 从表单数据中提取城市信息，并生成随机经纬度（实际应用中应有地图选点）
-            const lat = 31.2 + Math.random() * 0.1; // 上海附近的随机经纬度
-            const lng = 121.4 + Math.random() * 0.1;
-
-            // 构建请求数据
             const requestData = {
-              location_lat: lat,
-              location_lng: lng,
+              location_lat: this.vehicleForm.locationLat,
+              location_lng: this.vehicleForm.locationLng,
               battery_level: this.vehicleForm.battery,
               status: Object.keys(VEHICLE_STATUS).find(
                 key => VEHICLE_STATUS[key] === this.vehicleForm.status
@@ -841,24 +868,22 @@ export default Vue.extend({
               price: this.vehicleForm.price,
             };
 
-            // 调用API添加车辆
             const newScooterId = await scooterService.addScooter(requestData);
 
             if (newScooterId) {
-              // 重新获取数据以确保显示最新状态
               await this.fetchData();
-              this.$message.success('Add successful');
+              this.$message.success('添加成功');
             } else {
-              this.$message.error('Failed to add vehicle');
+              this.$message.error('添加车辆失败');
             }
           }
           this.formVisible = false;
         } catch (error) {
-          console.error('Submit vehicle form failed:', error);
-          this.$message.error('Operation failed, please try again');
+          console.error('提交车辆表单失败:', error);
+          this.$message.error('操作失败，请重试');
         }
       } else {
-        console.log('Form validation failed:', firstError);
+        console.log('表单验证失败:', firstError);
         this.$message.error(firstError);
       }
     },
