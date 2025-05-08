@@ -277,11 +277,18 @@ public class OrderServiceImpl implements OrderService {
             float durationHours = order.getDuration();
 
             // 计算基础价格
-            BigDecimal basePrice = hourlyPrice.multiply(BigDecimal.valueOf(durationHours))
-                    .setScale(2, RoundingMode.HALF_UP);
-
-            log.info("Calculated order base price: orderId={}, hourlyPrice={}, duration={}, basePrice={}",
-                    orderId, hourlyPrice, durationHours, basePrice);
+            BigDecimal basePrice;
+            if (order.getNewEndTime() != null) {
+                // 如果是延长订单，直接使用extended_cost
+                basePrice = order.getExtendedCost();
+                log.info("Using extended cost for payment: orderId={}, extendedCost={}", orderId, basePrice);
+            } else {
+                // 如果是新订单，计算基础价格
+                basePrice = hourlyPrice.multiply(BigDecimal.valueOf(durationHours))
+                        .setScale(2, RoundingMode.HALF_UP);
+                log.info("Calculated order base price: orderId={}, hourlyPrice={}, duration={}, basePrice={}",
+                        orderId, hourlyPrice, durationHours, basePrice);
+            }
 
             // 更新订单的基础价格
             orderMapper.updateOrderCostAndDiscount(orderId, basePrice, order.getDiscount());
