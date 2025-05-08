@@ -28,7 +28,7 @@ public class UserAvatarController {
     @Value("${app.avatar.upload.dir}")
     private String uploadDir;
     
-    @Value("${app.server.url:https://khnrsggvzudb.sealoshzh.site}")
+    @Value("${app.server.url:http://localhost:8080}")
     private String serverUrl;
     
     @PostMapping("/avatar/upload/{userId}")
@@ -60,7 +60,7 @@ public class UserAvatarController {
             Files.copy(file.getInputStream(), filePath);
             logger.info("Saved avatar file: {}", filePath);
             
-            // 返回完整URL路径
+            // 返回相对路径
             String relativePath = "/api/avatar/" + newFilename;
             String fullUrl = serverUrl + relativePath;
             
