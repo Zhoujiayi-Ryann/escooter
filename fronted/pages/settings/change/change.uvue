@@ -182,46 +182,64 @@ export default {
       }
     },
 
-    async toggleEdit(field) {
-      if (this.editing === field) {
-        // Save operation
-        const userId = userApi.getUserId();
-        if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email)) {
-          uni.showToast({ title: 'Invalid email', icon: 'none' });
-          return;
-        }
-        if (field === 'phone' && !/^\d{6,15}$/.test(this.form.phone)) {
-          uni.showToast({ title: 'Invalid phone', icon: 'none' });
-          return;
-        }
+async toggleEdit(field) {
+  if (this.editing === field) {
+    // Save operation
+    const userId = userApi.getUserId();
 
-        const dataMap = {
-          name: { username: this.form.name },
-          email: { email: this.form.email },
-          phone: { phone_number: this.form.phone },
-        };
+    if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email)) {
+      uni.showToast({ title: 'Invalid email', icon: 'none' });
+      return;
+    }
 
-        try {
-          const res = await userApi.updateUserInfo(userId, dataMap[field]);
-          if (res.code === 1) {
-            this.user = res.data;
-            userApi.updateLocalUserInfo(res.data);
-            uni.showToast({ title: 'Updated', icon: 'success' });
-          } else {
-            uni.showToast({ title: 'Update failed', icon: 'none' });
-          }
-        } catch (e) {
-          uni.showToast({ title: 'Request failed', icon: 'none' });
-        }
+    if (field === 'phone' && !/^\d{6,15}$/.test(this.form.phone)) {
+      uni.showToast({ title: 'Invalid phone', icon: 'none' });
+      return;
+    }
 
+    const dataMap = {
+      name: { username: this.form.name },
+      email: { email: this.form.email },
+      phone: { phone_number: this.form.phone },
+    };
+
+    try {
+      const res = await userApi.updateUserInfo(userId, dataMap[field]);
+      console.log('🧾 Update response:', res);
+
+      if (res.code === 1) {
+        this.user = res.data;
+        userApi.updateLocalUserInfo(res.data);
+        uni.showToast({ title: 'Updated successfully', icon: 'success' });
         this.editing = '';
       } else {
-        this.form[field] = field === 'name' ? this.user.username
-                          : field === 'email' ? this.user.email
-                          : this.user.phoneNumber;
-        this.editing = field;
+        const msg = res.msg?.toLowerCase() || '';
+        if (msg.includes('exists') || msg.includes('already')) {
+          uni.showToast({
+            title: 'This value has been used, please try another',
+            icon: 'none'
+          });
+        } else {
+          uni.showToast({
+            title: res.msg || 'Update failed',
+            icon: 'none'
+          });
+        }
       }
-    },
+    } catch (e) {
+      console.error('❌ Update request failed:', e);
+      uni.showToast({ title: 'Request failed', icon: 'none' });
+    }
+
+  } else {
+    this.form[field] = field === 'name'
+      ? this.user.username
+      : field === 'email'
+        ? this.user.email
+        : this.user.phoneNumber;
+    this.editing = field;
+  }
+},
 
     goToChangePassword() {
       uni.navigateTo({ url: '/pages/settings/change_password/change_password' });

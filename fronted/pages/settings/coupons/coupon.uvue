@@ -38,7 +38,7 @@
 				</view>
 			</van-tab>
 			
-			<van-tab title="Expired">
+			<van-tab title="Unavailable">
 				<!-- 过期优惠券列表 -->
 				<view class="coupon-list disabled" v-if="disabledCoupons.length > 0">
 					<view class="coupon-item disabled" v-for="(coupon, index) in disabledCoupons" :key="coupon.id">
@@ -53,9 +53,8 @@
 							<view class="coupon-right">
 								<text class="coupon-name">{{ coupon.coupon_name }}</text>
 								<text class="coupon-desc">{{ coupon.description }}</text>
-								<text class="coupon-date">Expired: {{ formatDate(coupon.endAt) }}</text>
+								<text class="coupon-date">Unavailable: {{ formatDate(coupon.endAt) }}</text>
 							</view>
-							<view class="expired-mark">Expired</view>
 						</view>
 					</view>
 				</view>
@@ -63,7 +62,7 @@
 				<!-- 空状态 -->
 				<view class="empty-state" v-else>
 					<image src="/static/icons/empty-coupon.png" class="empty-icon" mode="aspectFit"></image>
-					<text class="empty-text">No Expired Coupons</text>
+					<text class="empty-text">No unavailable Coupons</text>
 				</view>
 			</van-tab>
 		</van-tabs>

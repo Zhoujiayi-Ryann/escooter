@@ -1,90 +1,320 @@
 <template>
-    <div class="user-detail">
-        <!-- 返回按钮 -->
-    <t-button @click="goBack" class="back-btn" variant="base">返回列表</t-button>
-      <!-- 用户基本信息 -->
-      <t-card title="用户基本信息" :bordered="false" class="info-block">
-        <t-descriptions>
-          <t-descriptions-item v-for="(item, index) in userInfoData" :key="index" :label="item.label">
-            <span>{{ item.value }}</span>
-          </t-descriptions-item>
-        </t-descriptions>
-      </t-card>
-  
-      <!-- 操作记录 -->
-      <t-card title="操作记录" class="container-base-margin-top" :bordered="false">
-        <t-steps class="user-detail-steps" layout="vertical" theme="dot" :current="1">
-          <t-step-item title="修改密码" content="2025-04-20 14:23:00 管理员操作" />
-          <t-step-item title="更新邮箱地址" content="2025-04-18 09:15:30 用户自行操作" />
-          <t-step-item title="用户注册成功" content="2025-04-15 08:00:00 系统自动记录" />
-        </t-steps>
-      </t-card>
+  <t-config-provider :global-config="globalConfig">
+  <t-card class="user-list-container" :bordered="false">
+    <!-- Top Action Bar -->
+    <t-row justify="space-between">
+      <div class="search-area">
+        <t-button theme="default" :disabled="!selectedRowKeys.length" @click="batchDisableUsers">
+          Disable Selected
+        </t-button>
+        <t-select v-model="filterRole" class="role-filter" placeholder="Filter by Role">
+          <t-option value="" label="All Roles" />
+          <t-option value="admin" label="Administrator" />
+          <t-option value="user" label="Regular User" />
+        </t-select>
+        <t-input v-model="searchValue" class="search-input" placeholder="Search by Username / Email" clearable>
+          <template #suffix-icon><search-icon size="20px" /></template>
+        </t-input>
+      </div>
+    </t-row>
+
+    <!-- Table Display -->
+    <div class="table-container">
+      <t-table
+        :columns="columns"
+        :data="data"
+        :rowKey="rowKey"
+        :hover="true"
+        :pagination="pagination"
+        :selected-row-keys="selectedRowKeys"
+        :loading="dataLoading"
+        @page-change="onPageChange"
+        @select-change="handleSelectChange"
+        :headerAffixedTop="true"
+        :headerAffixProps="{ offsetTop: offsetTop, container: getContainer }"
+      >
+        <!-- Status Rendering -->
+        <template #status="{ row }">
+          <t-tag :theme="row.status === 'active' ? 'success' : 'warning'" variant="light">
+            {{ row.status === 'active' ? 'Active' : 'Disabled' }}
+          </t-tag>
+        </template>
+        <template #role="{ row }">
+          <t-tag :theme="row.role === 'admin' ? 'primary' : 'default'" variant="light">
+            {{ row.role === 'admin' ? 'Administrator' : 'Regular User' }}
+          </t-tag>
+        </template>
+
+        <!-- Action Column -->
+        <template #op="{ row }">
+          <a class="t-button-link" @click="handleView(row)">View</a>
+          <a class="t-button-link" @click="handleToggleStatus(row)">Toggle</a>
+        </template>
+      </t-table>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    name: 'UserDetail',
-    data() {
-      return {
-        userInfoData: [
-          { label: '用户名', value: '张三' },
-          { label: '邮箱', value: 'zhangsan@example.com' },
-          { label: '手机号', value: '13800001234' },
-          { label: '角色', value: '管理员' },
-          { label: '状态', value: '启用' },
-          { label: '注册时间', value: '2025-04-15' },
-        ],
-      };
+
+    <!-- Delete Confirmation Dialog (Modified for status toggle) -->
+    <t-dialog
+      header="Confirm Status Change"
+      :body="confirmBody"
+      :visible.sync="confirmVisible"
+      @confirm="confirmStatusChange"
+      @cancel="cancelStatusChange"
+      
+    />
+
+    <!-- Sidebar Drawer for Viewing User Info -->
+    <t-drawer
+      :visible.sync="drawerVisible"
+      :header="`User Info - ${currentUser.name}`"
+      :size="'400px'"
+      :close-btn="true"
+      @close="drawerVisible = false"
+      :footer="false"
+    >
+      <div class="user-info">
+        <div><strong>Username: </strong>{{ currentUser.name }}</div>
+        <div><strong>Email: </strong>{{ currentUser.email }}</div>
+        <div><strong>Phone Number: </strong>{{ currentUser.phone }}</div>
+        <div><strong>Role: </strong>{{ currentUser.role === 'admin' ? 'Administrator' : 'Regular User' }}</div>
+        <div><strong>Status: </strong>{{ currentUser.status === 'active' ? 'Active' : 'Disabled' }}</div>
+        <div><strong>Registration Date: </strong>{{ currentUser.createdAt }}</div>
+      </div>
+    </t-drawer>
+  </t-card>
+</t-config-provider>
+</template>
+
+<script>
+import { SearchIcon } from 'tdesign-icons-vue'
+import enConfig from 'tdesign-vue/es/locale/en_US'; 
+import { getAllNonAdminUsers, toggleUserDisabledStatus } from '@/service/service-user';
+export default {
+  name: 'UserManagePage',
+  components: {
+    SearchIcon,
+  },
+  data() {
+    return {
+      globalConfig: enConfig,
+      dataLoading: false,
+      allData: [],            // All user data
+      data: [],               // Current page user data
+      selectedRowKeys: [],    // Selected rows
+      searchValue: '',        // Search keyword
+      filterRole: '',         // Role filter
+      confirmVisible: false,  // Status change confirmation dialog
+      currentUserForToggle: null, // Current user for status change
+      drawerVisible: false,   // Sidebar visibility for user info
+      currentUser: {},        // The user data for the sidebar
+      rowKey: 'id',
+      pagination: {
+        current: 1,
+        pageSize: 10,
+        total: 0,
+        showJumper: true,
+        showTotal: (total) => `Total ${total} items`,
+      },
+      columns: [
+        { colKey: 'row-select', type: 'multiple', width: 64, fixed: 'left' },
+        { title: 'Username', colKey: 'name', width: 150 },
+        { title: 'Email', colKey: 'email', width: 220 },
+        { title: 'Phone Number', colKey: 'phone', width: 160 },
+        { title: 'Role', colKey: 'role', width: 120, cell: { col: 'role' } },
+        { title: 'Total Usage Hours', colKey: 'usageHours', width: 140 },
+        { title: 'Total Spent ($)', colKey: 'spent', width: 140 },
+        { title: 'Status', colKey: 'status', width: 100, cell: { col: 'status' } },
+        { title: 'Registration Date', colKey: 'createdAt', width: 180 },
+        { title: 'Actions', colKey: 'op', fixed: 'right', width: 160 },
+      ],
+    }
+  },
+  computed: {
+    confirmBody() {
+      if (this.currentUserForToggle) {
+        return `Are you sure you want to change the status of user ${this.currentUserForToggle.name} to ${this.currentUserForToggle.status === 'active' ? 'disabled' : 'active'}?`;
+      }
+      return '';
     },
-    mounted() {
-  const userStr = sessionStorage.getItem('currentUser');
-  if (userStr) {
-    const user = JSON.parse(userStr);
-    this.userInfoData = [
-      { label: '用户名', value: user.name },
-      { label: '邮箱', value: user.email },
-      { label: '手机号', value: user.phone },
-      { label: '角色', value: user.role === 'admin' ? '管理员' : '普通用户' },
-      { label: '状态', value: user.status === 'active' ? '启用' : '禁用' },
-      { label: '注册时间', value: user.createdAt },
-    ];
-  } else {
-    this.$message.error('用户信息丢失，请返回列表重新选择');
+    offsetTop() {
+      return this.$store.state.setting.isUseTabsRouter ? 48 : 0;
+    },
+  },
+  watch: {
+    filterRole() {
+      this.fetchData();
+    },
+    searchValue() {
+      this.fetchData();
+    },
+  },
+  mounted() {
+    this.fetchUsers()
+    this.$TDesignConfig(globalConfig); 
+  },
+  methods: {
+    getContainer() {
+      return document.querySelector('.tdesign-starter-layout');
+    },
+    async batchDisableUsers() {
+  try {
+    const promises = this.selectedRowKeys.map(id => toggleUserDisabledStatus(id));
+    const results = await Promise.allSettled(promises);
+
+    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    this.$message.success(`Disabled ${successCount} users successfully`);
+    await this.fetchUsers();
+  } catch (err) {
+    this.$message.error('Batch disable failed');
   }
 },
-    methods: {
-        goBack() {
-            this.$router.push('/user-management/manage');
-        },
+
+    async fetchUsers() {
+  this.dataLoading = true;
+  try {
+    const res = await getAllNonAdminUsers(); // 调用接口
+    if (Array.isArray(res)) {
+      this.allData = res.map(user => ({
+        id: user.userId,
+        name: user.username,
+        email: user.email,
+        phone: user.phoneNumber,
+        role: user.userTypes?.includes('admin') ? 'admin' : 'user',
+        status: user.isDisabled ? 'disabled' : 'active',
+        createdAt: this.formatDate(user.registrationDate),
+        usageHours: user.totalUsageHours || 0,
+        spent: user.totalSpent?.toFixed(2) || '0.00',
+      }));
+      this.pagination.total = this.allData.length;
+      this.updatePageData();
+    } else {
+      this.$message.error('Unexpected response format from server');
+      console.error('Response:', res);
     }
-  };
-  </script>
-  
-  <style lang="less" scoped>
-  .user-detail {
-    .back-btn {
-      margin-bottom: 16px;
-    }
-  
-    /deep/ .t-card {
-      padding: 8px;
-    }
-  
-    /deep/ .t-card__title {
-      font-size: 20px;
-      font-weight: 500;
-    }
-  
-    .user-detail-steps {
-      padding-top: 12px;
-    }
+  } catch (error) {
+    this.$message.error('Failed to fetch users');
+    console.error('Fetch error:', error);
+  } finally {
+    this.dataLoading = false;
   }
-  
-  .info-block {
-    span {
-      margin-left: 24px;
-    }
+},
+      formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const pad = n => (n < 10 ? '0' + n : n);
+        return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+      },
+    fetchData() {
+      let filtered = [...this.allData];
+
+      // Apply role filter
+      if (this.filterRole) {
+        filtered = filtered.filter(user => user.role === this.filterRole)
+      }
+
+      // Apply search filter
+      const keyword = this.searchValue.trim().toLowerCase();
+      if (keyword) {
+          filtered = filtered.filter(
+              user =>
+                  user.name.toLowerCase().includes(keyword) ||
+                  user.email.toLowerCase().includes(keyword)
+          );
+      }
+
+      // Update pagination total
+      this.pagination.total = filtered.length;
+      this.pagination.current = 1;
+
+      // Update current page data
+      this.updatePageData(filtered);
+      },
+      randomDate(start, end) {
+          const startDate = new Date(start).getTime();
+          const endDate = new Date(end).getTime();
+          const randomTime = startDate + Math.random() * (endDate - startDate);
+          const date = new Date(randomTime);
+          return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+      },
+    updatePageData(filteredData = this.allData) {
+      const { current, pageSize } = this.pagination;
+      const start = (current - 1) * pageSize;
+      const end = start + pageSize;
+      this.data = filteredData.slice(start, end);
+    },
+    onPageChange(pageInfo) {
+      this.pagination = {
+        ...this.pagination,
+        current: pageInfo.current,
+        pageSize: pageInfo.pageSize
+      };
+      this.updatePageData();
+    },
+    handleSelectChange(keys) {
+      this.selectedRowKeys = keys
+    },
+    handleView(user) {
+      this.currentUser = user;
+      this.drawerVisible = true;
+    },
+    handleToggleStatus(user) {
+      this.currentUserForToggle = user;
+      this.confirmVisible = true;
+    },
+    async confirmStatusChange() {
+      if (!this.currentUserForToggle) return;
+
+      try {
+        const updatedUser = await toggleUserDisabledStatus(this.currentUserForToggle.id);
+        this.$message.success(`User ${updatedUser.username} status updated`);
+
+        // 更新本地数据
+        const index = this.allData.findIndex(user => user.id === updatedUser.userId);
+        if (index !== -1) {
+          this.allData[index].status = updatedUser.isDisabled ? 'disabled' : 'active';
+        }
+
+        this.fetchData();
+      } catch (err) {
+        this.$message.error('Failed to update user status');
+      } finally {
+        this.confirmVisible = false;
+        this.currentUserForToggle = null;
+      }
+    },
+    cancelStatusChange() {
+      this.confirmVisible = false
+      this.currentUserForToggle = null
+    },
+  },
+}
+</script>
+
+<style scoped>
+  .search-area {
+    display: flex;
+    align-items: center;
+    gap: 50px;
   }
-  </style>
+
+    .role-filter {
+      width: 180px;
+    }
+
+    .search-input {
+      width: 320px;
+    }
   
+
+  .table-container {
+    margin-top: 16px;
+  }
+
+  .user-info {
+    padding: 16px;
+    line-height: 4;
+    font-size: 16px;
+    background-color: #dddcf23d;
+    border-radius: 8px;
+  }
+
+</style>

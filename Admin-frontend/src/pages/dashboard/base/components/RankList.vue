@@ -2,12 +2,6 @@
   <t-row :gutter="[16, 16]">
     <t-col :xs="12" :xl="12">
       <t-card title="Frequent Users Ranking" class="dashboard-rank-card" :bordered="false">
-        <template #actions>
-          <t-radio-group default-value="dateVal">
-            <t-radio-button value="dateVal">This Week</t-radio-button>
-            <t-radio-button value="monthVal">Last 3 Months</t-radio-button>
-          </t-radio-group>
-        </template>
         <t-table :data="frequentUsers" :columns="userColumns" rowKey="user_id">
           <template #index="{ rowIndex }">
             <span :class="getRankClass(rowIndex)">
@@ -57,18 +51,14 @@ export default {
         {
           colKey: 'totalUsageHours',
           title: 'Usage Hours',
-          width: 120,
+          width: 150,
         },
         {
           colKey: 'totalSpent',
           title: 'Total Spent',
-          width: 120,
+          width: 150,
         },
-        {
-          colKey: 'operation',
-          title: 'Actions',
-          width: 80,
-        },
+        
       ],
     };
   },

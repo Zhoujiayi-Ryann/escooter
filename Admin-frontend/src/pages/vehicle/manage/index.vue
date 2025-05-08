@@ -117,7 +117,7 @@
             <t-form-item label="Vehicle No.">
               <t-input v-model="payForm.scooterCode" disabled />
             </t-form-item>
-            <t-form-item label="Pickup Location" name="pickupLocation">
+            <t-form-item label="Location" name="pickupLocation">
               <t-input v-model="payForm.pickupLocation" placeholder="Please enter pickup location" />
             </t-form-item>
             <t-form-item label="Time Range" name="timeRange">

@@ -125,13 +125,6 @@ public class CouponServiceImpl implements CouponService {
                 return CouponDistributeResponse.of(0, userIds.size());
             }
 
-            // 检查是否有用户已经拥有该优惠券
-            int existingCount = couponMapper.checkExistingUserCoupons(couponId, userIds);
-            if (existingCount > 0) {
-                logger.warn("Some users already have this coupon, existingCount: {}", existingCount);
-                return CouponDistributeResponse.of(0, userIds.size());
-            }
-
             // 批量发放优惠券
             int successCount = couponMapper.batchDistributeCoupons(couponId, userIds);
             int failCount = userIds.size() - successCount;

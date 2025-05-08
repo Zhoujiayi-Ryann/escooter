@@ -1,6 +1,6 @@
 <template>
   <view class="container">
-	<view class="floating-btn close-btn" @click="goToHome">
+	<view class="floating-btn close-btn" @click="navigateToHome">
       <van-icon name="close" class="close-icon" />
     </view>
     <view class="content">
@@ -15,10 +15,10 @@
     </view> 
     
     <view class="btn-content">
-      <button class="see" @click="goToOrderDetails">
+      <button class="see" @click="navigateToOrderDetails">
         See Details
       </button>
-      <button class="back" @click="goToHome">
+      <button class="back" @click="navigateToHome">
         Back Home
       </button>
     </view>

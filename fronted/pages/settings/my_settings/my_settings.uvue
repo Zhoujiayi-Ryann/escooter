@@ -99,31 +99,46 @@ export default {
     this.getUserInformation();
   },
   methods: {
-    getUserInformation() {
-      const userInfo = userApi.getUserInfo();
-
-      if (userInfo) {
-        this.user.name = userInfo.username || 'Guest';
-        this.user.id = String(userInfo.user_id || userInfo.userId || 0);
-
-        // ✅ No need to concatenate base URL, avatar_path is already a full URL
-        const avatarPath = userInfo.avatar_path;
-        this.user.avatar = avatarPath && avatarPath.trim() !== ''
-          ? avatarPath
-          : '/static/avatar/userp.jpg';
-        console.log('👤 Current user avatar URL:', this.user.avatar);
-
-        const usageHours = userInfo.totalUsageHours || userInfo.total_usage_hours || 0;
-        const spent = userInfo.totalSpent || userInfo.total_spent || 0;
-
-        this.mileage.hours = parseFloat(usageHours).toFixed(1);
-        this.mileage.spent = parseFloat(spent);
-      } else {
-        this.user.name = 'Guest';
-        this.user.id = '0';
-        this.user.avatar = '/static/avatar/userp.jpg';
-        this.mileage.hours = 0;
-        this.mileage.spent = 0;
+    async getUserInformation() {
+      try {
+        const userId = userApi.getUserId();
+        if (!userId) {
+          uni.showToast({ title: 'Not logged in', icon: 'none' });
+          return;
+        }
+    
+        // 拉取后端数据
+        const res = await userApi.getUserDetail(userId);
+        if (res.code === 1 && res.data) {
+          const user = res.data;
+    
+          // 更新页面显示
+          this.user.name = user.username || 'Guest';
+          this.user.id = String(user.user_id || user.userId || 0);
+    
+          const avatarPath = user.avatar_path || user.avatarPath;
+          this.user.avatar = avatarPath && avatarPath.trim() !== ''
+            ? avatarPath
+            : '/static/avatar/userp.jpg';
+    
+          this.mileage.hours = parseFloat(user.totalUsageHours || 0).toFixed(1);
+          this.mileage.spent = parseFloat(user.totalSpent || 0);
+    
+          // 同步缓存
+          userApi.updateLocalUserInfo(user);
+          console.log('✅ Loaded user info from server:', this.user.avatar);
+        } else {
+          throw new Error(res.msg || 'Failed to load user');
+        }
+      } catch (e) {
+        console.error('❌ Error loading user info:', e);
+        // 回退缓存数据
+        const cached = userApi.getUserInfo();
+        if (cached) {
+          this.user.name = cached.username;
+          this.user.id = String(cached.user_id || cached.userId || 0);
+          this.user.avatar = cached.avatar_path || '/static/avatar/userp.jpg';
+        }
       }
     },
     handleLogout() {
