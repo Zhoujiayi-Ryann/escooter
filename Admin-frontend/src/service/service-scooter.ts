@@ -111,7 +111,7 @@ const mapScooterToTableData = (scooter: ScooterResponse): TableScooter => {
     id: scooter.scooter_id,
     scooterCode: `SC-${1000 + scooter.scooter_id}`, // 构造一个滑板车编号
     city: city,
-    location: `${city}市(${scooter.location_lat.toFixed(4)}, ${scooter.location_lng.toFixed(4)})`,
+    location: `(${scooter.location_lat.toFixed(4)}, ${scooter.location_lng.toFixed(4)})`,
     battery: scooter.battery_level,
     status: statusNumber,
     lastRentTime: scooter.last_used_date
