@@ -63,10 +63,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { orderApi } from '@/utils/api/order';
-
-const router = useRouter();
 
 const order = ref({
   orderId: '',
@@ -79,20 +76,6 @@ const order = ref({
   price: 0
 });
 
-// Add page load parameter, stored in local variable
-let pageOrderId = null;
-
-// onLoad lifecycle to receive parameters
-onLoad((query) => {
-  console.log('📦 order_not_used onLoad received params:', query);
-  if (query && query.orderId) {
-    pageOrderId = query.orderId;
-    console.log('📦 orderId received from onLoad:', pageOrderId);
-  }
-  // Fetch order info immediately
-  fetchOrderDetail();
-});
-
 const location = ref({ lng: 0, lat: 0 });
 const markers = ref([]);
 
@@ -103,93 +86,53 @@ const anchors = [
 ];
 const panelHeight = ref(anchors[0]);
 
-// Function to fetch order detail (with debug logs)
+let pageOrderId = null;
+
+onLoad((query) => {
+  console.log('📦 onLoad received:', query);
+  if (query && query.orderId) {
+    pageOrderId = query.orderId;
+    console.log('📦 orderId received from onLoad:', pageOrderId);
+  }
+  fetchOrderDetail();
+});
+
 const fetchOrderDetail = async () => {
-  let rawId;
+  let rawId = pageOrderId;
 
-  // First, check if we got it from onLoad
-  if (pageOrderId) {
-    rawId = pageOrderId;
-    console.log('📦 Using orderId from onLoad =', rawId);
-  }
-  // Method 1: from router query
-  else if (router && router.currentRoute && router.currentRoute.value && router.currentRoute.value.query) {
-    rawId = router.currentRoute.value.query.orderId;
-    console.log('📦 orderId from router.query =', rawId);
-  }
-
-  // Method 2: try to parse from page URL
   if (!rawId) {
     try {
       const pages = getCurrentPages();
       const currentPage = pages[pages.length - 1];
       const options = currentPage.$page?.options;
-      console.log('📦 current page options:', options);
       if (options && options.orderId) {
         rawId = options.orderId;
-        console.log('📦 orderId from page options =', rawId);
+        console.log('📦 Fallback orderId from page options:', rawId);
       }
     } catch (err) {
       console.error('📦 Failed to get page parameters:', err);
     }
   }
 
-  // If still missing, use test ID (dev only)
   if (!rawId) {
-    console.warn('⚠️ Failed to get orderId from normal sources, using test ID');
+    console.warn('⚠️ orderId missing, using test value');
     rawId = '1';
   }
 
   const orderId = Number(rawId);
-  console.log('📦 Parsed orderId (number) =', orderId, typeof orderId);
-
   if (!orderId || isNaN(orderId)) {
     uni.showToast({ title: 'Invalid Order ID', icon: 'none', duration: 3000 });
-    console.warn('⚠️ Invalid orderId:', rawId, '->', orderId);
     return;
   }
 
-  function formatToCST(utcStr) {
-    if (!utcStr) return 'N/A';
-    const date = new Date(utcStr);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-
-    const offsetMs = 0;
-    const cstDate = new Date(date.getTime() + offsetMs);
-
-    return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;
-  }
-
-  function formatDuration(startStr, endStr) {
-    const start = new Date(startStr);
-    const end = new Date(endStr);
-    if (isNaN(start) || isNaN(end)) return 'Unknown';
-
-    const diffMs = end.getTime() - start.getTime();
-    const hours = diffMs / (1000 * 60 * 60);
-
-    if (hours < 24) {
-      return `${Math.round(hours)} hour`;
-    } else {
-      const days = Math.floor(hours / 24);
-      return `${days} day`;
-    }
-  }
-
   try {
-    console.log('📡 Requesting: /orders/' + orderId);
     const res = await orderApi.getOrderInfo(orderId);
-    console.log('✅ API response:', res);
-
     if (res.code === 1 && res.data) {
       const data = res.data;
-      console.log('🛠️ Retrieved order data:', data);
-
       const hasExtension = !!data.new_end_time;
 
       const totalCost = (data.cost ?? 0) + (data.extended_cost ?? 0);
       const totalDurationHours = (data.duration ?? 0) + (data.extended_duration ?? 0);
-      const endTime = hasExtension ? data.new_end_time : data.end_time;
 
       order.value = {
         orderId: data.order_id,
@@ -208,23 +151,22 @@ const fetchOrderDetail = async () => {
       };
 
       loadScooterLocation();
-
-      console.log('📍 Set map coordinates:', location.value);
-      loadScooterLocation();
     } else {
-      console.error('❌ Fetch failed:', res.msg);
       uni.showToast({ title: res.msg || 'Failed to fetch order', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 Network request failed:', err);
-    uni.showToast({ title: 'Network error, please try again later', icon: 'none' });
+    console.error('🚨 API error:', err);
+    uni.showToast({ title: 'Network error, try again later', icon: 'none' });
   }
 };
 
-const formatTime = (isoString) => {
-  const date = new Date(isoString);
+function formatToCST(utcStr) {
+  if (!utcStr) return 'N/A';
+  const date = new Date(utcStr);
+  if (isNaN(date.getTime())) return 'Invalid Date';
+
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-};
+}
 
 const loadScooterLocation = () => {
   if (!location.value.lat || !location.value.lng) {
@@ -250,7 +192,6 @@ const loadScooterLocation = () => {
       fontWeight: 'bold',
     }
   }];
-  console.log('📍 Markers setup complete:', markers.value);
 };
 
 const goToHelp = () => {
@@ -288,13 +229,13 @@ const goToUse = async () => {
   }
 };
 
-// Run after component is mounted
 onMounted(() => {
   if (!pageOrderId) {
     fetchOrderDetail();
   }
 });
 </script>
+
 
 
 

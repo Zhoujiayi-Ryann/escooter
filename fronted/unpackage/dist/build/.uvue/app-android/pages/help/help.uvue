@@ -1,0 +1,182 @@
+const __sfc__ = defineComponent({
+    data() {
+        return {
+            expanded: {
+                start: false,
+                unlock: false,
+                broken: false,
+                payment: false
+            }
+        };
+    },
+    methods: {
+        toggleExpand(type) {
+            this.expanded[type] = !this.expanded[type];
+        },
+        navigateToDetail(type) {
+            const typeMapping = {
+                'feedback': '/pages/feedback/feedback'
+            } as UTSJSONObject;
+            if (typeMapping[type]) {
+                uni.navigateTo({
+                    url: typeMapping[type]
+                });
+            }
+        },
+        handleBack() {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                uni.navigateBack();
+            }
+            else {
+                uni.reLaunch({ url: '/pages/settings/my_settings/my_settings' });
+            }
+        }
+    }
+});
+export default __sfc__;
+function GenPagesHelpHelpRender(this: InstanceType<typeof __sfc__>): any | null {
+    const _ctx = this;
+    const _cache = this.$.renderCache;
+    const _component_van_icon = resolveComponent("van-icon");
+    return createElementVNode("view", utsMapOf({ class: "container" }), [
+        createElementVNode("view", utsMapOf({ class: "header" }), [
+            createElementVNode("view", utsMapOf({
+                class: "back-btn",
+                onClick: _ctx.handleBack
+            }), [
+                createVNode(_component_van_icon, utsMapOf({
+                    name: "arrow-left",
+                    class: "back-icon"
+                }))
+            ], 8 /* PROPS */, ["onClick"]),
+            createElementVNode("text", utsMapOf({ class: "header-title" }), "Help")
+        ]),
+        createElementVNode("text", utsMapOf({ class: "page-title" }), "Common Usual Questions"),
+        createElementVNode("view", utsMapOf({ class: "help-list" }), [
+            createElementVNode("view", utsMapOf({
+                class: "help-item",
+                onClick: () => { _ctx.toggleExpand('start'); }
+            }), [
+                createElementVNode("view", utsMapOf({ class: "item-left" }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "question-o",
+                        size: "20px",
+                        color: "#007AFF"
+                    })),
+                    createElementVNode("text", utsMapOf({ class: "help-text" }), "How to rent an e-scooter?")
+                ]),
+                createVNode(_component_van_icon, utsMapOf({
+                    name: _ctx.expanded.start ? 'arrow-up' : 'arrow',
+                    size: "16px",
+                    color: "#999"
+                }), null, 8 /* PROPS */, ["name"])
+            ], 8 /* PROPS */, ["onClick"]),
+            createElementVNode("view", utsMapOf({
+                class: normalizeClass(["expand-wrapper", utsMapOf({ 'expanded': _ctx.expanded.start })])
+            }), [
+                createElementVNode("view", utsMapOf({ class: "expand-content" }), [
+                    createElementVNode("text", utsMapOf({ class: "solution-text" }), " 1. Select the time and the period you would like to rent an e-scooter and click next button\n 2. Choose an e-scooter from the list. You can see information about available e-scooters on the list and map\n 3. Click next button to confirm the renting details\n 4. Finish the payment and rent successfully ")
+                ])
+            ], 2 /* CLASS */),
+            createElementVNode("view", utsMapOf({ class: "divider" })),
+            createElementVNode("view", utsMapOf({
+                class: "help-item",
+                onClick: () => { _ctx.toggleExpand('unlock'); }
+            }), [
+                createElementVNode("view", utsMapOf({ class: "item-left" }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "warning-o",
+                        size: "20px",
+                        color: "#FF9500"
+                    })),
+                    createElementVNode("text", utsMapOf({ class: "help-text" }), "How to expand the period?")
+                ]),
+                createVNode(_component_van_icon, utsMapOf({
+                    name: _ctx.expanded.unlock ? 'arrow-up' : 'arrow',
+                    size: "16px",
+                    color: "#999"
+                }), null, 8 /* PROPS */, ["name"])
+            ], 8 /* PROPS */, ["onClick"]),
+            createElementVNode("view", utsMapOf({
+                class: normalizeClass(["expand-wrapper", utsMapOf({ 'expanded': _ctx.expanded.unlock })])
+            }), [
+                createElementVNode("view", utsMapOf({ class: "expand-content" }), [
+                    createElementVNode("text", utsMapOf({ class: "solution-text" }), " 1. Go to the order list\n 2. Find the order you want to expand\n 3. Click the \"expand\" button. ")
+                ])
+            ], 2 /* CLASS */),
+            createElementVNode("view", utsMapOf({ class: "divider" })),
+            createElementVNode("view", utsMapOf({
+                class: "help-item",
+                onClick: () => { _ctx.toggleExpand('broken'); }
+            }), [
+                createElementVNode("view", utsMapOf({ class: "item-left" }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "info-o",
+                        size: "20px",
+                        color: "#FF3B30"
+                    })),
+                    createElementVNode("text", utsMapOf({ class: "help-text" }), "How does it charge?")
+                ]),
+                createVNode(_component_van_icon, utsMapOf({
+                    name: _ctx.expanded.broken ? 'arrow-up' : 'arrow',
+                    size: "16px",
+                    color: "#999"
+                }), null, 8 /* PROPS */, ["name"])
+            ], 8 /* PROPS */, ["onClick"]),
+            createElementVNode("view", utsMapOf({
+                class: normalizeClass(["expand-wrapper", utsMapOf({ 'expanded': _ctx.expanded.broken })])
+            }), [
+                createElementVNode("view", utsMapOf({ class: "expand-content" }), [
+                    createElementVNode("text", utsMapOf({ class: "solution-text" }), " The e-scooters' prices for each hour are shown in the list on home page.\n The total cost will be it multiplys the time used. ")
+                ])
+            ], 2 /* CLASS */),
+            createElementVNode("view", utsMapOf({ class: "divider" })),
+            createElementVNode("view", utsMapOf({
+                class: "help-item",
+                onClick: () => { _ctx.toggleExpand('payment'); }
+            }), [
+                createElementVNode("view", utsMapOf({ class: "item-left" }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "info-o",
+                        size: "20px",
+                        color: "#FF3B30"
+                    })),
+                    createElementVNode("text", utsMapOf({ class: "help-text" }), "How to pay the bill?")
+                ]),
+                createVNode(_component_van_icon, utsMapOf({
+                    name: _ctx.expanded.broken ? 'arrow-up' : 'arrow',
+                    size: "16px",
+                    color: "#999"
+                }), null, 8 /* PROPS */, ["name"])
+            ], 8 /* PROPS */, ["onClick"]),
+            createElementVNode("view", utsMapOf({
+                class: normalizeClass(["expand-wrapper", utsMapOf({ 'expanded': _ctx.expanded.payment })])
+            }), [
+                createElementVNode("view", utsMapOf({ class: "expand-content" }), [
+                    createElementVNode("text", utsMapOf({ class: "solution-text" }), " You can follow the steps when reserving e-scooters and just select a card to pay.\n If you do not pay when reserving, there will be announcements on home page and you can just click them, or go to the order list page to finish the payment. ")
+                ])
+            ], 2 /* CLASS */),
+            createElementVNode("view", utsMapOf({ class: "divider" })),
+            createElementVNode("view", utsMapOf({
+                class: "help-item",
+                onClick: () => { _ctx.navigateToDetail('feedback'); }
+            }), [
+                createElementVNode("view", utsMapOf({ class: "item-left" }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "comment-o",
+                        size: "20px",
+                        color: "#34C759"
+                    })),
+                    createElementVNode("text", utsMapOf({ class: "help-text" }), "Give feedback")
+                ]),
+                createVNode(_component_van_icon, utsMapOf({
+                    name: "arrow",
+                    size: "16px",
+                    color: "#999"
+                }))
+            ], 8 /* PROPS */, ["onClick"])
+        ])
+    ]);
+}
+const GenPagesHelpHelpStyles = [utsMapOf([["container", padStyleMapOf(utsMapOf([["backgroundImage", "linear-gradient(to bottom, #e6f2ff, #ffffff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["paddingTop", "32rpx"], ["paddingRight", "32rpx"], ["paddingBottom", "32rpx"], ["paddingLeft", "32rpx"], ["boxSizing", "border-box"], ["overflowY", "auto"]]))], ["page-title", padStyleMapOf(utsMapOf([["fontSize", "36rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["marginTop", "20rpx"], ["marginRight", 0], ["marginBottom", "40rpx"], ["marginLeft", 0], ["textAlign", "center"]]))], ["help-list", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["borderRadius", "24rpx"], ["overflow", "hidden"], ["boxShadow", "0 4px 20px rgba(0, 122, 255, 0.1)"]]))], ["help-item", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["justifyContent", "space-between"], ["alignItems", "center"], ["paddingTop", "28rpx"], ["paddingRight", "32rpx"], ["paddingBottom", "28rpx"], ["paddingLeft", "32rpx"], ["backgroundColor", "#ffffff"], ["transitionProperty", "backgroundColor"], ["transitionDuration", "0.2s"], ["transitionTimingFunction", "ease"], ["backgroundColor:active", "#f2f6fa"]]))], ["item-left", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["alignItems", "center"], ["gap", "16rpx"]]))], ["help-text", padStyleMapOf(utsMapOf([["fontSize", "30rpx"], ["color", "#333333"]]))], ["divider", padStyleMapOf(utsMapOf([["height", "2rpx"], ["backgroundColor", "#f0f0f0"], ["marginTop", 0], ["marginRight", "32rpx"], ["marginBottom", 0], ["marginLeft", "32rpx"]]))], ["expand-wrapper", utsMapOf([["", utsMapOf([["maxHeight", 0], ["overflow", "hidden"], ["transitionDuration", "0.3s"], ["transitionTimingFunction", "ease-out"]])], [".expanded", utsMapOf([["maxHeight", "400rpx"]])]])], ["expand-content", utsMapOf([["", utsMapOf([["paddingTop", "24rpx"], ["paddingRight", "32rpx"], ["paddingBottom", "24rpx"], ["paddingLeft", "32rpx"], ["backgroundColor", "#f9fbfd"], ["borderTopWidth", "1rpx"], ["borderTopStyle", "solid"], ["borderTopColor", "#ebeff5"], ["transform", "translateY(-10%)"], ["opacity", 0]])], [".expand-wrapper.expanded ", utsMapOf([["transform", "translateY(0)"], ["opacity", 1]])]])], ["solution-text", padStyleMapOf(utsMapOf([["fontSize", "26rpx"], ["color", "#666666"], ["lineHeight", 1.8]]))], ["back-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "25rpx"], ["left", "30rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["backgroundColor", "#f4f8ff"], ["borderRadius", "25rpx"], ["width", "80rpx"], ["height", "80rpx"]]))], ["back-icon", padStyleMapOf(utsMapOf([["fontSize", "55rpx"], ["color", "#007aff"]]))], ["header-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"]]))], ["header", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["paddingTop", "40rpx"], ["paddingRight", 0], ["paddingBottom", "40rpx"], ["paddingLeft", 0], ["textAlign", "center"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["position", "relative"], ["marginBottom", "40rpx"]]))], ["@TRANSITION", utsMapOf([["help-item", utsMapOf([["property", "backgroundColor"], ["duration", "0.2s"], ["timingFunction", "ease"]])], ["expand-wrapper", utsMapOf([["duration", "0.3s"], ["timingFunction", "ease-out"]])]])]])];

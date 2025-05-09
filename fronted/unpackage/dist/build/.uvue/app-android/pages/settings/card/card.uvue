@@ -1,0 +1,271 @@
+import { ref } from 'vue';
+import { showToast } from 'vant';
+import { creditCardApi } from '@/utils/api/creditCard';
+import { userApi } from '@/utils/api/user';
+// 数据
+const __sfc__ = defineComponent({
+    __name: 'card',
+    setup(__props): any | null {
+        const __ins = getCurrentInstance()!;
+        const _ctx = __ins.proxy as InstanceType<typeof __sfc__>;
+        const _cache = __ins.renderCache;
+        const cardNumber = ref('');
+        const expiry = ref('');
+        const cvv = ref('');
+        const showKeyboard = ref(false);
+        const showCountryPicker = ref(false);
+        const currentField = ref('');
+        const isSaving = ref(false);
+        // 默认国家
+        const selectedCountry = ref({ flag: '🇨🇳', code: 'CN' });
+        // 国家与国家名称映射
+        const countryCodeToName = {
+            'CN': '中国',
+            'US': '美国',
+            'JP': '日本',
+            'FR': '法国',
+            'DE': '德国'
+        } as UTSJSONObject;
+        // 国家列表
+        const countries = ref([
+            { text: '🇨🇳 CN', value: 'CN' },
+            { text: '🇺🇸 US', value: 'US' },
+            { text: '🇯🇵 JP', value: 'JP' },
+            { text: '🇫🇷 FR', value: 'FR' },
+            { text: '🇩🇪 DE', value: 'DE' },
+        ]);
+        // 切换国家
+        const onCountryConfirm = ({ selectedOptions }) => {
+            if (selectedOptions && selectedOptions[0]) {
+                const code = selectedOptions[0].value;
+                const flag = selectedOptions[0].text.split(' ')[0];
+                selectedCountry.value = { flag, code };
+            }
+            showCountryPicker.value = false;
+        };
+        // 输入框控制
+        const focus = (field) => {
+            currentField.value = field;
+            showKeyboard.value = true;
+        };
+        // 输入处理
+        const onInput = (val) => {
+            // 卡号
+            if (currentField.value === 'card' && cardNumber.value.replace(/\s/g, '').length < 17) {
+                cardNumber.value = formatCardNumber(cardNumber.value + val);
+            }
+            // 有效期
+            if (currentField.value === 'expiry' && expiry.value.replace('/', '').length < 4) {
+                const newValue = expiry.value.replace('/', '') + val;
+                // 当输入到2位时，判断月份是否合法
+                if (newValue.length === 2) {
+                    const month = parseInt(newValue.slice(0, 2), 10);
+                    if (month < 1 || month > 12) {
+                        showToast('Invalid month');
+                        return;
+                    }
+                }
+                expiry.value = formatExpiry(newValue);
+            }
+            // CVV
+            if (currentField.value === 'cvv' && cvv.value.length < 3) {
+                cvv.value += val;
+            }
+        };
+        const onDelete = () => {
+            if (currentField.value === 'card') {
+                cardNumber.value = formatCardNumber(cardNumber.value.slice(0, -1).replace(/\s/g, ''));
+            }
+            if (currentField.value === 'expiry') {
+                expiry.value = formatExpiry(expiry.value.replace('/', '').slice(0, -1));
+            }
+            if (currentField.value === 'cvv') {
+                cvv.value = cvv.value.slice(0, -1);
+            }
+        };
+        // 格式化
+        const formatCardNumber = (val): any => val.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+        const formatExpiry = (val): any => val.replace(/\D/g, '').slice(0, 4).replace(/^(\d{2})(\d{0,2})$/, (_, m, y) => (y ? `${m}/${y}` : m));
+        // 保存
+        const onSave = () => {
+            if (!cardNumber.value || !expiry.value || !cvv.value) {
+                return showToast('Please complete all fields');
+            }
+            // 清除卡号中的空格
+            const cardNumberClean = cardNumber.value.replace(/\s/g, '');
+            // 检查卡号格式 (16位数字)
+            if (cardNumberClean.length !== 16 || !/^\d+$/.test(cardNumberClean)) {
+                return showToast('Invalid card number');
+            }
+            // 额外检查 expiry
+            const expiryRaw = expiry.value.replace('/', '');
+            const month = parseInt(expiryRaw.slice(0, 2), 10);
+            const year = parseInt('20' + expiryRaw.slice(2), 10);
+            if (month < 1 || month > 12) {
+                return showToast('Expiry month invalid');
+            }
+            if (expiryRaw.length !== 4) {
+                return showToast('Expiry date incomplete');
+            }
+            // 检查CVV (3位数字)
+            if (cvv.value.length !== 3 || !/^\d+$/.test(cvv.value)) {
+                return showToast('Invalid CVV');
+            }
+            // 构造日期格式 YYYY-MM-DD
+            const expiryDate = `${year}-${month.toString(10).padStart(2, '0')}-01`;
+            // 使用userApi获取用户ID
+            const userId = userApi.getUserId(1); // 默认值为1用于测试
+            // 准备请求数据
+            const cardData = {
+                user_id: userId,
+                card_number: cardNumberClean,
+                security_code: cvv.value,
+                expiry_date: expiryDate,
+                country: selectedCountry.value.code
+            } as UTSJSONObject;
+            // 标记为正在保存
+            isSaving.value = true;
+            // 调用API添加银行卡
+            creditCardApi.addCreditCard(cardData)
+                .then(res => {
+                if (res.code === 1) {
+                    showToast('Card added successfully');
+                    // 添加成功后，重定向到我的银行卡页面
+                    setTimeout(() => {
+                        uni.navigateBack();
+                    }, 1500);
+                }
+                else {
+                    showToast(res.msg || 'Failed to add card');
+                }
+            })
+                .catch(err => {
+                console.error('Failed to add bank card:', err);
+                showToast('Network error, please try again');
+            })
+                .finally(() => {
+                isSaving.value = false;
+            });
+        };
+        // 返回
+        // 返回或跳首页
+        const onClose = () => {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                uni.navigateBack();
+            }
+            else {
+                uni.reLaunch({
+                    url: '/pages/home/home'
+                });
+            }
+        };
+        return (): any | null => {
+            const _component_van_icon = resolveComponent("van-icon");
+            const _component_van_button = resolveComponent("van-button");
+            const _component_van_picker = resolveComponent("van-picker");
+            const _component_van_popup = resolveComponent("van-popup");
+            const _component_van_number_keyboard = resolveComponent("van-number-keyboard");
+            return createElementVNode("view", utsMapOf({ class: "card-page" }), [
+                createElementVNode("view", utsMapOf({
+                    class: "close-btn",
+                    onClick: onClose
+                }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "cross",
+                        class: "close-icon"
+                    }))
+                ]),
+                createElementVNode("view", utsMapOf({ class: "header" }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "credit-pay",
+                        size: "30",
+                        color: "#007aff"
+                    })),
+                    createElementVNode("text", utsMapOf({ class: "title" }), "Add Bank Card ")
+                ]),
+                createElementVNode("view", utsMapOf({
+                    class: "input-card",
+                    onClick: () => { focus('card'); }
+                }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                        name: "credit-pay",
+                        size: "20"
+                    })),
+                    createElementVNode("input", utsMapOf({
+                        modelValue: cardNumber.value,
+                        onInput: ($event: InputEvent) => { (cardNumber).value = $event.detail.value; },
+                        placeholder: "Credit Card Number",
+                        readonly: ""
+                    }), null, 40 /* PROPS, NEED_HYDRATION */, ["modelValue", "onInput"])
+                ], 8 /* PROPS */, ["onClick"]),
+                createElementVNode("view", utsMapOf({ class: "input-row" }), [
+                    createElementVNode("view", utsMapOf({
+                        class: "input-half",
+                        onClick: () => { focus('expiry'); }
+                    }), [
+                        createElementVNode("input", utsMapOf({
+                            modelValue: expiry.value,
+                            onInput: ($event: InputEvent) => { (expiry).value = $event.detail.value; },
+                            placeholder: "MM/YY",
+                            readonly: ""
+                        }), null, 40 /* PROPS, NEED_HYDRATION */, ["modelValue", "onInput"])
+                    ], 8 /* PROPS */, ["onClick"]),
+                    createElementVNode("view", utsMapOf({ class: "input-half" }), [
+                        createElementVNode("input", utsMapOf({
+                            modelValue: cvv.value,
+                            onInput: ($event: InputEvent) => { (cvv).value = $event.detail.value; },
+                            placeholder: "CVV",
+                            readonly: "",
+                            maxlength: "3",
+                            onClick: () => { focus('cvv'); }
+                        }), null, 40 /* PROPS, NEED_HYDRATION */, ["modelValue", "onInput", "onClick"]),
+                        createElementVNode("view", utsMapOf({
+                            class: "country",
+                            onClick: () => { showCountryPicker.value = true; }
+                        }), [
+                            createElementVNode("text", null, toDisplayString(selectedCountry.value.flag) + " " + toDisplayString(selectedCountry.value.code), 1 /* TEXT */)
+                        ], 8 /* PROPS */, ["onClick"])
+                    ])
+                ]),
+                createVNode(_component_van_button, utsMapOf({
+                    class: "save-btn",
+                    type: "primary",
+                    block: "",
+                    onClick: onSave,
+                    loading: isSaving.value
+                }), utsMapOf({
+                    default: withSlotCtx((): any[] => [" Save "]),
+                    _: 1 /* STABLE */
+                }), 8 /* PROPS */, ["loading"]),
+                createVNode(_component_van_popup, utsMapOf({
+                    show: showCountryPicker.value,
+                    "onUpdate:show": $event => { (showCountryPicker).value = $event; },
+                    position: "bottom"
+                }), utsMapOf({
+                    default: withSlotCtx((): any[] => [
+                        createVNode(_component_van_picker, utsMapOf({
+                            "show-toolbar": "",
+                            title: "Select Country",
+                            columns: countries.value,
+                            "columns-field-names": { text: 'text', value: 'value' },
+                            onConfirm: onCountryConfirm,
+                            onCancel: () => { showCountryPicker.value = false; }
+                        }), null, 8 /* PROPS */, ["columns", "onCancel"])
+                    ]),
+                    _: 1 /* STABLE */
+                }), 8 /* PROPS */, ["show", "onUpdate:show"]),
+                createVNode(_component_van_number_keyboard, utsMapOf({
+                    show: showKeyboard.value,
+                    "extra-key": ".",
+                    "close-button-text": "Finish",
+                    onBlur: () => { showKeyboard.value = false; },
+                    onInput: onInput,
+                    onDelete: onDelete
+                }), null, 8 /* PROPS */, ["show", "onBlur"])
+            ]);
+        };
+    }
+});
+export default __sfc__;
+const GenPagesSettingsCardCardStyles = [utsMapOf([["card-page", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#f8fbff"], ["paddingTop", "20rpx"], ["paddingRight", "20rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "20rpx"], ["boxSizing", "border-box"], ["display", "flex"], ["flexDirection", "column"], ["gap", "15rpx"]]))], ["close-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "50rpx"], ["left", "50rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["borderRadius", "45rpx"], ["backgroundColor", "#ffffff"], ["boxShadow", "0 8px 20px rgba(0, 0, 0, 0.08)"], ["width", "90rpx"], ["height", "90rpx"]]))], ["close-icon", padStyleMapOf(utsMapOf([["fontSize", "50rpx"], ["color", "#3b88c3"]]))], ["header", padStyleMapOf(utsMapOf([["display", "flex"], ["alignItems", "center"], ["marginTop", 150], ["marginBottom", "100rpx"]]))], ["title", padStyleMapOf(utsMapOf([["fontSize", "60rpx"], ["fontWeight", "bold"], ["marginLeft", "20rpx"], ["alignItems", "center"], ["textAlign", "center"], ["color", "#007aff"]]))], ["input-card", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["borderRadius", "50rpx"], ["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "40rpx"], ["paddingLeft", "40rpx"], ["display", "flex"], ["flexDirection", "row"], ["alignItems", "center"], ["justifyContent", "space-between"], ["marginBottom", "20rpx"], ["height", 60], ["boxShadow", "0 8px 20px rgba(0, 0, 0, 0.08)"]]))], ["input-row", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["justifyContent", "space-between"], ["marginBottom", "40rpx"], ["borderRadius", "50rpx"], ["height", 60], ["boxShadow", "0 8px 20px rgba(0, 0, 0, 0.08)"]]))], ["input-half", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["borderRadius", "10rpx"], ["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "40rpx"], ["paddingLeft", "40rpx"], ["width", "49%"], ["display", "flex"], ["flexDirection", "row"], ["alignItems", "center"]]))], ["country", padStyleMapOf(utsMapOf([["paddingLeft", "15rpx"], ["fontSize", "30rpx"], ["cursor", "pointer"]]))], ["save-btn", padStyleMapOf(utsMapOf([["marginTop", "40rpx"], ["height", "100rpx"], ["lineHeight", "90rpx"], ["fontSize", "30rpx"], ["backgroundImage", "linear-gradient(to right, #82b1ff, #007aff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["boxShadow", "0px 4px 10px rgba(0, 122, 255, 0.3)"], ["color", "#ffffff"], ["borderRadius", "70rpx"], ["transitionDuration", "0.3s"], ["transform:active", "scale(0.96)"]]))], ["@TRANSITION", utsMapOf([["save-btn", utsMapOf([["duration", "0.3s"]])]])]])];

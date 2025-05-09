@@ -1,0 +1,185 @@
+
+import { userApi } from '../../utils/api/user/index.uts';
+import { notificationApi } from '../../utils/api/notification/index.uts';
+
+const __sfc__ = defineComponent({
+  data() {
+    return {
+      notifications: [],
+      hasUnread: false,
+      checkInterval: null
+    };
+  },
+  onShow() {
+    this.fetchNotifications();
+    this.checkUnreadNotifications();
+    this.startAutoCheck();
+  },
+  onHide() {
+    this.stopAutoCheck();
+  },
+  onUnload() {
+    this.stopAutoCheck();
+  },
+  methods: {
+    // Start periodic check for unread notifications
+    startAutoCheck() {
+      this.stopAutoCheck();
+      this.checkInterval = setInterval(() => {
+        this.checkUnreadNotifications();
+      }, 30000); // every 30 seconds
+    },
+
+    // Stop the periodic check
+    stopAutoCheck() {
+      if (this.checkInterval) {
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+    },
+
+    // Back navigation handler
+    handleBack() {
+      const pages = getCurrentPages();
+      if (pages.length > 1) {
+        uni.navigateBack();
+      } else {
+        uni.reLaunch({ url: '/pages/home/home' });
+      }
+    },
+
+    // Check for unread notifications
+    async checkUnreadNotifications() {
+      const userId = userApi.getUserId();
+      if (!userId) {
+        this.hasUnread = false;
+        return;
+      }
+      try {
+        const res = await notificationApi.countUserUnreadNotifications(userId);
+        if (res.code === 1) {
+          this.hasUnread = res.data > 0;
+        } else {
+          this.hasUnread = false;
+        }
+      } catch (err) {
+        console.error('Failed to check unread notifications:', err);
+        this.hasUnread = false;
+      }
+    },
+
+    // Fetch all notifications for the current user
+    async fetchNotifications() {
+      const userId = userApi.getUserId();
+      if (!userId) {
+        this.notifications = [];
+        return;
+      }
+
+      try {
+        const res = await notificationApi.getUserNotifications(userId);
+        console.log('Raw notification data:', res.data);
+
+        if (res.code === 1 && Array.isArray(res.data)) {
+          this.notifications = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          await this.markAllAsRead(userId);
+        } else {
+          this.notifications = [];
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+        this.notifications = [];
+      }
+    },
+
+    // Mark all notifications as read
+    async markAllAsRead(userId) {
+      try {
+        const res = await notificationApi.markAllAsRead(userId);
+        if (res.code === 1) {
+          console.log('All notifications marked as read');
+          this.hasUnread = false;
+        }
+      } catch (err) {
+        console.error('Failed to mark notifications as read:', err);
+      }
+    },
+
+    // Navigate to related pages based on notification type
+    goToPages(type) {
+      if (type === 'COUPON') {
+        uni.navigateTo({
+          url: '/pages/settings/coupons/coupon'
+        });
+      } else if (type === 'COMMENT_REPLY') {
+        uni.navigateTo({
+          url: '/pages/feedback/detail'
+        });
+      }
+    },
+
+    // Format timestamp into readable time string
+    formatTime(timestamp) {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+  }
+});
+
+export default __sfc__
+function GenPagesNotificationNotificationRender(this: InstanceType<typeof __sfc__>): any | null {
+const _ctx = this
+const _cache = this.$.renderCache
+const _component_van_icon = resolveComponent("van-icon")
+
+  return createElementVNode("view", utsMapOf({ class: "container" }), [
+    createElementVNode("view", utsMapOf({ class: "header" }), [
+      createElementVNode("view", utsMapOf({
+        class: "back-btn",
+        onClick: _ctx.handleBack
+      }), [
+        createVNode(_component_van_icon, utsMapOf({
+          name: "arrow-left",
+          class: "back-icon"
+        }))
+      ], 8 /* PROPS */, ["onClick"]),
+      createElementVNode("text", utsMapOf({ class: "header-title" }), "Notification")
+    ]),
+    createElementVNode(Fragment, null, RenderHelpers.renderList(_ctx.notifications, (item, __key, __index, _cached): any => {
+      return createElementVNode("view", utsMapOf({
+        key: item.id,
+        class: "msg-card"
+      }), [
+        createElementVNode("view", utsMapOf({ class: "msg-title" }), toDisplayString(item.title), 1 /* TEXT */),
+        createElementVNode("view", utsMapOf({ class: "msg-content" }), toDisplayString(item.content), 1 /* TEXT */),
+        createElementVNode("view", utsMapOf({ class: "msg-time" }), toDisplayString(_ctx.formatTime(item.createdAt)), 1 /* TEXT */),
+        item.type === 'COUPON'
+          ? createElementVNode("view", utsMapOf({
+              key: 0,
+              class: "link",
+              onClick: () => {_ctx.goToPages(item.type)}
+            }), [
+              createElementVNode("text", null, "See Details"),
+              createVNode(_component_van_icon, utsMapOf({
+                name: "arrow",
+                class: "arrow-icon"
+              }))
+            ], 8 /* PROPS */, ["onClick"])
+          : createCommentVNode("v-if", true)
+      ])
+    }), 128 /* KEYED_FRAGMENT */),
+    _ctx.notifications.length === 0
+      ? createElementVNode("view", utsMapOf({
+          key: 0,
+          class: "empty-tip"
+        }), "No Messages")
+      : createCommentVNode("v-if", true)
+  ])
+}
+const GenPagesNotificationNotificationStyles = [utsMapOf([["container", padStyleMapOf(utsMapOf([["overflowY", "auto"], ["backgroundImage", "linear-gradient(to bottom, #e0f0ff, #ffffff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["paddingTop", 20], ["paddingRight", 20], ["paddingBottom", 20], ["paddingLeft", 20], ["boxSizing", "border-box"]]))], ["header", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["paddingTop", "40rpx"], ["paddingRight", 0], ["paddingBottom", "40rpx"], ["paddingLeft", 0], ["textAlign", "center"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["position", "relative"], ["marginBottom", "30rpx"]]))], ["back-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "25rpx"], ["left", "30rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["backgroundColor", "#f4f8ff"], ["borderRadius", "25rpx"], ["width", "80rpx"], ["height", "80rpx"]]))], ["back-icon", padStyleMapOf(utsMapOf([["fontSize", "55rpx"], ["color", "#0084ff"]]))], ["header-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"]]))], ["msg-card", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#f8fbfd"], ["borderRadius", "18rpx"], ["paddingTop", "32rpx"], ["paddingRight", "28rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "28rpx"], ["marginBottom", "28rpx"], ["boxShadow", "0 2px 8px rgba(0,0,0,0.03)"], ["position", "relative"]]))], ["msg-title", padStyleMapOf(utsMapOf([["fontSize", "34rpx"], ["fontWeight", "bold"], ["color", "#222222"], ["marginBottom", "12rpx"]]))], ["msg-content", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#444444"], ["marginBottom", "16rpx"]]))], ["msg-time", padStyleMapOf(utsMapOf([["fontSize", "24rpx"], ["color", "#b0b0b0"], ["textAlign", "left"], ["paddingTop", "8rpx"], ["paddingRight", 0], ["paddingBottom", "8rpx"], ["paddingLeft", 0], ["marginTop", "8rpx"], ["marginRight", 0], ["marginBottom", "8rpx"], ["marginLeft", 0]]))], ["empty-tip", padStyleMapOf(utsMapOf([["textAlign", "center"], ["color", "#aaaaaa"], ["marginTop", "80rpx"], ["fontSize", "32rpx"]]))], ["link", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["alignItems", "center"], ["justifyContent", "space-between"], ["paddingTop", "16rpx"], ["paddingRight", 0], ["paddingBottom", 0], ["paddingLeft", 0], ["marginTop", "8rpx"], ["borderTopWidth", 1], ["borderTopStyle", "solid"], ["borderTopColor", "#eeeeee"], ["color", "#0084ff"], ["fontSize", "28rpx"], ["cursor", "pointer"]]))], ["arrow-icon", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["color", "#0084ff"]]))]])]

@@ -1,0 +1,102 @@
+import App from './App.uvue'
+import { createSSRApp } from 'vue'
+import Vant from 'vant'
+
+// 导入 Vant 样式
+import 'vant/lib/index.css'
+
+export function createApp() {
+	const app = createSSRApp(App)
+	
+	// 全局注册 Vant
+	app.use(Vant)
+	
+	return {
+		app
+	}
+}
+export function main(app: IApp) {
+    definePageRoutes();
+    defineAppConfig();
+    
+    (createApp()['app'] as VueApp).mount(app, GenUniApp());
+}
+
+export class UniAppConfig extends io.dcloud.uniapp.appframe.AppConfig {
+    override name: string = "demo1-0308"
+    override appid: string = "__UNI__E4E24E1"
+    override versionName: string = "1.0.0"
+    override versionCode: string = "100"
+    override uniCompilerVersion: string = "4.45"
+    
+    constructor() { super() }
+}
+
+import GenPagesIndexIndexClass from './pages/index/index.uvue?type=page'
+import GenPagesLoginLoginClass from './pages/login/login.uvue?type=page'
+import GenPagesHomeHomeClass from './pages/home/home.uvue?type=page'
+import GenPagesRegisterRegisterClass from './pages/register/register.uvue?type=page'
+import GenPagesOrderConfirmClass from './pages/order/confirm.uvue?type=page'
+import GenPagesOrderPaymentClass from './pages/order/payment.uvue?type=page'
+import GenPagesRentDetailsRentDetailsClass from './pages/rent-details/rent-details.uvue?type=page'
+import GenPagesLoadingLoadingClass from './pages/loading/loading.uvue?type=page'
+import GenPagesBookingRightBookingRightClass from './pages/booking_right/booking_right.uvue?type=page'
+import GenPagesOrderDetailsOrderDetailsClass from './pages/order_details/order_details.uvue?type=page'
+import GenPagesSettingsOrdersOrdersClass from './pages/settings/orders/orders.uvue?type=page'
+import GenPagesSettingsCouponsCouponClass from './pages/settings/coupons/coupon.uvue?type=page'
+import GenPagesSettingsMySettingsMySettingsClass from './pages/settings/my_settings/my_settings.uvue?type=page'
+import GenPagesSettingsCardCardClass from './pages/settings/card/card.uvue?type=page'
+import GenPagesSettingsChangeChangeClass from './pages/settings/change/change.uvue?type=page'
+import GenPagesNotificationNotificationClass from './pages/notification/notification.uvue?type=page'
+import GenPagesHelpHelpClass from './pages/help/help.uvue?type=page'
+import GenPagesFeedbackFeedbackClass from './pages/feedback/feedback.uvue?type=page'
+import GenPagesCardsCardsClass from './pages/cards/cards.uvue?type=page'
+import GenPagesForgetForgetClass from './pages/forget/forget.uvue?type=page'
+import GenPagesNewPassNewPassClass from './pages/new_pass/new_pass.uvue?type=page'
+import GenPagesOrderNotUsedOrderNotUsedClass from './pages/order_not_used/order_not_used.uvue?type=page'
+import GenPagesOrderInProgressOrderInProgressClass from './pages/order_in_progress/order_in_progress.uvue?type=page'
+import GenPagesOrderInProgressOrderInProgressHomeClass from './pages/order_in_progress/order_in_progress_home.uvue?type=page'
+import GenPagesOrderNotUsedOrderNotUsedHomeClass from './pages/order_not_used/order_not_used_home.uvue?type=page'
+import GenPagesOrderDetailsOrderDetailsHomeClass from './pages/order_details/order_details_home.uvue?type=page'
+import GenPagesSettingsChangePasswordChangePasswordClass from './pages/settings/change_password/change_password.uvue?type=page'
+function definePageRoutes() {
+__uniRoutes.push({ path: "pages/index/index", component: GenPagesIndexIndexClass, meta: { isQuit: true } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","uni-app x"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/login/login", component: GenPagesLoginLoginClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","login"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/home/home", component: GenPagesHomeHomeClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","home"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/register/register", component: GenPagesRegisterRegisterClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","Register"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order/confirm", component: GenPagesOrderConfirmClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","Order confirmation"],["navigationBarBackgroundColor","#cccccc"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order/payment", component: GenPagesOrderPaymentClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","Confirm payment"],["navigationBarBackgroundColor","#cccccc"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/rent-details/rent-details", component: GenPagesRentDetailsRentDetailsClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","rent-details"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/loading/loading", component: GenPagesLoadingLoadingClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/booking_right/booking_right", component: GenPagesBookingRightBookingRightClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order_details/order_details", component: GenPagesOrderDetailsOrderDetailsClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/settings/orders/orders", component: GenPagesSettingsOrdersOrdersClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/settings/coupons/coupon", component: GenPagesSettingsCouponsCouponClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/settings/my_settings/my_settings", component: GenPagesSettingsMySettingsMySettingsClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"],["animationType","slide-in-bottom"],["animationDuration",500]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/settings/card/card", component: GenPagesSettingsCardCardClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"],["animationType","slide-in-top"],["animationDuration",500]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/settings/change/change", component: GenPagesSettingsChangeChangeClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/notification/notification", component: GenPagesNotificationNotificationClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","Notification"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/help/help", component: GenPagesHelpHelpClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","Help"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/feedback/feedback", component: GenPagesFeedbackFeedbackClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","Feedback"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/cards/cards", component: GenPagesCardsCardsClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText","Cards"],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/forget/forget", component: GenPagesForgetForgetClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/new_pass/new_pass", component: GenPagesNewPassNewPassClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order_not_used/order_not_used", component: GenPagesOrderNotUsedOrderNotUsedClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order_in_progress/order_in_progress", component: GenPagesOrderInProgressOrderInProgressClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order_in_progress/order_in_progress_home", component: GenPagesOrderInProgressOrderInProgressHomeClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order_not_used/order_not_used_home", component: GenPagesOrderNotUsedOrderNotUsedHomeClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/order_details/order_details_home", component: GenPagesOrderDetailsOrderDetailsHomeClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+__uniRoutes.push({ path: "pages/settings/change_password/change_password", component: GenPagesSettingsChangePasswordChangePasswordClass, meta: { isQuit: false } as UniPageMeta, style: utsMapOf([["navigationBarTitleText",""],["navigationStyle","custom"]]) } as UniPageRoute)
+}
+const __uniTabBar: Map<string, any | null> | null = null
+const __uniLaunchPage: Map<string, any | null> = utsMapOf([["url","pages/index/index"],["style",utsMapOf([["navigationBarTitleText","uni-app x"],["navigationStyle","custom"]])]])
+function defineAppConfig(){
+  __uniConfig.entryPagePath = '/pages/index/index'
+  __uniConfig.globalStyle = utsMapOf([["navigationBarTextStyle","black"],["navigationBarTitleText","uni-app x"],["navigationBarBackgroundColor","#F8F8F8"],["backgroundColor","#F8F8F8"]])
+  __uniConfig.getTabBarConfig = ():Map<string, any> | null =>  null
+  __uniConfig.tabBar = __uniConfig.getTabBarConfig()
+  __uniConfig.conditionUrl = ''
+  __uniConfig.uniIdRouter = utsMapOf()
+  
+  __uniConfig.ready = true
+}

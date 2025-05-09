@@ -22,8 +22,12 @@
 		<view class="sidebar"
 		:class="{ 'sidebar-open': showSidebar }">			
 			<view class="user-info">
-				<text class="greeting">Welcome, <br>{{ username || 'Guest' }}!</text>
+			  <view class="greeting">
+			    <text>Welcome,</text>
+			    <text>{{ username || 'Guest' }}!</text>
+			  </view>
 			</view>
+
 			<view class="payment-section">
 				<view class="payment-hint">
 					<text>Add Payment To Start</text>
@@ -1150,12 +1154,27 @@ export default {
 		padding: 15px 20px;
 		border-bottom: 1px solid #f5f5f5;
 	}
-	.greeting {
+	/* .greeting {
 		font-size: 26px;
 		font-weight: bold;
 		margin-bottom: 15px;
 		display: block;
+	} */
+	.greeting {
+	  display: flex;
+	  flex-direction: column; /* 垂直排列实现换行 */
+	  font-size: 26px;
+	  font-weight: bold;
+	  color: #333;
+	  line-height: 1.5;
+	  margin-bottom: 15px;
+
 	}
+	
+	.greeting text{
+		 font-size: 26px;
+	}
+
 	.payment-section {
 		padding: 15px 20px;
 		background-color: #f0f9ff;

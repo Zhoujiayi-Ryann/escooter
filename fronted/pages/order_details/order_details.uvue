@@ -80,11 +80,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from "vue";
+import { onLoad } from "@dcloudio/uni-app"; // ✅ 使用 UniApp 路由生命周期
 import { orderApi } from "@/utils/api/order";
-
-const router = useRouter();
 
 // 🚲 订单信息
 const order = ref({
@@ -95,6 +93,7 @@ const order = ref({
   duration: '',
   cost: 0,
   address: '',
+  scooterLocation: '',
 });
 
 // 📍 地图位置（偏移中心点）
@@ -102,33 +101,24 @@ const location = ref({ lat: 0, lng: 0 });
 // 📌 地图标记
 const markers = ref([]);
 
-// 浮动面板高度锚点
-const anchors = [
-  120,
-  Math.round(0.4 * window.innerHeight),
-  Math.round(0.55 * window.innerHeight),
-];
+// 弹出面板状态（用于替代 van-floating-panel）
+const showPanel = ref(true); // 可扩展用来控制显示
+const anchors = [120, Math.round(0.4 * window.innerHeight), Math.round(0.55 * window.innerHeight)];
 const panelHeight = ref(anchors[0]);
 
-// 时间格式化 yyyy-MM-dd HH:mm
+// 时间格式化
 function formatToCST(utcStr) {
   if (!utcStr) return 'N/A';
   const date = new Date(utcStr);
   if (isNaN(date.getTime())) return 'Invalid Date';
-
-  // 转为中国时间
-  const offsetMs = 0;
-  const cstDate = new Date(date.getTime() + offsetMs);
-
-  return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 }
 
-// 计算持续时间（start -> end）
+// 计算持续时间
 function formatDuration(startStr, endStr) {
   const start = new Date(startStr);
   const end = new Date(endStr);
   if (isNaN(start) || isNaN(end)) return 'Unknown';
-
   const diffMs = end - start;
   const totalMinutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(totalMinutes / 60);
@@ -136,40 +126,37 @@ function formatDuration(startStr, endStr) {
   return `${hours}h ${minutes}min`;
 }
 
-
-const fetchOrderDetail = async () => {
-  const rawId = router.currentRoute.value.query.orderId;
+// 🟢 使用 onLoad 代替 router
+onLoad((options) => {
+  const rawId = options?.orderId;
   const orderId = Number(rawId);
   if (!orderId || isNaN(orderId)) {
     uni.showToast({ title: 'Order ID is invalid', icon: 'none' });
     return;
   }
 
+  fetchOrderDetail(orderId);
+});
+
+// 获取订单详情
+const fetchOrderDetail = async (orderId) => {
   try {
     const res = await orderApi.getOrderInfo(orderId);
     if (res.code === 1 && res.data) {
       const data = res.data;
 
-      // 👇 确保后端字段正确
       const lat = data.scooter_info?.latitude;
       const lng = data.scooter_info?.longitude;
 
-      // ✅ 如果坐标为空，给出提示
       if (!lat || !lng) {
         uni.showToast({ title: 'Invalid vehicle location information', icon: 'none' });
         return;
       }
 
-      const baseCost = data.cost ?? 0;
-      const extendedCost = data.extended_cost ?? 0;
-      const totalCost = baseCost + extendedCost;
-      
-      const baseDuration = data.duration ?? 0;
-      const extendedDuration = data.extended_duration ?? 0;
-      const totalDuration = baseDuration + extendedDuration;
-      
+      const totalCost = (data.cost ?? 0) + (data.extended_cost ?? 0);
+      const totalDuration = (data.duration ?? 0) + (data.extended_duration ?? 0);
       const finalEndTime = data.new_end_time || data.end_time;
-      
+
       order.value = {
         orderId: data.order_id,
         scooterId: data.scooter_id,
@@ -181,13 +168,7 @@ const fetchOrderDetail = async () => {
         scooterLocation: data.pickup_address || 'Unknown'
       };
 
-
-      // ✅ 正确设置 location
-      location.value = {
-        lat,
-        lng
-      };
-
+      location.value = { lat, lng };
       loadScooterLocation();
     } else {
       uni.showToast({ title: res.msg || 'Order retrieval failed', icon: 'none' });
@@ -198,7 +179,7 @@ const fetchOrderDetail = async () => {
   }
 };
 
-
+// 设置地图标记
 const loadScooterLocation = () => {
   if (!location.value.lat || !location.value.lng) return;
 
@@ -206,11 +187,10 @@ const loadScooterLocation = () => {
     id: 1,
     latitude: location.value.lat,
     longitude: location.value.lng,
-    iconPath: '/static/order_details/maker.svg', 
+    iconPath: '/static/order_details/maker.svg',
     width: 32,
     height: 32,
     callout: {
-      // ✅ 改这里：使用与页面中一致的地址
       content: order.value.scooterLocation,
       display: 'ALWAYS',
       fontSize: 15,
@@ -222,7 +202,7 @@ const loadScooterLocation = () => {
   }];
 };
 
-// 🔙 返回按钮
+// 返回
 const handleBack = () => {
   if (getCurrentPages().length > 1) {
     uni.navigateBack();
@@ -231,23 +211,19 @@ const handleBack = () => {
   }
 };
 
-// 👤 设置入口
 const goToSettings = () => {
   uni.navigateTo({ url: '/pages/settings/my_settings/my_settings' });
 };
 
-// 🗣 反馈跳转
 const goToFeedback = () => {
   uni.navigateTo({ url: '/pages/feedback/feedback' });
 };
+
 const goHome = () => {
   uni.reLaunch({ url: '/pages/home/home' });
 };
-// 挂载时加载数据
-onMounted(() => {
-  fetchOrderDetail();
-});
 </script>
+
 
 
 

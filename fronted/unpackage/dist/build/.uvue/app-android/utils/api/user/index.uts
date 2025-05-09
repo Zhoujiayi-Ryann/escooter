@@ -1,0 +1,255 @@
+// 用户相关API
+import { request } from '../request';
+import { ApiResponse, LoginResponseData, RegisterResponseData } from '../types';
+/**
+ * 用户信息类型 - 包含所有用户详细信息
+ */
+export interface UserInfo {
+    user_id: number;
+    username: string;
+    password?: string; // 可选，安全考虑通常不应存储密码
+    email?: string;
+    phone_number?: string;
+    registration_date?: string;
+    total_usage_hours?: number;
+    total_spent?: number;
+    user_types?: string;
+    avatar_path?: string;
+    is_disabled?: boolean;
+    token?: string; // 可选，存储登录令牌
+}
+/**
+ * 用户详细信息类型
+ */
+export interface UserDetailInfo {
+    user_id: number;
+    username: string;
+    password: string;
+    email: string;
+    phone_number: string;
+    registration_date: string;
+    total_usage_hours: number;
+    total_spent: number;
+    user_types: string;
+    avatar_path: string;
+    is_disabled: boolean;
+}
+/**
+ * 用户API模块
+ */
+export const userApi = {
+    /**
+     * 用户登录
+     * @param data 登录信息
+     * @returns 登录结果
+     */
+    login(data: {
+        username: string;
+        password: string;
+    }): Promise<ApiResponse<LoginResponseData>> {
+        return request<LoginResponseData>({
+            url: '/users/login',
+            method: 'POST',
+            data: data
+        });
+    },
+    /**
+     * 用户注册
+     * @param data 注册信息
+     * @returns 注册结果
+     */
+    register(data: {
+        username: string;
+        password: string;
+        email: string;
+        phone_number: string;
+    }): Promise<ApiResponse<RegisterResponseData>> {
+        return request<RegisterResponseData>({
+            url: '/users/register',
+            method: 'POST',
+            data: data
+        });
+    },
+    /**
+     * 获取用户详细信息
+     * @param userId 用户ID
+     * @returns 用户详细信息
+     */
+    getUserDetail(userId: number): Promise<ApiResponse<UserDetailInfo>> {
+        return request<UserDetailInfo>({
+            url: `/users/profile/${userId}`,
+            method: 'GET'
+        });
+    },
+    /**
+     * 更新用户信息
+     * @param userId 用户ID
+     * @param data 要更新的用户信息
+     * @returns 更新后的用户信息
+     */
+    updateUserInfo(userId: number, data: {
+        username?: string;
+        email?: string;
+        phone_number?: string;
+        password?: string;
+    }): Promise<ApiResponse<UserDetailInfo>> {
+        return request<UserDetailInfo>({
+            url: `/users/profile/${userId}`,
+            method: 'PATCH',
+            data: data
+        });
+    },
+    /**
+     * 修改用户密码
+     * @param userId 用户ID
+     * @param data 修改密码信息
+     * @returns 更新后的用户信息
+     */
+    changePassword(userId: number, data: {
+        oldPassword: string;
+        newPassword: string;
+    }): Promise<ApiResponse<UserDetailInfo>> {
+        return request<UserDetailInfo>({
+            url: `/users/profile/${userId}/password`,
+            method: 'PATCH',
+            data: data
+        });
+    },
+    /**
+     * 保存用户信息到本地存储
+     * @param userInfo 完整的用户信息
+     */
+    saveUserInfo(userInfo: UserInfo): void {
+        try {
+            uni.setStorageSync('userInfo', JSON.stringify(userInfo));
+            console.log('完整用户信息已保存到本地存储', userInfo);
+            // 如果有token，单独保存token（保持与现有代码兼容）
+            if (userInfo.token) {
+                uni.setStorageSync('token', userInfo.token);
+                console.log('用户token已单独保存');
+            }
+        }
+        catch (e: any) {
+            console.error('保存用户信息失败:', e);
+        }
+    },
+    /**
+     * 获取用户信息
+     * @returns 完整的用户信息，如果未找到则返回null
+     */
+    getUserInfo(): UserInfo | null {
+        try {
+            const userInfoStr = uni.getStorageSync('userInfo');
+            if (userInfoStr) {
+                return JSON.parse(userInfoStr);
+            }
+        }
+        catch (e: any) {
+            console.error('解析用户信息失败:', e);
+        }
+        return null;
+    },
+    /**
+     * 获取用户ID
+     * @param defaultId 默认ID，如果未找到用户ID则返回此值
+     * @returns 用户ID，如果未找到且未提供默认值则返回0
+     */
+    getUserId(defaultId: number = 0): number {
+        const userInfo = this.getUserInfo();
+        // 同时支持驼峰命名和下划线命名
+        if (userInfo && (userInfo.userId || userInfo.user_id)) {
+            return userInfo.userId || userInfo.user_id;
+        }
+        if (defaultId !== 0) {
+            console.warn(`未找到用户ID，使用默认值${defaultId}`);
+        }
+        return defaultId;
+    },
+    /**
+     * 获取用户名
+     * @param defaultName 默认用户名，如果未找到用户名则返回此值
+     * @returns 用户名，如果未找到且未提供默认值则返回'Guest'
+     */
+    getUsername(defaultName: string = 'Guest'): string {
+        const userInfo = this.getUserInfo();
+        if (userInfo && userInfo.username) {
+            return userInfo.username;
+        }
+        return defaultName;
+    },
+    /**
+     * 判断用户是否已登录
+     * @returns 是否已登录
+     */
+    isLoggedIn(): boolean {
+        return this.getUserInfo() != null;
+    },
+    /**
+     * 退出登录
+     */
+    logout(): void {
+        try {
+            uni.removeStorageSync('userInfo');
+            uni.removeStorageSync('token');
+            console.log('用户已退出登录');
+        }
+        catch (e: any) {
+            console.error('退出登录失败:', e);
+        }
+    },
+    /**
+     * 更新本地存储的用户信息
+     * @param newInfo 需要更新的用户信息字段
+     */
+    updateLocalUserInfo(newInfo: Partial<UserInfo>): void {
+        try {
+            const currentUserInfo = this.getUserInfo();
+            if (currentUserInfo) {
+                // 合并现有信息和新信息
+                const updatedInfo = { ...currentUserInfo, ...newInfo } as UTSJSONObject;
+                this.saveUserInfo(updatedInfo);
+                console.log('本地用户信息已更新');
+            }
+            else {
+                console.warn('没有找到本地用户信息，无法更新');
+            }
+        }
+        catch (e: any) {
+            console.error('更新本地用户信息失败:', e);
+        }
+    }
+} as UTSJSONObject;
+/**
+ * 使用示例：
+ *
+ * import { userApi } from '../utils/api/user';
+ *
+ * // 登录并保存完整用户信息
+ * userApi.login({
+ *     username: 'user123',
+ *     password: 'password123'
+ * }).then(res => {
+ *     if (res.code === 1) {
+ *         // 获取完整用户信息
+ *         userApi.getUserDetail(res.data.user_id).then(detailRes => {
+ *             if (detailRes.code === 1) {
+ *                 // 保存完整用户信息
+ *                 userApi.saveUserInfo({
+ *                     ...detailRes.data,
+ *                     token: res.data.token
+ *                 });
+ *             }
+ *         });
+ *         console.log('登录成功');
+ *     }
+ * });
+ *
+ * // 获取完整用户信息
+ * const userInfo = userApi.getUserInfo();
+ *
+ * // 更新本地存储的某些用户信息字段
+ * userApi.updateLocalUserInfo({
+ *     avatar_path: 'new_avatar.jpg',
+ *     phone_number: '1234567890'
+ * });
+ */ 

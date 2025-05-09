@@ -1,0 +1,224 @@
+// 订单相关API
+import { request } from '../request';
+import { 
+    ApiResponse, 
+    CreateOrderRequest, 
+    OrderResponse, 
+    OrderDetailResponse, 
+    PayOrderResponse,
+    ExtendOrderRequest,
+    ChangeOrderStatusResponse,
+    AvailableTimeSlotsResponse,
+    AvailableCouponsResponse,
+    CouponRequest
+} from '../types';
+
+/**
+ * 订单API模块
+ */
+export const orderApi = {
+    /**
+     * 创建订单
+     * @param data 创建订单请求数据
+     * @returns 创建的订单信息
+     */
+    createOrder(data: CreateOrderRequest): Promise<ApiResponse<OrderResponse>> {
+        return request<OrderResponse>({
+            url: '/create_orders',
+            method: 'POST',
+            data: data,
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 获取订单详情(支付时)
+     * @param orderId 订单ID
+     * @returns 订单详情，包含滑板车信息
+     */
+    getOrderDetail(orderId: number): Promise<ApiResponse<OrderDetailResponse>> {
+        return request<OrderDetailResponse>({
+            url: `/orders/${orderId}/rent`,
+            method: 'GET',
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 获取订单原始信息（通用查询）
+     * @param orderId 订单ID
+     * @returns 订单原始信息，包含滑板车信息，不进行额外计算
+     */
+    getOrderInfo(orderId: number): Promise<ApiResponse<OrderDetailResponse>> {
+        return request<OrderDetailResponse>({
+            url: `/orders/${orderId}`,
+            method: 'GET',
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 支付订单 (使用优惠券)
+     * @param orderId 订单ID
+     * @param couponRequest 优惠券请求（可选）
+     * @returns 支付结果
+     */
+    payOrder(orderId: number, couponRequest?: CouponRequest): Promise<ApiResponse<PayOrderResponse>> {
+        return request<PayOrderResponse>({
+            url: `/orders/${orderId}/pay`,
+            method: 'POST',
+            data: couponRequest, // 如果有优惠券就传，没有就传null
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 支付订单 (不使用优惠券)
+     * @param orderId 订单ID
+     * @returns 支付结果
+     */
+    payOrderWithoutCoupon(orderId: number): Promise<ApiResponse<PayOrderResponse>> {
+        return request<PayOrderResponse>({
+            url: `/orders/${orderId}/pay`,
+            method: 'POST',
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 获取用户所有未使用的优惠券
+     * @param userId 用户ID
+     * @returns 可用优惠券列表
+     */
+    getAvailableCoupons(userId: number): Promise<ApiResponse<AvailableCouponsResponse>> {
+        return request<AvailableCouponsResponse>({
+            url: `/users/${userId}/coupons`,
+            method: 'GET',
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 获取用户所有订单
+     * @param userId 用户ID
+     * @returns 用户的订单列表
+     */
+    getUserOrders(userId: number): Promise<ApiResponse<OrderResponse[]>> {
+        return request<OrderResponse[]>({
+            url: `/users/${userId}/orders`,
+            method: 'GET',
+            needToken: false // 需要登录权限
+        });
+    },
+
+    /**
+     * 延长订单
+     * @param data 延长订单请求数据
+     * @returns 延长后的订单信息
+     */
+    extendOrder(data: ExtendOrderRequest): Promise<ApiResponse<OrderResponse>> {
+        return request<OrderResponse>({
+            url: `/orders/${data.order_id}/extend`,
+            method: 'POST',
+            data: data,
+            needToken: true
+        });
+    },
+
+    /**
+     * 激活订单
+     * @param orderId 订单ID
+     * @returns 激活后的订单信息
+     */
+    activateOrder(orderId: number): Promise<ApiResponse<ChangeOrderStatusResponse>> {
+        return request<ChangeOrderStatusResponse>({
+            url: `/orders/${orderId}/activate`,
+            method: 'POST',
+            needToken: true
+        });
+    },
+
+    /**
+     * 完成订单
+     * @param orderId 订单ID
+     * @returns 完成后的订单信息
+     */
+    completeOrder(orderId: number): Promise<ApiResponse<ChangeOrderStatusResponse>> {
+        return request<ChangeOrderStatusResponse>({
+            url: `/orders/${orderId}/complete`,
+            method: 'POST',
+            needToken: true
+        });
+    },
+
+    /**
+     * 删除订单
+     * @param orderId 订单ID
+     * @returns 删除结果
+     */
+    deleteOrder(orderId: number): Promise<ApiResponse<boolean>> {
+        return request<boolean>({
+            url: `/orders/${orderId}`,
+            method: 'DELETE',
+            needToken: true
+        });
+    },
+
+    /**
+     * 获取可用时间段
+     * @param orderId 订单ID
+     * @returns 可用时间段信息
+     */
+    getAvailableTimeSlots(orderId: number): Promise<ApiResponse<AvailableTimeSlotsResponse>> {
+        return request<AvailableTimeSlotsResponse>({
+            url: `/orders/${orderId}/available-slots`,
+            method: 'GET',
+            needToken: true
+        });
+    },
+
+    /**
+     * 软删除订单
+     * @param orderId 订单ID
+     * @returns 删除结果
+     */
+    softDeleteOrder(orderId: number): Promise<ApiResponse<boolean>> {
+        return request<boolean>({
+            url: `/orders/${orderId}/soft`,
+            method: 'DELETE',
+            needToken: true
+        });
+    }
+}
+
+/**
+ * 使用示例：
+ * 
+ * import { orderApi } from '../utils/api/order';
+ * 
+ * // 创建订单
+ * const orderData = {
+ *     user_id: 1,
+ *     scooter_id: 2,
+ *     pickup_address: '上海市浦东新区xx路xx号',
+ *     start_time: new Date().toISOString(),
+ *     end_time: new Date(Date.now() + 3600000).toISOString()
+ * };
+ * 
+ * orderApi.createOrder(orderData).then(res => {
+ *     if (res.code === 1) {
+ *         console.log('订单创建成功:', res.data);
+ *     }
+ * });
+ * 
+ * // 使用优惠券支付
+ * const couponRequest = {
+ *     couponId: 1,
+ *     orderId: 1
+ * };
+ * orderApi.payOrder(1, couponRequest).then(res => {
+ *     if (res.code === 1) {
+ *         console.log('支付成功:', res.data);
+ *     }
+ * });
+ */ 

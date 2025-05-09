@@ -69,11 +69,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from "vue";
+import { onLoad } from "@dcloudio/uni-app";
 import { orderApi } from "@/utils/api/order";
-
-const router = useRouter();
 
 const order = ref({
   orderId: '',
@@ -105,27 +103,29 @@ function formatDuration(startStr) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  return `${hours}hour ${minutes}min`;
+  return `${hours}h ${minutes}m`;
 }
 
-const fetchOrderDetail = async () => {
-  const rawId = router.currentRoute.value.query.orderId;
+// ✅ 使用 onLoad 获取路由参数
+onLoad((options) => {
+  const rawId = options?.orderId;
   const orderId = Number(rawId);
   if (!orderId || isNaN(orderId)) {
     uni.showToast({ title: 'Invalid order ID', icon: 'none' });
     return;
   }
+  fetchOrderDetail(orderId);
+});
 
+const fetchOrderDetail = async (orderId) => {
   try {
     const res = await orderApi.getOrderInfo(orderId);
     if (res.code === 1 && res.data) {
       const data = res.data;
 
-      // Ensure coordinates from backend are valid
       const lat = data.scooter_info?.latitude;
       const lng = data.scooter_info?.longitude;
 
-      // If coordinates are invalid, show toast
       if (!lat || !lng) {
         uni.showToast({ title: 'Invalid scooter location', icon: 'none' });
         return;
@@ -149,15 +149,10 @@ const fetchOrderDetail = async () => {
         cost: totalCost
       };
 
-      // Set scooter location for map
-      location.value = {
-        lat,
-        lng
-      };
-
+      location.value = { lat, lng };
       loadScooterLocation();
     } else {
-      uni.showToast({ title: res.msg || 'Failed to retrieve order', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Failed to fetch order details', icon: 'none' });
     }
   } catch (err) {
     console.error('🚨 Network error:', err);
@@ -172,7 +167,7 @@ const loadScooterLocation = () => {
     id: 1,
     latitude: location.value.lat,
     longitude: location.value.lng,
-    iconPath: '/static/order_details/maker.svg', 
+    iconPath: '/static/order_details/maker.svg',
     width: 32,
     height: 32,
     callout: {
@@ -188,7 +183,7 @@ const loadScooterLocation = () => {
 };
 
 const handleBack = () => {
-  uni.reLaunch({ url: '/pages/home/home' });
+    uni.reLaunch({ url: '/pages/home/home' });
 };
 
 const goToHelp = () => {
@@ -197,20 +192,19 @@ const goToHelp = () => {
 
 const goToReturn = async () => {
   if (!order.value.orderId) {
-    uni.showToast({ title: 'Missing order ID', icon: 'none' });
+    uni.showToast({ title: 'Order ID is missing', icon: 'none' });
     return;
   }
 
   try {
     const res = await orderApi.completeOrder(order.value.orderId);
     if (res.code === 1) {
-      uni.showToast({ title: 'Order completed. Please return the vehicle.', icon: 'success' });
-
+      uni.showToast({ title: 'Order completed. Proceed to return.', icon: 'success' });
       uni.navigateTo({
         url: `/pages/order_details/order_details_home?orderId=${order.value.orderId}`
       });
     } else {
-      uni.showToast({ title: res.msg || 'Failed to complete the order', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Failed to complete order', icon: 'none' });
     }
   } catch (err) {
     console.error('🚨 Failed to complete order:', err);
@@ -221,10 +215,6 @@ const goToReturn = async () => {
 const goHome = () => {
   uni.reLaunch({ url: '/pages/home/home' });
 };
-
-onMounted(() => {
-  fetchOrderDetail();
-});
 </script>
 
 

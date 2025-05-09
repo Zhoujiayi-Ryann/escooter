@@ -1,0 +1,23 @@
+
+import { userApi } from '../../utils/api/user'; // 引入你已有的工具模块
+
+const __sfc__ = defineComponent({
+  onLoad() {
+    const isLoggedIn = userApi.isLoggedIn(); // 你已有的登录判断逻辑
+
+    // 使用 redirectTo 避免页面栈堆积
+    uni.redirectTo({
+      url: isLoggedIn ? '/pages/home/home' : '/pages/loading/loading'
+    });
+  }
+});
+
+export default __sfc__
+function GenPagesIndexIndexRender(this: InstanceType<typeof __sfc__>): any | null {
+const _ctx = this
+const _cache = this.$.renderCache
+  return createElementVNode("view", utsMapOf({ class: "index-page" }), [
+    createElementVNode("text", utsMapOf({ class: "loading-text" }), "Checking login status...")
+  ])
+}
+const GenPagesIndexIndexStyles = [utsMapOf([["index-page", padStyleMapOf(utsMapOf([["display", "flex"], ["justifyContent", "center"], ["alignItems", "center"], ["backgroundImage", "none"], ["backgroundColor", "#f0f8ff"]]))], ["loading-text", padStyleMapOf(utsMapOf([["fontSize", 16], ["color", "#666666"]]))]])]

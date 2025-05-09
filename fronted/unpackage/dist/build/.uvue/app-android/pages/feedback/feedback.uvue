@@ -1,0 +1,255 @@
+import { feedbackApi } from '../../utils/api/feedback/index.uts';
+import { FeedbackType } from '../../utils/api/types';
+import { userApi } from '../../utils/api/user/index.uts';
+import { uploadApi } from '../../utils/api/upload/index.uts';
+const __sfc__ = defineComponent({
+    data() {
+        return {
+            typeArray: ['Using Problems', 'Experience Feedback'],
+            typeIndex: 0,
+            description: '',
+            images: [],
+            date: '',
+            orderNumber: '',
+            isSubmitting: false,
+            uploadedImageUrls: []
+        };
+    },
+    methods: {
+        onTypeChange(e) {
+            this.typeIndex = e.detail.value;
+        },
+        onDateChange(e) {
+            this.date = e.detail.value;
+        },
+        async chooseImage(): Promise<void> {
+            try {
+                const res = await uni.chooseImage({
+                    count: 3 - this.images.length,
+                    sizeType: ['compressed'],
+                    sourceType: ['album', 'camera']
+                });
+                this.images = [...this.images, ...res.tempFilePaths];
+            }
+            catch (err: any) {
+                console.error('Failed to choose image:', err);
+            }
+        },
+        previewImage(index) {
+            uni.previewImage({
+                urls: this.images,
+                current: index
+            });
+        },
+        deleteImage(index) {
+            uni.showModal({
+                title: 'Confirm Deletion',
+                content: 'Are you sure you want to delete this image?',
+                success: (res) => {
+                    if (res.confirm) {
+                        this.images.splice(index, 1);
+                        if (this.uploadedImageUrls.length > index) {
+                            this.uploadedImageUrls.splice(index, 1);
+                        }
+                    }
+                }
+            });
+        },
+        async submitFeedback(): Promise<void> {
+            if (!this.description) {
+                uni.showToast({
+                    title: 'Please describe the issue',
+                    icon: 'none'
+                });
+                return;
+            }
+            if (this.isSubmitting)
+                return;
+            this.isSubmitting = true;
+            uni.showLoading({
+                title: 'Submitting...'
+            });
+            try {
+                if (this.images.length > 0) {
+                    try {
+                        uni.showLoading({ title: 'Uploading images...' });
+                        this.uploadedImageUrls = await uploadApi.uploadFeedbackImages(this.images);
+                        console.log('Uploaded images:', this.uploadedImageUrls);
+                    }
+                    catch (error: any) {
+                        console.error('Image upload failed:', error);
+                        uni.hideLoading();
+                        uni.showToast({
+                            title: 'Failed to upload images',
+                            icon: 'none'
+                        });
+                        this.uploadedImageUrls = [];
+                    }
+                }
+                const userId = userApi.getUserId();
+                if (!userId)
+                    throw new Error('User ID not found. Please log in.');
+                const feedbackData = {
+                    user_id: userId,
+                    feedback_type: this.typeIndex === 0 ? FeedbackType.USING_PROBLEM : FeedbackType.EXPERIENCE_FEEDBACK,
+                    description: this.description,
+                    bill_number: this.orderNumber || undefined
+                } as UTSJSONObject;
+                if (this.date) {
+                    feedbackData["happening_time"] = this.date;
+                }
+                if (this.uploadedImageUrls.length > 0) {
+                    feedbackData["image_urls"] = this.uploadedImageUrls;
+                }
+                console.log('Submitting feedback data:', feedbackData);
+                uni.showLoading({
+                    title: 'Submitting feedback...'
+                });
+                const response = await feedbackApi.submitFeedback(feedbackData);
+                uni.hideLoading();
+                if (response.code === 1) {
+                    uni.showToast({
+                        title: 'Submitted successfully!',
+                        icon: 'success'
+                    });
+                    this.description = '';
+                    this.images = [];
+                    this.uploadedImageUrls = [];
+                    this.date = '';
+                    this.orderNumber = '';
+                    setTimeout(() => {
+                        uni.navigateBack();
+                    }, 1500);
+                }
+                else {
+                    throw new Error(response.msg || 'Submission failed');
+                }
+            }
+            catch (err: any) {
+                console.error('Feedback submission failed:', err);
+                uni.hideLoading();
+                uni.showToast({
+                    title: err.message || 'Submission failed',
+                    icon: 'none'
+                });
+            }
+            finally {
+                this.isSubmitting = false;
+            }
+        },
+        handleBack() {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                uni.navigateBack();
+            }
+            else {
+                uni.reLaunch({ url: '/pages/settings/my_settings/my_settings' });
+            }
+        }
+    }
+});
+export default __sfc__;
+function GenPagesFeedbackFeedbackRender(this: InstanceType<typeof __sfc__>): any | null {
+    const _ctx = this;
+    const _cache = this.$.renderCache;
+    const _component_van_icon = resolveComponent("van-icon");
+    const _component_picker = resolveComponent("picker");
+    return createElementVNode("view", utsMapOf({ class: "feedback-container" }), [
+        createElementVNode("view", utsMapOf({ class: "header" }), [
+            createElementVNode("view", utsMapOf({
+                class: "back-btn",
+                onClick: _ctx.handleBack
+            }), [
+                createVNode(_component_van_icon, utsMapOf({
+                    name: "arrow-left",
+                    class: "back-icon"
+                }))
+            ], 8 /* PROPS */, ["onClick"]),
+            createElementVNode("text", utsMapOf({ class: "header-title" }), "Submit Feedback")
+        ]),
+        createElementVNode("view", utsMapOf({ class: "section" }), [
+            createVNode(_component_picker, utsMapOf({
+                onChange: _ctx.onTypeChange,
+                value: _ctx.typeIndex,
+                range: _ctx.typeArray
+            }), utsMapOf({
+                default: withSlotCtx((): any[] => [
+                    createElementVNode("text", utsMapOf({ class: "label" }), "Feedback Type"),
+                    createElementVNode("view", utsMapOf({ class: "picker" }), [
+                        toDisplayString(_ctx.typeArray[_ctx.typeIndex]) + " ",
+                        createElementVNode("text", utsMapOf({ class: "picker-arrow" }), "▼")
+                    ])
+                ]),
+                _: 1 /* STABLE */
+            }), 8 /* PROPS */, ["onChange", "value", "range"])
+        ]),
+        createElementVNode("view", utsMapOf({ class: "section" }), [
+            createElementVNode("text", utsMapOf({ class: "label" }), "Description"),
+            createElementVNode("textarea", utsMapOf({
+                modelValue: _ctx.description,
+                onInput: ($event: InputEvent) => { (_ctx.description) = $event.detail.value; },
+                placeholder: "Please explain your problems",
+                class: "textarea"
+            }), null, 40 /* PROPS, NEED_HYDRATION */, ["modelValue", "onInput"]),
+            createElementVNode("view", utsMapOf({ class: "image-upload" }), [
+                createElementVNode(Fragment, null, RenderHelpers.renderList(_ctx.images, (item, index, __index, _cached): any => {
+                    return createElementVNode("view", utsMapOf({
+                        key: index,
+                        class: "image-wrapper"
+                    }), [
+                        createElementVNode("image", utsMapOf({
+                            src: item,
+                            class: "preview-image",
+                            mode: "aspectFill",
+                            onClick: () => { _ctx.previewImage(index); }
+                        }), null, 8 /* PROPS */, ["src", "onClick"]),
+                        createElementVNode("view", utsMapOf({
+                            class: "delete-btn",
+                            onClick: withModifiers(() => { _ctx.deleteImage(index); }, ["stop"])
+                        }), "×", 8 /* PROPS */, ["onClick"])
+                    ]);
+                }), 128 /* KEYED_FRAGMENT */),
+                _ctx.images.length < 3
+                    ? createElementVNode("view", utsMapOf({
+                        key: 0,
+                        class: "upload-btn",
+                        onClick: _ctx.chooseImage
+                    }), [
+                        createElementVNode("text", utsMapOf({ class: "upload-icon" }), "+")
+                    ], 8 /* PROPS */, ["onClick"])
+                    : createCommentVNode("v-if", true)
+            ])
+        ]),
+        createElementVNode("view", utsMapOf({ class: "section" }), [
+            createElementVNode("text", utsMapOf({ class: "label" }), "Happening Time (optimal)"),
+            createVNode(_component_picker, utsMapOf({
+                mode: "date",
+                value: _ctx.date,
+                onChange: _ctx.onDateChange
+            }), utsMapOf({
+                default: withSlotCtx((): any[] => [
+                    createElementVNode("view", utsMapOf({ class: "picker" }), [
+                        toDisplayString(_ctx.date || 'Please select time') + " ",
+                        createElementVNode("text", utsMapOf({ class: "picker-arrow" }), "▼")
+                    ])
+                ]),
+                _: 1 /* STABLE */
+            }), 8 /* PROPS */, ["value", "onChange"])
+        ]),
+        createElementVNode("view", utsMapOf({ class: "section" }), [
+            createElementVNode("text", utsMapOf({ class: "label" }), "Relevant Bill (optimal)"),
+            createElementVNode("input", utsMapOf({
+                type: "text",
+                modelValue: _ctx.orderNumber,
+                onInput: ($event: InputEvent) => { (_ctx.orderNumber) = $event.detail.value; },
+                placeholder: "Please input bill number",
+                class: "input"
+            }), null, 40 /* PROPS, NEED_HYDRATION */, ["modelValue", "onInput"])
+        ]),
+        createElementVNode("button", utsMapOf({
+            class: "submit-btn",
+            onClick: _ctx.submitFeedback
+        }), "Submit Feedback", 8 /* PROPS */, ["onClick"])
+    ]);
+}
+const GenPagesFeedbackFeedbackStyles = [utsMapOf([["feedback-container", padStyleMapOf(utsMapOf([["paddingTop", 20], ["paddingRight", 20], ["paddingBottom", 20], ["paddingLeft", 20], ["backgroundImage", "linear-gradient(to bottom, #e0f0ff, #ffffff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["display", "flex"], ["flexDirection", "column"], ["gap", "18rpx"]]))], ["section", padStyleMapOf(utsMapOf([["marginBottom", 20], ["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["borderRadius", "24rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"]]))], ["header", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["paddingTop", "40rpx"], ["paddingRight", 0], ["paddingBottom", "40rpx"], ["paddingLeft", 0], ["textAlign", "center"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["position", "relative"], ["marginBottom", "30rpx"]]))], ["back-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "25rpx"], ["left", "30rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["backgroundColor", "#f4f8ff"], ["borderRadius", "25rpx"], ["width", "80rpx"], ["height", "80rpx"]]))], ["back-icon", padStyleMapOf(utsMapOf([["fontSize", "55rpx"], ["color", "#0084ff"]]))], ["header-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"]]))], ["label", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["color", "#333333"], ["marginBottom", "20rpx"], ["fontWeight", "bold"]]))], ["picker", padStyleMapOf(utsMapOf([["height", 40], ["lineHeight", "40px"], ["borderWidth", "medium"], ["borderStyle", "none"], ["borderColor", "#000000"], ["borderRadius", 4], ["paddingTop", "20rpx"], ["paddingRight", 0], ["paddingBottom", "20rpx"], ["paddingLeft", 0], ["position", "relative"], ["fontSize", "30rpx"], ["backgroundColor", "rgba(0,0,0,0)"], ["width", "100%"], ["color", "#111111"], ["borderBottomWidth", "2rpx"], ["borderBottomStyle", "solid"], ["borderBottomColor", "#cccccc"]]))], ["picker-arrow", padStyleMapOf(utsMapOf([["position", "absolute"], ["right", 10], ["color", "#999999"]]))], ["textarea", padStyleMapOf(utsMapOf([["width", "100%"], ["height", "150rpx"], ["borderWidth", "medium"], ["borderStyle", "none"], ["borderColor", "#000000"], ["borderRadius", "12rpx"], ["paddingTop", "20rpx"], ["paddingRight", "20rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "20rpx"], ["boxSizing", "border-box"], ["fontSize", "30rpx"], ["backgroundColor", "#f9f9f9"], ["color", "#111111"], ["resize", "none"], ["lineHeight", 1.6]]))], ["image-upload", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["flexWrap", "nowrap"], ["marginTop", "20rpx"], ["gap", "20rpx"], ["overflowX", "auto"], ["paddingBottom", 5]]))], ["image-wrapper", padStyleMapOf(utsMapOf([["position", "relative"], ["width", "160rpx"], ["height", "160rpx"], ["overflow", "hidden"], ["flexShrink", 0], ["borderRadius", "12rpx"], ["boxShadow", "0 2px 6px rgba(0, 0, 0, 0.1)"]]))], ["preview-image", padStyleMapOf(utsMapOf([["width", "100%"], ["height", "100%"], ["borderRadius", 4], ["objectFit", "cover"]]))], ["delete-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "6rpx"], ["right", "6rpx"], ["width", "40rpx"], ["height", "40rpx"], ["backgroundColor", "rgba(0,0,0,0.6)"], ["color", "#FFFFFF"], ["fontSize", 18], ["fontWeight", "bold"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["zIndex", 10], ["boxShadow", "0 1px 3px rgba(0, 0, 0, 0.3)"], ["backgroundImage", "none"], ["textAlign", "center"], ["lineHeight", "40rpx"]]))], ["upload-btn", padStyleMapOf(utsMapOf([["width", "160rpx"], ["height", "160rpx"], ["borderWidth", "2rpx"], ["borderStyle", "dashed"], ["borderColor", "#cccccc"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["borderRadius", "12rpx"], ["backgroundColor", "#f4f4f4"], ["fontSize", "50rpx"], ["color", "#888888"]]))], ["upload-icon", padStyleMapOf(utsMapOf([["fontSize", 30], ["color", "#999999"]]))], ["input", padStyleMapOf(utsMapOf([["height", 40], ["borderWidth", "medium"], ["borderStyle", "none"], ["borderColor", "#000000"], ["borderRadius", 4], ["paddingTop", "20rpx"], ["paddingRight", 0], ["paddingBottom", "20rpx"], ["paddingLeft", 0], ["fontSize", "30rpx"], ["backgroundColor", "rgba(0,0,0,0)"], ["width", "100%"], ["color", "#111111"], ["borderBottomWidth", "2rpx"], ["borderBottomStyle", "solid"], ["borderBottomColor", "#cccccc"]]))], ["submit-btn", padStyleMapOf(utsMapOf([["marginTop", "40rpx"], ["backgroundColor", "rgba(0,0,0,0)"], ["color", "#ffffff"], ["borderRadius", "70rpx"], ["height", "90rpx"], ["lineHeight", "90rpx"], ["fontSize", "32rpx"], ["backgroundImage", "linear-gradient(to right, #82b1ff, #007aff)"], ["boxShadow", "0px 4px 10px rgba(0, 122, 255, 0.3)"]]))]])];

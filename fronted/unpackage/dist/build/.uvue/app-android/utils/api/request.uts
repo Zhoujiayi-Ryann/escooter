@@ -1,0 +1,65 @@
+// HTTP 请求工具类
+import { ApiResponse } from './types';
+export const BASE_URL = 'https://khnrsggvzudb.sealoshzh.site/api';
+// 存储 token 的 key
+const TOKEN_KEY = 'token';
+// 开发模式开关，设置为true表示开发模式，所有请求都无需token
+// TODO: 在生产环境中必须设置为false
+const DEV_MODE = true;
+// 获取存储的 token
+export function getToken(): string {
+    const token = uni.getStorageSync(TOKEN_KEY);
+    return token || '';
+}
+// 设置 token
+export function setToken(token: string) {
+    uni.setStorageSync(TOKEN_KEY, token);
+}
+// 清除 token
+export function removeToken() {
+    uni.removeStorageSync(TOKEN_KEY);
+}
+// HTTP 请求封装
+export function request<T>(options: {
+    url: string;
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    data?: any;
+    needToken?: boolean;
+}): Promise<ApiResponse<T>> {
+    return new Promise((resolve, reject) => {
+        const token = getToken();
+        const header: any = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+        // 如果不是开发模式且需要token且token存在，则添加到请求头
+        if (!DEV_MODE && options.needToken && token) {
+            header.token = token;
+        }
+        uni.request({
+            url: BASE_URL + options.url,
+            method: options.method || 'GET',
+            data: options.data,
+            header: header,
+            withCredentials: true,
+            success: (res: any) => {
+                // 如果不是开发模式，则处理401未授权的情况
+                if (!DEV_MODE && res.statusCode === 401) {
+                    // 清除 token
+                    removeToken();
+                    // 跳转到登录页
+                    uni.redirectTo({
+                        url: '/pages/login/login'
+                    });
+                    reject(new Error('Unauthorized'));
+                    return;
+                }
+                resolve(res.data);
+            },
+            fail: (err: any) => {
+                console.error('请求失败:', err);
+                reject(err);
+            }
+        });
+    });
+}

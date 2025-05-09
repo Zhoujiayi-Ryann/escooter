@@ -1,0 +1,211 @@
+
+	import { creditCardApi } from '../../utils/api/creditCard';
+	import { userApi } from '../../utils/api/user';
+	
+	const __sfc__ = defineComponent({
+		data() {
+			return {
+				cards: [],
+				loading: true,
+				error: null
+			}
+		},
+		onShow() {
+			this.fetchCards();
+		},
+		methods: {
+			// 获取银行卡列表
+			fetchCards() {
+				this.loading = true;
+				this.error = null;
+				
+				// 获取当前用户ID
+				const userId = userApi.getUserId();
+				
+				// 如果未登录，跳转到登录页
+				if (userId === 0) {
+					uni.navigateTo({
+						url: '/pages/login/login'
+					});
+					return;
+				}
+				
+				// 调用API获取银行卡列表
+				creditCardApi.getUserCreditCards(userId).then(res => {
+					this.loading = false;
+					
+					if (res.code === 1) {
+						this.cards = res.data;
+						console.log('Successfully obtained bank card:', this.cards);
+					} else {
+						this.error = res.message || 'Failed to obtain bank card';
+						uni.showToast({
+							title: this.error,
+							icon: 'none'
+						});
+					}
+				}).catch(err => {
+					this.loading = false;
+					this.error = 'Network error, please try again later';
+					
+					uni.showToast({
+						title: this.error,
+						icon: 'none'
+					});
+					console.error('Error in obtaining bank card:', err);
+				});
+			},
+			
+			// 添加新银行卡
+			addNewCard() {
+				uni.navigateTo({
+					url: '/pages/settings/card/card'
+				});
+			},
+			
+			// 删除银行卡
+			deleteCard(cardId) {
+				uni.showModal({
+					title: 'Delete Card',
+					content: 'Are you sure you want to delete this card?？',
+					confirmText: 'Confirm',
+					cancelText: 'Cancel',
+					success: (res) => {
+						if (res.confirm) {
+							const userId = userApi.getUserId();
+							
+							uni.showLoading({
+								title: 'Deleting...'
+							});
+							
+							creditCardApi.deleteCreditCard(cardId, userId).then(res => {
+								uni.hideLoading();
+								
+								if (res.code === 1) {
+									uni.showToast({
+										title: 'Delete Success',
+										icon: 'success'
+									});
+									// 重新获取银行卡列表
+									this.fetchCards();
+								} else {
+									uni.showToast({
+										title: res.message || 'Delete Fail',
+										icon: 'none'
+									});
+								}
+							}).catch(err => {
+								uni.hideLoading();
+								uni.showToast({
+									title: 'Network error, please try again later',
+									icon: 'none'
+								});
+								console.error('Delete bank card error:', err);
+							});
+						}
+					}
+				});
+			},
+			handleBack() {
+			  const pages = getCurrentPages();
+			  if (pages.length > 1) {
+			    uni.navigateBack();
+			  } else {
+			    uni.reLaunch({ url: '/pages/settings/my_settings/my_settings' });
+			  }
+			},
+			
+			// 格式化银行卡号，只显示后四位
+			formatCardNumber(cardNumber) {
+				if (!cardNumber) return '';
+				return '•••• •••• •••• ' + cardNumber.slice(-4);
+			},
+			
+			// 格式化到期日期
+			formatExpiryDate(date) {
+				if (!date) return '';
+				// 预期格式: 2025-12-31，转换为 12/25
+				const parts = date.split('-');
+				if (parts.length >= 2) {
+					const month = parts[1];
+					const year = parts[0].slice(-2);
+					return `${month}/${year}`;
+				}
+				return date;
+			}
+		}
+	})
+
+export default __sfc__
+function GenPagesCardsCardsRender(this: InstanceType<typeof __sfc__>): any | null {
+const _ctx = this
+const _cache = this.$.renderCache
+const _component_van_icon = resolveComponent("van-icon")
+
+  return createElementVNode("view", utsMapOf({ class: "cards-container" }), [
+    createElementVNode("view", utsMapOf({ class: "header" }), [
+      createElementVNode("view", utsMapOf({
+        class: "back-btn",
+        onClick: _ctx.handleBack
+      }), [
+        createVNode(_component_van_icon, utsMapOf({
+          name: "arrow-left",
+          class: "back-icon"
+        }))
+      ], 8 /* PROPS */, ["onClick"]),
+      createElementVNode("text", utsMapOf({ class: "header-title" }), "Cards")
+    ]),
+    isTrue(_ctx.loading)
+      ? createElementVNode("view", utsMapOf({
+          key: 0,
+          class: "loading-container"
+        }), [
+          createElementVNode("text", utsMapOf({ class: "loading-text" }), "Loading...")
+        ])
+      : isTrue(_ctx.cards && _ctx.cards.length > 0)
+        ? createElementVNode("view", utsMapOf({
+            key: 1,
+            class: "card-list"
+          }), [
+            createElementVNode(Fragment, null, RenderHelpers.renderList(_ctx.cards, (card, index, __index, _cached): any => {
+              return createElementVNode("view", utsMapOf({
+                key: index,
+                class: "card-item"
+              }), [
+                createElementVNode("view", utsMapOf({ class: "card-info" }), [
+                  createElementVNode("text", utsMapOf({ class: "card-country" }), toDisplayString(card.country), 1 /* TEXT */),
+                  createElementVNode("view", utsMapOf({ class: "card-number-container" }), [
+                    createElementVNode("text", utsMapOf({ class: "card-number" }), toDisplayString(_ctx.formatCardNumber(card.card_number)), 1 /* TEXT */)
+                  ]),
+                  createElementVNode("view", utsMapOf({ class: "card-expires" }), [
+                    createElementVNode("text", utsMapOf({ class: "expires-label" }), "Valid Thru:"),
+                    createElementVNode("text", utsMapOf({ class: "expires-date" }), toDisplayString(_ctx.formatExpiryDate(card.expiry_date)), 1 /* TEXT */)
+                  ])
+                ]),
+                createElementVNode("view", utsMapOf({
+                  class: "delete-btn",
+                  onClick: withModifiers(() => {_ctx.deleteCard(card.card_id)}, ["stop"])
+                }), [
+                  createElementVNode("text", utsMapOf({ class: "delete-icon" }), "×")
+                ], 8 /* PROPS */, ["onClick"])
+              ])
+            }), 128 /* KEYED_FRAGMENT */)
+          ])
+        : createElementVNode("view", utsMapOf({
+            key: 2,
+            class: "empty-state"
+          }), [
+            createElementVNode("view", utsMapOf({ class: "empty-icon" }), "💳"),
+            createElementVNode("text", utsMapOf({ class: "empty-text" }), "No cards found"),
+            createElementVNode("text", utsMapOf({ class: "empty-subtext" }), "Add a card to enable payment")
+          ]),
+    createElementVNode("view", utsMapOf({
+      class: "add-card",
+      onClick: _ctx.addNewCard
+    }), [
+      createElementVNode("text", utsMapOf({ class: "add-icon" }), "+"),
+      createElementVNode("text", utsMapOf({ class: "add-text" }), "Add New Card")
+    ], 8 /* PROPS */, ["onClick"])
+  ])
+}
+const GenPagesCardsCardsStyles = [utsMapOf([["cards-container", padStyleMapOf(utsMapOf([["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "40rpx"], ["paddingLeft", "40rpx"], ["backgroundImage", "linear-gradient(to bottom, #e0f0ff, #ffffff)"], ["backgroundColor", "rgba(0,0,0,0)"]]))], ["back-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "25rpx"], ["left", "30rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["backgroundColor", "#f4f8ff"], ["borderRadius", "25rpx"], ["width", "80rpx"], ["height", "80rpx"]]))], ["back-icon", padStyleMapOf(utsMapOf([["fontSize", "55rpx"], ["color", "#0084ff"]]))], ["header-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"]]))], ["header", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["paddingTop", "40rpx"], ["paddingRight", 0], ["paddingBottom", "40rpx"], ["paddingLeft", 0], ["textAlign", "center"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["position", "relative"], ["marginBottom", "30rpx"]]))], ["loading-container", padStyleMapOf(utsMapOf([["display", "flex"], ["justifyContent", "center"], ["alignItems", "center"], ["height", "400rpx"]]))], ["loading-text", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["color", "#666666"]]))], ["card-list", padStyleMapOf(utsMapOf([["marginTop", "20rpx"], ["marginRight", 0], ["marginBottom", "20rpx"], ["marginLeft", 0]]))], ["card-item", padStyleMapOf(utsMapOf([["marginBottom", "30rpx"], ["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "40rpx"], ["paddingLeft", "40rpx"], ["borderRadius", "25rpx"], ["backgroundImage", "linear-gradient(135deg, #0396FF, #0D47A1)"], ["backgroundColor", "rgba(0,0,0,0)"], ["boxShadow", "0 10rpx 20rpx rgba(3, 150, 255, 0.2)"], ["position", "relative"], ["overflow", "hidden"], ["content::before", "''"], ["position::before", "absolute"], ["top::before", "-100rpx"], ["right::before", "-100rpx"], ["width::before", "300rpx"], ["height::before", "300rpx"], ["backgroundImage::before", "none"], ["backgroundColor::before", "rgba(255,255,255,0.1)"], ["content::after", "''"], ["position::after", "absolute"], ["bottom::after", "-150rpx"], ["left::after", "-150rpx"], ["width::after", "400rpx"], ["height::after", "400rpx"], ["backgroundImage::after", "none"], ["backgroundColor::after", "rgba(255,255,255,0.05)"]]))], ["card-info", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["gap", "20rpx"], ["position", "relative"], ["zIndex", 1]]))], ["card-country", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "rgba(255,255,255,0.8)"], ["textTransform", "uppercase"], ["letterSpacing", "2rpx"]]))], ["card-number-container", padStyleMapOf(utsMapOf([["display", "flex"], ["alignItems", "center"], ["justifyContent", "space-between"], ["marginTop", "20rpx"], ["marginRight", 0], ["marginBottom", "20rpx"], ["marginLeft", 0]]))], ["card-number", padStyleMapOf(utsMapOf([["fontSize", "36rpx"], ["letterSpacing", "4rpx"], ["color", "#ffffff"], ["fontFamily", "monospace"], ["textShadow", "0 2rpx 4rpx rgba(0, 0, 0, 0.1)"]]))], ["card-expires", padStyleMapOf(utsMapOf([["display", "flex"], ["alignItems", "center"], ["gap", "10rpx"]]))], ["expires-label", padStyleMapOf(utsMapOf([["fontSize", "24rpx"], ["color", "rgba(255,255,255,0.7)"]]))], ["expires-date", padStyleMapOf(utsMapOf([["fontSize", "26rpx"], ["color", "#ffffff"], ["fontWeight", "bold"]]))], ["delete-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "20rpx"], ["right", "20rpx"], ["width", "60rpx"], ["height", "60rpx"], ["borderRadius", "30rpx"], ["backgroundColor", "rgba(255,255,255,0.2)"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["zIndex", 2]]))], ["delete-icon", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["color", "#ffffff"]]))], ["empty-state", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["alignItems", "center"], ["justifyContent", "center"], ["paddingTop", "100rpx"], ["paddingRight", 0], ["paddingBottom", "100rpx"], ["paddingLeft", 0]]))], ["empty-icon", padStyleMapOf(utsMapOf([["fontSize", "120rpx"], ["marginBottom", "30rpx"]]))], ["empty-text", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["color", "#333333"], ["fontWeight", "bold"], ["marginBottom", "10rpx"]]))], ["empty-subtext", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#666666"]]))], ["add-card", padStyleMapOf(utsMapOf([["display", "flex"], ["alignItems", "center"], ["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "40rpx"], ["paddingLeft", "40rpx"], ["backgroundColor", "#ffffff"], ["borderRadius", "25rpx"], ["marginTop", "40rpx"], ["boxShadow", "0 4rpx 12rpx rgba(0, 0, 0, 0.05)"], ["borderWidth", "2rpx"], ["borderStyle", "solid"], ["borderColor", "rgba(0,0,0,0.05)"], ["transitionDuration", "0.3s"], ["transitionTimingFunction", "ease"], ["transform:active", "scale(0.98)"], ["backgroundColor:active", "#f8f9fa"]]))], ["add-icon", padStyleMapOf(utsMapOf([["fontSize", "44rpx"], ["marginRight", "20rpx"], ["color", "#0396FF"]]))], ["add-text", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["flex", 1], ["color", "#333333"]]))], ["@TRANSITION", utsMapOf([["add-card", utsMapOf([["duration", "0.3s"], ["timingFunction", "ease"]])]])]])]

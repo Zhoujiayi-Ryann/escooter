@@ -63,10 +63,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { orderApi } from '@/utils/api/order';
-
-const router = useRouter();
 
 const order = ref({
   orderId: '',
@@ -79,20 +76,6 @@ const order = ref({
   price: 0
 });
 
-// Store the order ID passed on page load
-let pageOrderId = null;
-
-// onLoad lifecycle - receive query parameters
-onLoad((query) => {
-  console.log('📦 order_not_used onLoad received params:', query);
-  if (query && query.orderId) {
-    pageOrderId = query.orderId;
-    console.log('📦 orderId obtained from onLoad:', pageOrderId);
-  }
-  // Immediately fetch order info
-  fetchOrderDetail();
-});
-
 const location = ref({ lng: 0, lat: 0 });
 const markers = ref([]);
 
@@ -103,93 +86,53 @@ const anchors = [
 ];
 const panelHeight = ref(anchors[0]);
 
-// Fetch order details (with debug logging)
+let pageOrderId = null;
+
+onLoad((query) => {
+  console.log('📦 onLoad received:', query);
+  if (query && query.orderId) {
+    pageOrderId = query.orderId;
+    console.log('📦 orderId received from onLoad:', pageOrderId);
+  }
+  fetchOrderDetail();
+});
+
 const fetchOrderDetail = async () => {
-  let rawId;
+  let rawId = pageOrderId;
 
-  // Method 1: Check orderId from onLoad
-  if (pageOrderId) {
-    rawId = pageOrderId;
-    console.log('📦 Using orderId from onLoad =', rawId);
-  }
-  // Method 2: From route query
-  else if (router?.currentRoute?.value?.query) {
-    rawId = router.currentRoute.value.query.orderId;
-    console.log('📦 orderId from router.query =', rawId);
-  }
-
-  // Method 3: Try to extract from page options
   if (!rawId) {
     try {
       const pages = getCurrentPages();
       const currentPage = pages[pages.length - 1];
       const options = currentPage.$page?.options;
-      console.log('📦 current page options:', options);
-      if (options?.orderId) {
+      if (options && options.orderId) {
         rawId = options.orderId;
-        console.log('📦 orderId from page options =', rawId);
+        console.log('📦 Fallback orderId from page options:', rawId);
       }
     } catch (err) {
-      console.error('📦 Failed to retrieve page parameters:', err);
+      console.error('📦 Failed to get page parameters:', err);
     }
   }
 
-  // Fallback: use test ID (for development only)
   if (!rawId) {
-    console.warn('⚠️ Failed to get orderId from normal sources, using test ID');
+    console.warn('⚠️ orderId missing, using test value');
     rawId = '1';
   }
 
   const orderId = Number(rawId);
-  console.log('📦 Final orderId (number) =', orderId, typeof orderId);
-
   if (!orderId || isNaN(orderId)) {
     uni.showToast({ title: 'Invalid Order ID', icon: 'none', duration: 3000 });
-    console.warn('⚠️ Invalid orderId:', rawId, '->', orderId);
     return;
   }
 
-  function formatToCST(utcStr) {
-    if (!utcStr) return 'N/A';
-    const date = new Date(utcStr);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-
-    const offsetMs = 0;
-    const cstDate = new Date(date.getTime() + offsetMs);
-
-    return `${cstDate.getFullYear()}-${(cstDate.getMonth() + 1).toString().padStart(2, '0')}-${cstDate.getDate().toString().padStart(2, '0')} ${cstDate.getHours().toString().padStart(2, '0')}:${cstDate.getMinutes().toString().padStart(2, '0')}`;
-  }
-
-  function formatDuration(startStr, endStr) {
-    const start = new Date(startStr);
-    const end = new Date(endStr);
-    if (isNaN(start) || isNaN(end)) return 'Unknown';
-
-    const diffMs = end.getTime() - start.getTime();
-    const hours = diffMs / (1000 * 60 * 60);
-
-    if (hours < 24) {
-      return `${Math.round(hours)} hour`;
-    } else {
-      const days = Math.floor(hours / 24);
-      return `${days} day`;
-    }
-  }
-
   try {
-    console.log('📡 Sending request: /orders/' + orderId);
     const res = await orderApi.getOrderInfo(orderId);
-    console.log('✅ API response:', res);
-
     if (res.code === 1 && res.data) {
       const data = res.data;
-      console.log('🛠️ Retrieved order data:', data);
-
       const hasExtension = !!data.new_end_time;
 
       const totalCost = (data.cost ?? 0) + (data.extended_cost ?? 0);
       const totalDurationHours = (data.duration ?? 0) + (data.extended_duration ?? 0);
-      const endTime = hasExtension ? data.new_end_time : data.end_time;
 
       order.value = {
         orderId: data.order_id,
@@ -207,27 +150,27 @@ const fetchOrderDetail = async () => {
         lng: data.scooter_info?.longitude ?? 0
       };
 
-      // ✅ Load map marker after values are set
       loadScooterLocation();
-      console.log('📍 Map coordinates set:', location.value);
     } else {
-      console.error('❌ Failed to retrieve order:', res.msg);
-      uni.showToast({ title: res.msg || 'Failed to get order', icon: 'none' });
+      uni.showToast({ title: res.msg || 'Failed to fetch order', icon: 'none' });
     }
   } catch (err) {
-    console.error('🚨 Network error:', err);
-    uni.showToast({ title: 'Network error, please try again later', icon: 'none' });
+    console.error('🚨 API error:', err);
+    uni.showToast({ title: 'Network error, try again later', icon: 'none' });
   }
 };
 
-const formatTime = (isoString) => {
-  const date = new Date(isoString);
+function formatToCST(utcStr) {
+  if (!utcStr) return 'N/A';
+  const date = new Date(utcStr);
+  if (isNaN(date.getTime())) return 'Invalid Date';
+
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-};
+}
 
 const loadScooterLocation = () => {
   if (!location.value.lat || !location.value.lng) {
-    console.warn('📌 Invalid marker coordinates:', location.value);
+    console.warn('📌 Invalid coordinates for marker', location.value);
     return;
   }
 
@@ -235,7 +178,7 @@ const loadScooterLocation = () => {
     id: 1,
     latitude: location.value.lat,
     longitude: location.value.lng,
-    iconPath: '/static/order_details/maker.svg', // ✅ Make sure path is valid
+    iconPath: '/static/order_details/maker.svg',
     width: 32,
     height: 32,
     callout: {
@@ -249,7 +192,6 @@ const loadScooterLocation = () => {
       fontWeight: 'bold',
     }
   }];
-  console.log('📍 Marker set successfully:', markers.value);
 };
 
 const goToHelp = () => {
@@ -257,19 +199,19 @@ const goToHelp = () => {
 };
 
 const handleBack = () => {
-  uni.reLaunch({ url: '/pages/home/home' });
+    uni.reLaunch({ url: '/pages/home/home' });
 };
 
 const goToUse = async () => {
   if (!order.value.orderId) {
-    uni.showToast({ title: 'Order ID missing', icon: 'none' });
+    uni.showToast({ title: 'Missing Order ID', icon: 'none' });
     return;
   }
 
   try {
     const res = await orderApi.activateOrder(order.value.orderId);
     if (res.code === 1) {
-      uni.showToast({ title: 'Order activated, you can now use the scooter', icon: 'success' });
+      uni.showToast({ title: 'Order activated. You can now use the scooter.', icon: 'success' });
 
       uni.navigateTo({
         url: `/pages/order_in_progress/order_in_progress_home?orderId=${order.value.orderId}`
@@ -283,13 +225,13 @@ const goToUse = async () => {
   }
 };
 
-// Execute after component is mounted
 onMounted(() => {
   if (!pageOrderId) {
     fetchOrderDetail();
   }
 });
 </script>
+
 
 
 

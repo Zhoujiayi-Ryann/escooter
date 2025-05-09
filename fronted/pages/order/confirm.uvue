@@ -63,8 +63,10 @@
     
     <view class="agreement-section">
       <van-checkbox v-model="agreedToTerms" shape="square" icon-size="18px">
-        <text class="agreement-text">I acknowledge and agree to the </text><br>
-        <text class="agreement-link" @click="showAgreement">User Agreement</text>
+        <text class="agreement-text">I acknowledge and agree to the</text>
+            <view class="agreement-link-wrapper">
+              <text class="agreement-link" @click="showAgreement">User Agreement</text>
+            </view>
       </van-checkbox>
     </view>
     

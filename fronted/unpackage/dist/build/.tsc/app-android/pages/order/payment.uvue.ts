@@ -1,0 +1,830 @@
+
+	import { orderApi, creditCardApi } from '@/utils/api';
+	import { userApi } from '@/utils/api/user';
+	import { couponApi } from '@/utils/api/coupon';
+	import { dateUtils } from '@/utils/dateUtils';
+	import { Locale } from 'vant';
+	import enUS from 'vant/es/locale/lang/en-US';
+
+	Locale.use('en-US', enUS);
+
+	const __sfc__ = defineComponent({
+		data() {
+			return {
+				orderId: '',
+				orderInfo: {},
+				totalAmount: 0,
+				showPassword: false,
+				showKeyboard: false,
+				password: '',
+				passwordFocus: false,
+				showList: false,
+				chosenCoupon: -1,
+				coupons: [],
+				disabledCoupons: [],
+				bankCardSelected: false,
+				showCardList: false,
+				creditCards: [],
+				selectedCard: null,
+				selectedCardId: -1,
+				loading: false,
+			}
+		},
+		onLoad(options) {
+			if (options.orderInfo) {
+				this.orderInfo = JSON.parse(decodeURIComponent(options.orderInfo));
+				this.orderId = this.orderInfo.orderId;
+				this.totalAmount = this.orderInfo.cost;
+				
+				console.log('订单信息:', this.orderInfo);
+				
+				// 检查订单数据格式
+				if (this.orderInfo.start_time && this.orderInfo.end_time) {
+					try {
+						// 尝试将ISO格式转换为更友好的显示格式
+						const startDateTime = new Date(this.orderInfo.start_time);
+						const endDateTime = new Date(this.orderInfo.end_time);
+						
+						this.orderInfo.startDate = startDateTime.toLocaleDateString();
+						this.orderInfo.startTime = startDateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+						this.orderInfo.endDate = endDateTime.toLocaleDateString();
+						this.orderInfo.endTime = endDateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+						
+						console.log('格式化后的时间:', {
+							startDate: this.orderInfo.startDate,
+							startTime: this.orderInfo.startTime,
+							endDate: this.orderInfo.endDate,
+							endTime: this.orderInfo.endTime
+						});
+					} catch (e) {
+						console.error('Error parsing date and time:', e);
+					}
+				}
+				
+				// 加载订单可用的优惠券
+				this.loadAvailableCoupons();
+			}
+			
+			// 加载用户银行卡
+			this.loadUserCreditCards();
+		},
+		methods: {
+			handleBack(){
+				const pages = getCurrentPages();
+			    if (pages.length > 1) {
+			    	uni.navigateBack();
+			  	} else {
+			    	uni.reLaunch({ url: '/pages/home/home' });
+				}
+			},
+			togglePayment(method) {
+				this.paymentMethod = method;
+			},
+			showPasswordInput() {
+				if (!this.selectedCard) {
+					uni.showToast({
+						title: 'Please select a payment card',
+						icon: 'none'
+					});
+					return;
+				}
+				this.showPassword = true;
+				this.showKeyboard = true;
+				this.passwordFocus = true;
+			},
+			closePasswordInput() {
+				this.showPassword = false;
+				this.showKeyboard = false;
+				this.password = '';
+				this.passwordFocus = false;
+			},
+			onPasswordInput(key) {
+				if (this.password.length >= 6) {
+					return;
+				}
+				this.password += key;
+				if (this.password.length === 6) {
+					this.handlePayment();
+				}
+			},
+			onPasswordDelete() {
+				this.password = this.password.slice(0, -1);
+			},
+			handlePayment() {
+				// 获取订单ID
+				const orderId = this.orderInfo.orderId || 0;
+				
+				if (!orderId) {
+					uni.showToast({
+						title: 'Incomplete order information',
+						icon: 'none'
+					});
+					this.closePasswordInput();
+					return;
+				}
+				
+				// 准备优惠券数据（如果选择了优惠券）
+				let couponRequest = null;
+				if (this.chosenCoupon !== -1 && this.coupons.length > this.chosenCoupon) {
+					couponRequest = {
+						couponId: this.coupons[this.chosenCoupon].id,
+						orderId: orderId
+					};
+					console.log('使用优惠券支付，couponRequest:', couponRequest);
+				}
+				
+				// 根据是否有优惠券选择不同的API调用
+				const paymentPromise = couponRequest 
+					? orderApi.payOrder(orderId, couponRequest) 
+					: orderApi.payOrderWithoutCoupon(orderId);
+				
+				// 调用支付API
+				paymentPromise
+					.then(res => {
+						console.log('Payment API response:', res);
+						if (res.code === 1) {
+							// 支付成功
+							this.closePasswordInput();
+							
+							// 构建成功消息，包含优惠券信息
+							let successMessage = 'Payment successful';
+							if (res.data && res.data.coupon_amount) {
+								successMessage += ` (Saved £${res.data.coupon_amount})`;
+							}
+							
+							uni.showToast({
+								title: successMessage,
+								icon: 'success',
+								duration: 2000
+							});
+							console.log('Payment successful, redirecting...');
+							
+							// 支付成功后跳转到booking_right界面
+							setTimeout(() => {
+								uni.reLaunch({
+									url: `/pages/booking_right/booking_right?orderId=${orderId}`
+								});
+							}, 2000);
+						} else {
+							// 支付失败
+							uni.showToast({
+								title: res.msg || 'Payment failed',
+								icon: 'none'
+							});
+							this.closePasswordInput();
+						}
+					})
+					.catch(err => {
+						uni.showToast({
+							title: 'Network request exception',
+							icon: 'none'
+						});
+						console.error('Payment request exception:', err);
+						this.closePasswordInput();
+					});
+			},
+			onChange(index) {
+				console.log('选择优惠券，索引:', index, '当前选择:', this.chosenCoupon);
+				
+				// toggle-toggle
+				if (this.chosenCoupon === index) {
+					this.chosenCoupon = -1;
+					console.log('取消选择优惠券');
+				} else {
+					this.chosenCoupon = index;
+					console.log('选择了新的优惠券, ID:', this.coupons[index]?.id);
+				}
+				
+				// 关闭优惠券列表
+				this.showList = false;
+				
+				// 重新计算价格
+				this.$nextTick(() => {
+					this.calculateTotal();
+				});
+			},
+			onExchange(code) {
+				if (code === '123456') {
+					// 假设兑换成功，添加新优惠券
+					this.coupons.push({
+						id: this.coupons.length + 1,
+						condition: 'No minimum',
+						discount: 15,
+						denominations: 15 * 100, // 乘以100来抵消组件的自动除法
+						originCondition: 0,
+						name: 'New £15 Coupon',
+						startAt: Date.now() / 1000,
+						endAt: Date.now() / 1000 + 86400 * 30,
+						valueDesc: '£15',
+						unitDesc: '',
+						description: 'Redeemed'
+					});
+					uni.showToast({
+						title: 'Redemption Successful',
+						icon: 'success'
+					});
+				} else {
+					uni.showToast({
+						title: 'Invalid Code',
+						icon: 'error'
+					});
+				}
+			},
+			// 计算优惠券折扣金额
+			calculateCouponDiscount() {
+				let couponDiscount = 0;
+				
+				if (this.chosenCoupon !== -1 && this.coupons.length > this.chosenCoupon) {
+					const coupon = this.coupons[this.chosenCoupon];
+					const baseAmount = parseFloat(this.orderInfo.cost || 0);
+					if (baseAmount >= (coupon.originCondition || 0)) {
+						couponDiscount = coupon.couponAmount; // 使用原始金额，不受乘以100的影响
+					} else {
+						console.log('订单金额不满足优惠券使用条件:', {
+							baseAmount: baseAmount,
+							minAmount: coupon.originCondition || 0
+						});
+					}
+				}
+				
+				return couponDiscount.toFixed(2);
+			},
+			calculateTotal() {
+				let basePrice = parseFloat(this.orderInfo.cost || 0);
+				const couponDiscount = parseFloat(this.calculateCouponDiscount());
+				
+				console.log('计算总价:', {
+					basePrice,
+					couponDiscount
+				});
+				
+				if (couponDiscount > 0) {
+					basePrice = Math.max(0, basePrice - couponDiscount);
+				}
+				
+				this.totalAmount = basePrice.toFixed(2);
+				console.log('最终计算价格:', this.totalAmount);
+			},
+			// 加载用户银行卡
+			loadUserCreditCards() {
+				this.loading = true;
+				
+				// 使用 userApi 获取用户 ID，默认为 1
+				const userId = userApi.getUserId(1);
+				
+				if (!userId) {
+					uni.showToast({
+						title: 'Please login first',
+						icon: 'none'
+					});
+					this.loading = false;
+					return;
+				}
+				
+				
+				creditCardApi.getUserCreditCards(userId)
+					.then(res => {
+						if (res.code === 1) {
+							this.creditCards = res.data || [];
+						} else {
+							uni.showToast({
+								title: res.msg || 'Failed to get cards',
+								icon: 'none'
+							});
+						}
+					})
+					.catch(err => {
+						console.error('Card retrieval exception:', err);
+						uni.showToast({
+							title: 'Network request exception',
+							icon: 'none'
+						});
+					})
+					.finally(() => {
+						this.loading = false;
+					});
+			},
+			// 格式化银行卡号，只显示后四位
+			formatCardNumber(cardNumber) {
+				if (!cardNumber) return '';
+				return '****  ****  ****  ' + cardNumber.slice(-4);
+			},
+			// 切换银行卡选择状态（toggle 逻辑）
+			toggleCardSelection(card) {
+				// 如果点击的是当前已选中的卡，则取消选择
+				if (this.selectedCardId === card.card_id) {
+					this.selectedCardId = -1;
+				} else {
+					// 否则选中点击的卡
+					this.selectedCardId = card.card_id;
+				}
+			},
+			// 确认银行卡选择
+			confirmCardSelection() {
+				if (this.selectedCardId === -1) {
+					uni.showToast({
+						title: 'Please select a card',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				const card = this.creditCards.find(c => c.card_id === this.selectedCardId);
+				if (card) {
+					this.selectedCard = card;
+					this.bankCardSelected = true;
+					this.showCardList = false;
+				}
+			},
+			// 跳转到添加银行卡页面
+			goToAddCard() {
+				uni.navigateTo({
+					url: '/pages/user/add_card'
+				});
+			},
+			// 加载可用优惠券
+			async loadAvailableCoupons() {
+				try {
+					// 获取用户ID
+					const userId = userApi.getUserId(1);
+					console.log('正在获取用户优惠券，用户ID:', userId);
+					
+					// 获取所有优惠券
+					const result = await couponApi.getAvailableCoupons(userId);
+					console.log('优惠券API返回结果:', result);
+					
+					if (result.code === 1 && result.data) {
+						// 获取订单金额
+						const orderAmount = parseFloat(this.orderInfo.cost || 0);
+						console.log('当前订单金额:', orderAmount);
+						
+						// 筛选优惠券
+						const availableCoupons = [];
+						const unavailableCoupons = [];
+						
+						const coupons = Array.isArray(result.data) ? result.data : (result.data.coupons || []);
+						
+						coupons.forEach(coupon => {
+							console.log('处理优惠券:', coupon);
+							
+							// 转换日期为更易读的格式 - 使用正确的字段名 (snake_case)
+							const validFrom = coupon.valid_from ? new Date(coupon.valid_from) : null;
+							const validTo = coupon.valid_to ? new Date(coupon.valid_to) : null;
+							
+							// 转换为van-coupon组件需要的格式
+							const formattedCoupon = {
+								id: coupon.coupon_id,
+								name: coupon.coupon_name || 'Discount Coupon',
+								condition: `Min. spend £${coupon.min_spend || 0}`,
+								description: validFrom && validTo ? 
+									`Valid from ${validFrom.toLocaleDateString()} to ${validTo.toLocaleDateString()}` : 
+									'Valid dates unavailable',
+								startAt: validFrom ? validFrom.getTime() : Date.now(),
+								endAt: validTo ? validTo.getTime() : Date.now() + 86400 * 30 * 1000,
+								valueDesc: `£${coupon.coupon_amount || 0}`,
+								unitDesc: 'OFF',
+								denominations: (coupon.coupon_amount || 0) * 100, // 乘以100来抵消组件的自动除法
+								originCondition: coupon.min_spend || 0,
+								couponAmount: coupon.coupon_amount || 0 // 保存原始金额，用于计算
+							};
+							
+							console.log('格式化后的优惠券:', formattedCoupon);
+							
+							const now = Date.now();
+							const isValid = now >= formattedCoupon.startAt && now <= formattedCoupon.endAt;
+							const meetsThreshold = orderAmount >= (coupon.min_spend || 0);
+							
+							// 检查优惠券是否可用
+							// 优惠券必须：1. 状态为可用 2. 在有效期内 3. 满足最低消费要求
+							if (coupon.status === 'able' && isValid && meetsThreshold) {
+								availableCoupons.push(formattedCoupon);
+								console.log('优惠券可用:', {
+									id: coupon.coupon_id,
+									minSpend: coupon.min_spend,
+									orderAmount: orderAmount
+								});
+							} else {
+								unavailableCoupons.push(formattedCoupon);
+								console.log('优惠券不可用:', {
+									id: coupon.coupon_id,
+									status: coupon.status,
+									isValid: isValid,
+									meetsThreshold: meetsThreshold,
+									minSpend: coupon.min_spend,
+									orderAmount: orderAmount
+								});
+							}
+						});
+						
+						this.coupons = availableCoupons;
+						this.disabledCoupons = unavailableCoupons;
+						
+						console.log('最终可用优惠券数量:', this.coupons.length);
+						console.log('最终不可用优惠券数量:', this.disabledCoupons.length);
+					} else {
+						console.warn('Failed to obtain coupon:', result.message);
+						this.coupons = [];
+						this.disabledCoupons = [];
+					}
+				} catch (error) {
+					console.error('Failed to obtain coupon:', error);
+					this.coupons = [];
+					this.disabledCoupons = [];
+				}
+			},
+			calculateRentalTime() {
+				try {
+					console.log('计算租赁时间, 原始数据:', {
+						startTime: this.orderInfo.start_time,
+						endTime: this.orderInfo.end_time,
+						startDate: this.orderInfo.startDate,
+						startTimeLocal: this.orderInfo.startTime,
+						endDate: this.orderInfo.endDate,
+						endTimeLocal: this.orderInfo.endTime
+					});
+					
+					let startDateTime, endDateTime;
+					
+					// 首先尝试使用start_time和end_time (ISO格式)
+					if (this.orderInfo.start_time && this.orderInfo.end_time) {
+						startDateTime = new Date(this.orderInfo.start_time);
+						endDateTime = new Date(this.orderInfo.end_time);
+					} 
+					// 如果不存在，则尝试使用startDate+startTime和endDate+endTime组合
+					else if (this.orderInfo.startDate && this.orderInfo.startTime && 
+							this.orderInfo.endDate && this.orderInfo.endTime) {
+						startDateTime = new Date(`${this.orderInfo.startDate} ${this.orderInfo.startTime}`);
+						endDateTime = new Date(`${this.orderInfo.endDate} ${this.orderInfo.endTime}`);
+					} else {
+						console.error('Lack of necessary date and time information');
+						return 'N/A';
+					}
+					
+					// 检查日期是否有效
+					if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+						console.error('Invalid date format:', startDateTime, endDateTime);
+						return 'N/A';
+					}
+					
+					console.log('计算租赁时间, 解析后的日期:', {
+						startDateTime,
+						endDateTime
+					});
+					
+					// 计算时间差（毫秒）
+					const diffMs = endDateTime.getTime() - startDateTime.getTime();
+					
+					// 转换为小时
+					const hours = Math.round(diffMs / (1000 * 60 * 60));
+					
+					console.log('计算租赁时间, 时间差:', {
+						diffMs,
+						hours
+					});
+					
+					// 如果小时数超过24，也可以显示天数
+					if (hours >= 24) {
+						const days = Math.floor(hours / 24);
+						const remainingHours = hours % 24;
+						if (remainingHours === 0) {
+							return `${days} ${days === 1 ? 'day' : 'days'}`;
+						} else {
+							return `${days} ${days === 1 ? 'day' : 'days'} ${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`;
+						}
+					} else {
+						return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+					}
+				} catch (error) {
+					console.error('Error in calculating lease term:', error);
+					return 'N/A';
+				}
+			},
+		}
+	})
+
+export default __sfc__
+function GenPagesOrderPaymentRender(this: InstanceType<typeof __sfc__>): any | null {
+const _ctx = this
+const _cache = this.$.renderCache
+const _component_van_icon = resolveComponent("van-icon")
+const _component_van_cell = resolveComponent("van-cell")
+const _component_van_cell_group = resolveComponent("van-cell-group")
+const _component_van_coupon_cell = resolveComponent("van-coupon-cell")
+const _component_van_button = resolveComponent("van-button")
+const _component_van_password_input = resolveComponent("van-password-input")
+const _component_van_number_keyboard = resolveComponent("van-number-keyboard")
+const _component_van_popup = resolveComponent("van-popup")
+const _component_van_coupon_list = resolveComponent("van-coupon-list")
+const _component_van_loading = resolveComponent("van-loading")
+
+  return createElementVNode("view", utsMapOf({ class: "payment-page" }), [
+    createElementVNode("view", utsMapOf({ class: "header" }), [
+      createElementVNode("view", utsMapOf({
+        class: "back-btn",
+        onClick: _ctx.handleBack
+      }), [
+        createVNode(_component_van_icon, utsMapOf({
+          name: "arrow-left",
+          class: "back-icon"
+        }))
+      ], 8 /* PROPS */, ["onClick"]),
+      createElementVNode("text", utsMapOf({ class: "header-title" }), " Payment Confirm")
+    ]),
+    createElementVNode("scroll-view", utsMapOf({
+      "scroll-y": "",
+      class: "scroll-content",
+      "scroll-with-animation": true
+    }), [
+      createVNode(_component_van_cell_group, utsMapOf({
+        inset: "",
+        class: "order-card"
+      }), utsMapOf({
+        default: withSlotCtx((): any[] => [
+          createVNode(_component_van_cell, utsMapOf({
+            title: "Scooter Number",
+            value: _ctx.orderInfo.scooterCode
+          }), null, 8 /* PROPS */, ["value"]),
+          createVNode(_component_van_cell, utsMapOf({
+            center: "",
+            title: "Scooter Style"
+          }), utsMapOf({
+            value: withSlotCtx((): any[] => [
+              createElementVNode("image", utsMapOf({
+                class: "scooter-preview",
+                src: "/static/bikelogo/escooter_car2.png",
+                mode: "aspectFit"
+              }))
+            ]),
+            _: 1 /* STABLE */
+          })),
+          createVNode(_component_van_cell, utsMapOf({
+            title: "Order Number",
+            value: _ctx.orderId
+          }), null, 8 /* PROPS */, ["value"]),
+          createVNode(_component_van_cell, utsMapOf({ title: "Rental Period" }), utsMapOf({
+            value: withSlotCtx((): any[] => [
+              createElementVNode("scroll-view", utsMapOf({
+                "scroll-x": "true",
+                class: "scroll-time-line"
+              }), [
+                createElementVNode("text", null, toDisplayString(_ctx.orderInfo.startDate) + " " + toDisplayString(_ctx.orderInfo.startTime) + " to " + toDisplayString(_ctx.orderInfo.endDate) + " " + toDisplayString(_ctx.orderInfo.endTime), 1 /* TEXT */)
+              ])
+            ]),
+            _: 1 /* STABLE */
+          })),
+          createVNode(_component_van_cell, utsMapOf({
+            title: "Rental Time",
+            value: _ctx.calculateRentalTime()
+          }), null, 8 /* PROPS */, ["value"]),
+          createVNode(_component_van_cell, utsMapOf({
+            title: "Pickup address",
+            value: _ctx.orderInfo.address
+          }), null, 8 /* PROPS */, ["value"])
+        ]),
+        _: 1 /* STABLE */
+      })),
+      createVNode(_component_van_cell_group, utsMapOf({
+        inset: "",
+        class: "coupon-card"
+      }), utsMapOf({
+        default: withSlotCtx((): any[] => [
+          createVNode(_component_van_coupon_cell, utsMapOf({
+            coupons: _ctx.coupons,
+            "chosen-coupon": _ctx.chosenCoupon,
+            onClick: () => {_ctx.showList = true},
+            currency: "£",
+            "enable-amount": false
+          }), utsMapOf({
+            value: withSlotCtx((): any[] => [
+              _ctx.chosenCoupon !== -1
+                ? createElementVNode("text", utsMapOf({ key: 0 }), " -£" + toDisplayString(_ctx.coupons[_ctx.chosenCoupon].couponAmount), 1 /* TEXT */)
+                : createElementVNode("text", utsMapOf({ key: 1 }), "None")
+            ]),
+            _: 1 /* STABLE */
+          }), 8 /* PROPS */, ["coupons", "chosen-coupon", "onClick"])
+        ]),
+        _: 1 /* STABLE */
+      })),
+      createVNode(_component_van_cell_group, utsMapOf({
+        inset: "",
+        class: "amount-card"
+      }), utsMapOf({
+        default: withSlotCtx((): any[] => [
+          createVNode(_component_van_cell, utsMapOf({
+            title: "Base Amount",
+            class: "base-amount"
+          }), utsMapOf({
+            value: withSlotCtx((): any[] => [
+              createElementVNode("text", utsMapOf({ class: "currency base-price" }), "£" + toDisplayString(_ctx.orderInfo.cost), 1 /* TEXT */)
+            ]),
+            _: 1 /* STABLE */
+          })),
+          _ctx.calculateCouponDiscount() > 0
+            ? createVNode(_component_van_cell, utsMapOf({
+                key: 0,
+                title: "Coupon Discount",
+                class: "coupon-discount"
+              }), utsMapOf({
+                value: withSlotCtx((): any[] => [
+                  createElementVNode("text", utsMapOf({ class: "currency discount-price" }), "-£" + toDisplayString(_ctx.calculateCouponDiscount()), 1 /* TEXT */)
+                ]),
+                _: 1 /* STABLE */
+              }))
+            : createCommentVNode("v-if", true),
+          createVNode(_component_van_cell, utsMapOf({
+            title: "Payment Amount",
+            class: "amount"
+          }), utsMapOf({
+            value: withSlotCtx((): any[] => [
+              createElementVNode("text", utsMapOf({ class: "currency" }), "£"),
+              createElementVNode("text", utsMapOf({ class: "price" }), toDisplayString(_ctx.totalAmount), 1 /* TEXT */)
+            ]),
+            _: 1 /* STABLE */
+          }))
+        ]),
+        _: 1 /* STABLE */
+      })),
+      createVNode(_component_van_cell_group, utsMapOf({
+        inset: "",
+        title: "Payment Method",
+        class: "payment-method"
+      }), utsMapOf({
+        default: withSlotCtx((): any[] => [
+          createVNode(_component_van_cell, utsMapOf({
+            title: "Credit Card",
+            clickable: "",
+            onClick: () => {_ctx.showCardList = true}
+          }), utsMapOf({
+            icon: withSlotCtx((): any[] => [
+              createElementVNode("image", utsMapOf({
+                src: "/static/icons/bankcard.svg",
+                class: "payment-icon"
+              }))
+            ]),
+            value: withSlotCtx((): any[] => [
+              isTrue(_ctx.selectedCard)
+                ? createElementVNode("text", utsMapOf({ key: 0 }), toDisplayString(_ctx.formatCardNumber(_ctx.selectedCard.card_number)), 1 /* TEXT */)
+                : createElementVNode("text", utsMapOf({ key: 1 }), "Select a card")
+            ]),
+            "right-icon": withSlotCtx((): any[] => [
+              createVNode(_component_van_icon, utsMapOf({ name: "arrow" }))
+            ]),
+            _: 1 /* STABLE */
+          }), 8 /* PROPS */, ["onClick"])
+        ]),
+        _: 1 /* STABLE */
+      }))
+    ]),
+    createElementVNode("view", utsMapOf({ class: "bottom-button" }), [
+      createVNode(_component_van_button, utsMapOf({
+        type: "primary",
+        block: "",
+        round: "",
+        onClick: _ctx.showPasswordInput
+      }), utsMapOf({
+        default: withSlotCtx((): any[] => [" Confirm Payment "]),
+        _: 1 /* STABLE */
+      }), 8 /* PROPS */, ["onClick"])
+    ]),
+    createVNode(_component_van_popup, utsMapOf({
+      show: _ctx.showPassword,
+      "onUpdate:show": $event => {(_ctx.showPassword) = $event},
+      position: "bottom",
+      round: "",
+      style: normalizeStyle(utsMapOf({ padding: '24px' }))
+    }), utsMapOf({
+      default: withSlotCtx((): any[] => [
+        createElementVNode("view", utsMapOf({ class: "password-popup" }), [
+          createElementVNode("text", utsMapOf({ class: "popup-title" }), "Enter Payment Password"),
+          createElementVNode("text", utsMapOf({ class: "popup-amount" }), "£" + toDisplayString(_ctx.totalAmount), 1 /* TEXT */),
+          createVNode(_component_van_password_input, utsMapOf({
+            value: _ctx.password,
+            mask: true,
+            focused: _ctx.passwordFocus,
+            onFocus: () => {_ctx.passwordFocus = true},
+            class: "password-input"
+          }), null, 8 /* PROPS */, ["value", "focused", "onFocus"]),
+          createVNode(_component_van_number_keyboard, utsMapOf({
+            show: _ctx.passwordFocus,
+            "onUpdate:show": $event => {(_ctx.passwordFocus) = $event},
+            value: _ctx.password,
+            "onUpdate:value": $event => {(_ctx.password) = $event},
+            maxlength: 6,
+            onBlur: () => {_ctx.passwordFocus = false},
+            onClose: _ctx.closePasswordInput,
+            onInput: _ctx.onPasswordInput,
+            onDelete: _ctx.onPasswordDelete,
+            "safe-area-inset-bottom": true
+          }), null, 8 /* PROPS */, ["show", "onUpdate:show", "value", "onUpdate:value", "onBlur", "onClose", "onInput", "onDelete"])
+        ])
+      ]),
+      _: 1 /* STABLE */
+    }), 8 /* PROPS */, ["show", "onUpdate:show", "style"]),
+    createVNode(_component_van_popup, utsMapOf({
+      show: _ctx.showList,
+      "onUpdate:show": $event => {(_ctx.showList) = $event},
+      round: "",
+      position: "bottom",
+      style: normalizeStyle(utsMapOf({"height":"90%","padding-top":"4px"}))
+    }), utsMapOf({
+      default: withSlotCtx((): any[] => [
+        createVNode(_component_van_coupon_list, utsMapOf({
+          coupons: _ctx.coupons,
+          "chosen-coupon": _ctx.chosenCoupon,
+          "disabled-coupons": _ctx.disabledCoupons,
+          onChange: _ctx.onChange,
+          "enable-amount": false,
+          "show-exchange-bar": false
+        }), null, 8 /* PROPS */, ["coupons", "chosen-coupon", "disabled-coupons", "onChange"])
+      ]),
+      _: 1 /* STABLE */
+    }), 8 /* PROPS */, ["show", "onUpdate:show", "style"]),
+    createVNode(_component_van_popup, utsMapOf({
+      show: _ctx.showCardList,
+      "onUpdate:show": $event => {(_ctx.showCardList) = $event},
+      round: "",
+      position: "bottom",
+      style: normalizeStyle(utsMapOf({"height":"70%","padding-top":"20rpx"}))
+    }), utsMapOf({
+      default: withSlotCtx((): any[] => [
+        createElementVNode("view", utsMapOf({ class: "card-list-popup" }), [
+          createElementVNode("view", utsMapOf({ class: "popup-header" }), [
+            createElementVNode("text", utsMapOf({ class: "popup-title" }), "Select Card"),
+            createVNode(_component_van_icon, utsMapOf({
+              name: "cross",
+              class: "close-icon",
+              onClick: () => {_ctx.showCardList = false}
+            }), null, 8 /* PROPS */, ["onClick"])
+          ]),
+          createElementVNode("view", utsMapOf({ class: "card-list" }), [
+            isTrue(_ctx.loading)
+              ? createElementVNode("view", utsMapOf({
+                  key: 0,
+                  class: "loading-container"
+                }), [
+                  createVNode(_component_van_loading, utsMapOf({
+                    type: "spinner",
+                    color: "#007aff"
+                  })),
+                  createElementVNode("text", utsMapOf({ class: "loading-text" }), "Loading...")
+                ])
+              : _ctx.creditCards.length === 0
+                ? createElementVNode("view", utsMapOf({
+                    key: 1,
+                    class: "empty-container"
+                  }), [
+                    createVNode(_component_van_icon, utsMapOf({
+                      name: "info-o",
+                      size: "80rpx",
+                      color: "#999"
+                    })),
+                    createElementVNode("text", utsMapOf({ class: "empty-text" }), "No cards available")
+                  ])
+                : createElementVNode(Fragment, utsMapOf({ key: 2 }), RenderHelpers.renderList(_ctx.creditCards, (card, index, __index, _cached): any => {
+                    return createElementVNode("view", utsMapOf({
+                      key: card.card_id,
+                      class: normalizeClass(["card-item", utsMapOf({ 'card-selected': _ctx.selectedCardId === card.card_id })]),
+                      onClick: () => {_ctx.toggleCardSelection(card)}
+                    }), [
+                      createElementVNode("view", utsMapOf({ class: "card-left" }), [
+                        createElementVNode("view", utsMapOf({ class: "card-icon" }), [
+                          createVNode(_component_van_icon, utsMapOf({
+                            name: "credit-pay",
+                            size: "50rpx",
+                            color: "#007aff"
+                          }))
+                        ]),
+                        createElementVNode("view", utsMapOf({ class: "card-info" }), [
+                          createElementVNode("text", utsMapOf({ class: "card-number" }), toDisplayString(_ctx.formatCardNumber(card.card_number)), 1 /* TEXT */),
+                          createElementVNode("text", utsMapOf({ class: "card-expiry" }), "Expires: " + toDisplayString(card.expiry_date), 1 /* TEXT */)
+                        ])
+                      ]),
+                      _ctx.selectedCardId === card.card_id
+                        ? createVNode(_component_van_icon, utsMapOf({
+                            key: 0,
+                            name: "success",
+                            color: "#007aff",
+                            size: "40rpx"
+                          }))
+                        : createCommentVNode("v-if", true)
+                    ], 10 /* CLASS, PROPS */, ["onClick"])
+                  }), 128 /* KEYED_FRAGMENT */)
+          ]),
+          createElementVNode("view", utsMapOf({ class: "card-action" }), [
+            createVNode(_component_van_button, utsMapOf({
+              type: "primary",
+              block: "",
+              round: "",
+              onClick: _ctx.confirmCardSelection
+            }), utsMapOf({
+              default: withSlotCtx((): any[] => [" Confirm "]),
+              _: 1 /* STABLE */
+            }), 8 /* PROPS */, ["onClick"])
+          ])
+        ])
+      ]),
+      _: 1 /* STABLE */
+    }), 8 /* PROPS */, ["show", "onUpdate:show", "style"])
+  ])
+}
+const GenPagesOrderPaymentStyles = [utsMapOf([["payment-page", padStyleMapOf(utsMapOf([["backgroundImage", "linear-gradient(to bottom, #f0faff, #ffffff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["boxSizing", "border-box"], ["display", "flex"], ["flexDirection", "column"], ["gap", "25rpx"]]))], ["scroll-content", padStyleMapOf(utsMapOf([["flex", 1], ["overflowY", "auto"], ["paddingBottom", "140rpx"]]))], ["back-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "25rpx"], ["left", "30rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["backgroundColor", "#f4f8ff"], ["borderRadius", "25rpx"], ["width", "80rpx"], ["height", "80rpx"]]))], ["back-icon", padStyleMapOf(utsMapOf([["fontSize", "55rpx"], ["color", "#0084ff"]]))], ["header", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["paddingTop", "40rpx"], ["paddingRight", 0], ["paddingBottom", "40rpx"], ["paddingLeft", 0], ["textAlign", "center"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"]]))], ["header-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"]]))], ["page-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"]]))], ["order-card", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["!borderRadius", "24rpx"], ["!paddingTop", "20rpx"], ["!paddingRight", "20rpx"], ["!paddingBottom", "20rpx"], ["!paddingLeft", "20rpx"], ["boxShadow", "0 6px 14px rgba(0, 0, 0, 0.06)"], ["marginLeft", 0], ["marginRight", 0], ["marginBottom", "30rpx"], ["fontSize", "32rpx"]]))], ["coupon-card", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["!borderRadius", "24rpx"], ["!paddingTop", "20rpx"], ["!paddingRight", "20rpx"], ["!paddingBottom", "20rpx"], ["!paddingLeft", "20rpx"], ["boxShadow", "0 6px 14px rgba(0, 0, 0, 0.06)"], ["marginLeft", 0], ["marginRight", 0], ["marginBottom", "30rpx"], ["fontSize", "32rpx"]]))], ["amount-card", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["!borderRadius", "24rpx"], ["!paddingTop", "20rpx"], ["!paddingRight", "20rpx"], ["!paddingBottom", "20rpx"], ["!paddingLeft", "20rpx"], ["boxShadow", "0 6px 14px rgba(0, 0, 0, 0.06)"], ["marginLeft", 0], ["marginRight", 0], ["marginBottom", "30rpx"], ["fontSize", "32rpx"]]))], ["payment-method", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["!borderRadius", "24rpx"], ["!paddingTop", "20rpx"], ["!paddingRight", "20rpx"], ["!paddingBottom", "20rpx"], ["!paddingLeft", "20rpx"], ["boxShadow", "0 6px 14px rgba(0, 0, 0, 0.06)"], ["marginLeft", 0], ["marginRight", 0], ["marginBottom", "30rpx"], ["fontSize", "32rpx"]]))], ["scooter-preview", padStyleMapOf(utsMapOf([["width", "180rpx"], ["height", "100rpx"], ["borderRadius", "12rpx"], ["objectFit", "contain"]]))], ["scroll-time-line", padStyleMapOf(utsMapOf([["whiteSpace", "nowrap"], ["overflowX", "auto"], ["fontSize", "28rpx"]]))], ["to-text", padStyleMapOf(utsMapOf([["marginTop", 0], ["marginRight", "8rpx"], ["marginBottom", 0], ["marginLeft", "8rpx"]]))], ["amount", padStyleMapOf(utsMapOf([["!fontSize", "36rpx"]]))], ["currency", padStyleMapOf(utsMapOf([["fontSize", "30rpx"], ["marginRight", "10rpx"], ["color", "#007aff"]]))], ["price", padStyleMapOf(utsMapOf([["fontSize", "44rpx"], ["fontWeight", "bold"], ["color", "#007aff"]]))], ["payment-icon", padStyleMapOf(utsMapOf([["width", "48rpx"], ["height", "48rpx"], ["marginRight", "24rpx"], ["objectFit", "contain"]]))], ["bottom-button", padStyleMapOf(utsMapOf([["position", "fixed"], ["bottom", 0], ["left", 0], ["right", 0], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["backgroundImage", "none"], ["backgroundColor", "rgba(255,255,255,0.95)"], ["boxShadow", "0 -4px 12px rgba(0, 0, 0, 0.05)"], ["backdropFilter", "blur(10px)"], ["zIndex", 999]]))], ["van-button--primary", padStyleMapOf(utsMapOf([["!backgroundImage", "linear-gradient(to right, #82b1ff, #007aff)"], ["!backgroundColor", "rgba(0,0,0,0)"], ["!borderWidth", "medium"], ["!borderStyle", "none"], ["!borderColor", "#000000"], ["!color", "#ffffff"], ["!boxShadow", "0 6px 20px rgba(0, 122, 255, 0.3)"], ["!transitionDuration", "0.3s"], ["!fontSize", "34rpx"], ["!height", "96rpx"], ["!lineHeight", "96rpx"], ["transform:active", "scale(0.96)"]]))], ["password-popup", padStyleMapOf(utsMapOf([["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "380rpx"], ["paddingLeft", "40rpx"]]))], ["popup-title", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["textAlign", "center"], ["color", "#333333"], ["marginBottom", "16rpx"]]))], ["popup-amount", padStyleMapOf(utsMapOf([["fontSize", "48rpx"], ["textAlign", "center"], ["color", "#007aff"], ["fontWeight", "bold"], ["marginBottom", "40rpx"]]))], ["password-input", padStyleMapOf(utsMapOf([["marginBottom", "48rpx"]]))], ["card-list-popup", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["height", "100%"], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"]]))], ["popup-header", padStyleMapOf(utsMapOf([["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["textAlign", "center"], ["position", "relative"], ["borderBottomWidth", 1], ["borderBottomStyle", "solid"], ["borderBottomColor", "#f5f5f5"]]))], ["close-icon", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "10rpx"], ["right", "30rpx"], ["fontSize", "40rpx"], ["color", "#999999"], ["zIndex", 10]]))], ["card-list", padStyleMapOf(utsMapOf([["flex", 1], ["overflowY", "auto"], ["paddingTop", "20rpx"], ["paddingRight", 0], ["paddingBottom", "20rpx"], ["paddingLeft", 0]]))], ["loading-container", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["alignItems", "center"], ["justifyContent", "center"], ["height", "300rpx"], ["gap", "20rpx"]]))], ["empty-container", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["alignItems", "center"], ["justifyContent", "center"], ["height", "300rpx"], ["gap", "20rpx"]]))], ["loading-text", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#999999"], ["marginTop", "20rpx"]]))], ["empty-text", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#999999"], ["marginTop", "20rpx"]]))], ["card-item", padStyleMapOf(utsMapOf([["display", "flex"], ["justifyContent", "space-between"], ["alignItems", "center"], ["flexDirection", "row"], ["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "40rpx"], ["paddingLeft", "40rpx"], ["marginBottom", "30rpx"], ["backgroundImage", "linear-gradient(135deg, #f8f9fa, #e9ecef)"], ["backgroundColor", "rgba(0,0,0,0)"], ["borderRadius", "20rpx"], ["boxShadow", "0 6rpx 16rpx rgba(0, 0, 0, 0.08)"], ["transitionDuration", "0.3s"]]))], ["card-selected", padStyleMapOf(utsMapOf([["backgroundImage", "linear-gradient(135deg, #e6f7ff, #d0e8ff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["borderWidth", "2rpx"], ["borderStyle", "solid"], ["borderColor", "#007aff"], ["transform", "translateY(-4rpx)"], ["boxShadow", "0 10rpx 20rpx rgba(0, 122, 255, 0.15)"]]))], ["card-left", padStyleMapOf(utsMapOf([["display", "flex"], ["alignItems", "center"], ["gap", "30rpx"], ["flexDirection", "row"]]))], ["card-icon", padStyleMapOf(utsMapOf([["width", "100rpx"], ["height", "100rpx"], ["backgroundImage", "none"], ["backgroundColor", "rgba(0,122,255,0.1)"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"]]))], ["card-info", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"]]))], ["card-number", padStyleMapOf(utsMapOf([["fontSize", "36rpx"], ["color", "#333333"]]))], ["card-expiry", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#666666"], ["marginTop", "12rpx"]]))], ["card-action", padStyleMapOf(utsMapOf([["paddingTop", "30rpx"], ["paddingRight", 0], ["paddingBottom", "30rpx"], ["paddingLeft", 0], ["borderTopWidth", 1], ["borderTopStyle", "solid"], ["borderTopColor", "#eeeeee"]]))], ["@TRANSITION", utsMapOf([["card-item", utsMapOf([["duration", "0.3s"]])]])]])]

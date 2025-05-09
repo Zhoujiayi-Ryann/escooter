@@ -1,0 +1,466 @@
+
+import { ref, computed } from 'vue';
+import { scooterApi, orderApi } from '@/utils/api';  // 更新 API 导入
+import { userApi } from '@/utils/api/user';  // 导入userApi
+import { Locale } from 'vant';
+import enUS from 'vant/es/locale/lang/en-US';
+
+Locale.use('en-US', enUS);
+
+const __sfc__ = defineComponent({
+  data() {
+    return {
+      // 车辆信息
+      scooterCode: '',  // 将从API获取
+      scooterId: 0,     // 存储滑板车ID
+      otherInfo: '',    // 将从API获取
+      batteryLevel: 0,  // 电池电量
+      price: 0,         // 价格
+      
+      // 租用时间信息
+      startDate: '',    // 开始日期
+      startTime: '',    // 开始时间
+      endDate: '',      // 结束日期
+      endTime: '',      // 结束时间
+      rentalPeriod: '', // 租用时间段
+      
+      address: '', // API(F->A)
+      addressError: '',
+      
+      isLoading: false, // 加载状态
+      apiError: '',      // API错误信息
+      userId: 1,         // 存储用户ID
+      latitude: 0,       // 存储纬度
+      longitude: 0,      // 存储经度
+      agreedToTerms: false, // 添加用户协议同意状态
+      showAgreementPopup: false,
+    };
+  },
+  onLoad(options) {
+    console.log('接收到的参数：', options);
+    
+    // 获取从home页面传递的滑板车ID和用户ID
+    if (options.scooterId) {
+      this.scooterId = Number(options.scooterId);
+      this.batteryLevel = Number(options.batteryLevel) || 0;
+      this.price = Number(options.price) || 0;
+      
+      // 设置时间信息
+      this.startDate = decodeURIComponent(options.startDate || '');
+      this.startTime = decodeURIComponent(options.startTime || '');
+      this.endDate = decodeURIComponent(options.endDate || '');
+      this.endTime = decodeURIComponent(options.endTime || '');
+      
+      // 设置位置信息
+      this.latitude = Number(options.latitude) || 0;
+      this.longitude = Number(options.longitude) || 0;
+      
+      this.scooterCode = `SC${this.scooterId}`;
+      this.otherInfo = `Electric Scooter`;
+      this.rentalPeriod = `${this.startDate} ${this.startTime} to ${this.endDate} ${this.endTime}`;
+      
+      // 获取地址信息
+      if (this.latitude && this.longitude) {
+        this.getLocationAddress();
+      }
+    } else {
+      // 如果没有传递ID，使用默认值用于测试
+      this.scooterCode = 'SC12345';
+      this.otherInfo = 'Electric Scooter Model XYZ, Range 100km';
+      this.rentalPeriod = 'Not specified';
+    }
+    
+    // 获取用户ID - 优先使用URL中的参数，否则使用userApi获取
+    if (options.userId) {
+      this.userId = Number(options.userId);
+      console.log('User ID from URL:', this.userId);
+    } else {
+      // 使用userApi获取用户ID，默认值为1
+      this.userId = userApi.getUserId(1);
+      console.log('User ID from userApi:', this.userId);
+    }
+  },
+  methods: {
+	navitohome(){
+		uni.navigateTo({
+		  url: '/pages/home/home'
+		});
+	},
+    
+    // TODO: 验证地址格式，是否要获取地址位置？？
+    validateAddress() {
+      // 清除先前的错误信息
+      this.addressError = '';
+      return true;
+    },
+    
+    // 获取滑板车详细信息
+    getScooterInfo(scooterId) {
+      this.isLoading = true;
+      scooterApi.getScooterById(scooterId)
+        .then(res => {
+          if (res.code === 1) {
+            // 获取成功，设置滑板车信息
+            const scooter = res.data;
+            this.scooterCode = `SC${scooter.scooter_id}`;
+            this.otherInfo = `Electric Scooter, Battery: ${scooter.battery_level}%, Price: $${scooter.price}/hour`;
+            this.batteryLevel = scooter.battery_level;
+            this.price = scooter.price;
+          } else {
+            // 获取失败
+            this.apiError = res.msg || 'Failed to get scooter information';
+            uni.showToast({
+              title: this.apiError,
+              icon: 'none'
+            });
+          }
+        })
+        .catch(err => {
+          this.apiError = 'Network request exception';
+          uni.showToast({
+            title: this.apiError,
+            icon: 'none'
+          });
+          console.error('Exception when getting scooter information:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    
+    // 跳转
+    goToRent() {
+      if (!this.agreedToTerms) {
+        uni.showToast({
+          title: 'Please agree to the User Agreement',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+      // 创建订单
+      this.createOrder();
+    },
+    
+    // 创建订单
+    createOrder() {
+      this.isLoading = true;
+      
+      // 将日期和时间转换为本地时区的格式化字符串
+      const startDateTime = new Date(`${this.startDate} ${this.startTime}`);
+      const endDateTime = new Date(`${this.endDate} ${this.endTime}`);
+      
+      // 格式化为 YYYY-MM-DDTHH:MM:SS 格式并保留本地时区信息
+      const formatDateTime = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      };
+      
+      // 构建创建订单请求
+      const orderData = {
+        user_id: this.userId,
+        scooter_id: this.scooterId,
+        pickup_address: this.address,
+        start_time: formatDateTime(startDateTime),
+        end_time: formatDateTime(endDateTime)
+      };
+      
+      console.log('Creating order with data:', orderData);
+      
+      // 调用创建订单API
+      orderApi.createOrder(orderData)
+        .then(res => {
+          if (res.code === 1) {
+            // 订单创建成功
+            const orderId = res.data.order_id;
+            console.log('Order created successfully:', orderId);
+            
+            // 获取订单详情
+            orderApi.getOrderDetail(orderId)
+              .then(detailRes => {
+                if (detailRes.code === 1) {
+                  const orderDetail = detailRes.data;
+                  
+                  // 构建订单信息对象
+                  const orderInfo = {
+                    orderId: orderDetail.order_id,
+                    scooterCode: `SC${this.scooterId}`,
+                    address: orderDetail.pickup_address,
+                    cost: orderDetail.cost,
+                    startDate: this.startDate,
+                    startTime: this.startTime,
+                    endDate: this.endDate,
+                    endTime: this.endTime,
+                    duration: orderDetail.duration || 0
+                  };
+                  
+                  // 跳转到支付页面并传递订单信息
+                  uni.navigateTo({
+                    url: '/pages/order/payment?orderInfo=' + encodeURIComponent(JSON.stringify(orderInfo))
+                  });
+                } else {
+                  uni.showToast({
+                    title: detailRes.msg || 'Get order detail failed',
+                    icon: 'none'
+                  });
+                }
+              })
+              .catch(err => {
+                uni.showToast({
+                  title: 'Get order detail failed',
+                  icon: 'none'
+                });
+                console.error('Get order detail exception:', err);
+              });
+          } else {
+            // 创建失败
+            uni.showToast({
+              title: res.msg || 'Failed to create order',
+              icon: 'none'
+            });
+          }
+        })
+        .catch(err => {
+          uni.showToast({
+            title: 'Network request exception',
+            icon: 'none'
+          });
+          console.error('Order creation exception:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    
+    // 获取地址信息
+    getLocationAddress() {
+      // 在请求发送前先显示经纬度
+      this.address = `${this.latitude.toFixed(6)}, ${this.longitude.toFixed(6)}`;
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    },
+    showAgreement() {
+      this.showAgreementPopup = true;
+    },
+  }
+});
+
+export default __sfc__
+function GenPagesOrderConfirmRender(this: InstanceType<typeof __sfc__>): any | null {
+const _ctx = this
+const _cache = this.$.renderCache
+const _component_van_icon = resolveComponent("van-icon")
+const _component_van_checkbox = resolveComponent("van-checkbox")
+const _component_br = resolveComponent("br")
+const _component_van_popup = resolveComponent("van-popup")
+
+  return createElementVNode("view", utsMapOf({ class: "order-confirm-page" }), [
+    createElementVNode("view", utsMapOf({ class: "header" }), [
+      createElementVNode("view", utsMapOf({
+        class: "back-btn",
+        onClick: _ctx.navitohome
+      }), [
+        createVNode(_component_van_icon, utsMapOf({
+          name: "arrow-left",
+          class: "back-icon"
+        }))
+      ], 8 /* PROPS */, ["onClick"]),
+      createElementVNode("text", utsMapOf({ class: "header-title" }), "Order Details")
+    ]),
+    createElementVNode("view", utsMapOf({ class: "info-card" }), [
+      createElementVNode("view", utsMapOf({ class: "bike-image-container" }), [
+        createElementVNode("image", utsMapOf({
+          class: "scooter-image",
+          src: "/static/bikelogo/escooter_car2.png",
+          mode: "aspectFit"
+        }))
+      ])
+    ]),
+    createElementVNode("view", utsMapOf({ class: "info-card" }), [
+      createElementVNode("view", utsMapOf({ class: "info-item" }), [
+        createElementVNode("text", utsMapOf({ class: "info-value" }), [
+          "Scooter Number: ",
+          createElementVNode("text", utsMapOf({ class: "info-label" }), toDisplayString(_ctx.scooterCode), 1 /* TEXT */)
+        ])
+      ]),
+      createElementVNode("view", utsMapOf({ class: "info-item" }), [
+        createElementVNode("text", utsMapOf({ class: "info-value" }), [
+          "Other Information: ",
+          createElementVNode("text", utsMapOf({ class: "info-label" }), toDisplayString(_ctx.otherInfo), 1 /* TEXT */)
+        ])
+      ]),
+      createElementVNode("view", utsMapOf({ class: "info-item" }), [
+        createElementVNode("text", utsMapOf({ class: "info-value" }), [
+          "Battery Level: ",
+          createElementVNode("text", utsMapOf({ class: "info-label" }), toDisplayString(_ctx.batteryLevel) + "%", 1 /* TEXT */)
+        ])
+      ]),
+      createElementVNode("view", utsMapOf({ class: "info-item" }), [
+        createElementVNode("text", utsMapOf({ class: "info-value" }), [
+          "Price: ",
+          createElementVNode("text", utsMapOf({ class: "info-label" }), "£" + toDisplayString(_ctx.price) + "/hour", 1 /* TEXT */)
+        ])
+      ])
+    ]),
+    createElementVNode("view", utsMapOf({ class: "info-item rental-period-item" }), [
+      createElementVNode("text", utsMapOf({ class: "info-label-title" }), "Rental Period:"),
+      createElementVNode("view", utsMapOf({ class: "rental-period-value" }), toDisplayString(_ctx.rentalPeriod), 1 /* TEXT */)
+    ]),
+    createElementVNode("view", utsMapOf({ class: "address-section" }), [
+      createElementVNode("text", utsMapOf({ class: "section-label" }), "Address:"),
+      createElementVNode("text", utsMapOf({ class: "address-text" }), toDisplayString(_ctx.address || 'Loading location...'), 1 /* TEXT */)
+    ]),
+    isTrue(_ctx.addressError)
+      ? createElementVNode("view", utsMapOf({
+          key: 0,
+          class: "address-error"
+        }), [
+          createElementVNode("text", utsMapOf({ class: "error-text" }), toDisplayString(_ctx.addressError), 1 /* TEXT */)
+        ])
+      : createCommentVNode("v-if", true),
+    createElementVNode("view", utsMapOf({ class: "agreement-section" }), [
+      createVNode(_component_van_checkbox, utsMapOf({
+        modelValue: _ctx.agreedToTerms,
+        "onUpdate:modelValue": $event => {(_ctx.agreedToTerms) = $event},
+        shape: "square",
+        "icon-size": "18px"
+      }), utsMapOf({
+        default: withSlotCtx((): any[] => [
+          createElementVNode("text", utsMapOf({ class: "agreement-text" }), "I acknowledge and agree to the"),
+          createElementVNode("view", utsMapOf({ class: "agreement-link-wrapper" }), [
+            createElementVNode("text", utsMapOf({
+              class: "agreement-link",
+              onClick: _ctx.showAgreement
+            }), "User Agreement", 8 /* PROPS */, ["onClick"])
+          ])
+        ]),
+        _: 1 /* STABLE */
+      }), 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"])
+    ]),
+    createVNode(_component_van_popup, utsMapOf({
+      show: _ctx.showAgreementPopup,
+      "onUpdate:show": $event => {(_ctx.showAgreementPopup) = $event},
+      position: "bottom",
+      round: "",
+      style: normalizeStyle(utsMapOf({ height: '70%' }))
+    }), utsMapOf({
+      default: withSlotCtx((): any[] => [
+        createElementVNode("view", utsMapOf({ class: "agreement-popup" }), [
+          createElementVNode("scroll-view", utsMapOf({
+            class: "agreement-content",
+            "scroll-y": ""
+          }), [
+            createElementVNode("view", utsMapOf({ class: "agreement-title" }), "User Agreement"),
+            createElementVNode("view", utsMapOf({ class: "agreement-section" }), [
+              createElementVNode("view", utsMapOf({ class: "section-title" }), "1. General Terms"),
+              createElementVNode("view", utsMapOf({ class: "section-text" }), " By using our e-scooter rental service, you agree to comply with all applicable laws and regulations. ")
+            ]),
+            createElementVNode("view", utsMapOf({ class: "agreement-section" }), [
+              createElementVNode("view", utsMapOf({ class: "section-title" }), "2. Safety Requirements"),
+              createElementVNode("view", utsMapOf({ class: "section-text" }), [
+                " • You must be at least 16 years old to use our service",
+                createVNode(_component_br),
+                " • Wear a helmet while riding",
+                createVNode(_component_br),
+                " • Follow all traffic rules and regulations "
+              ])
+            ]),
+            createElementVNode("view", utsMapOf({ class: "agreement-section" }), [
+              createElementVNode("view", utsMapOf({ class: "section-title" }), "3. Rental Rules"),
+              createElementVNode("view", utsMapOf({ class: "section-text" }), [
+                " • Return the e-scooter in the same condition as received",
+                createVNode(_component_br),
+                " • Report any damages or issues immediately",
+                createVNode(_component_br),
+                " • If you return earlier than the reserved time, no refund will be provided for the remaining rental period "
+              ])
+            ]),
+            createElementVNode("view", utsMapOf({ class: "agreement-section" }), [
+              createElementVNode("view", utsMapOf({ class: "section-title" }), "4. Payment Terms"),
+              createElementVNode("view", utsMapOf({ class: "section-text" }), [
+                " • All charges will be processed through your registered credit card",
+                createVNode(_component_br),
+                " • Late returns will incur additional charges "
+              ])
+            ]),
+            createElementVNode("view", utsMapOf({ class: "agreement-section" }), [
+              createElementVNode("view", utsMapOf({ class: "section-title" }), "5. Liability"),
+              createElementVNode("view", utsMapOf({ class: "section-text" }), [
+                " • Users are responsible for any damages caused to the scooter",
+                createVNode(_component_br),
+                " • We are not liable for any personal injuries or property damage "
+              ])
+            ])
+          ])
+        ])
+      ]),
+      _: 1 /* STABLE */
+    }), 8 /* PROPS */, ["show", "onUpdate:show", "style"]),
+    createElementVNode("view", utsMapOf({ class: "bottom-button" }), [
+      createElementVNode("button", utsMapOf({
+        class: normalizeClass(["rent-button", utsMapOf({'rent-button-disabled': !_ctx.agreedToTerms})]),
+        onClick: _ctx.goToRent
+      }), "Go to Rent", 10 /* CLASS, PROPS */, ["onClick"])
+    ])
+  ])
+}
+const GenPagesOrderConfirmStyles = [utsMapOf([["order-confirm-page", padStyleMapOf(utsMapOf([["backgroundImage", "linear-gradient(to bottom, #f0faff, #ffffff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["display", "flex"], ["flexDirection", "column"], ["gap", "20rpx"], ["paddingTop", "20rpx"], ["paddingRight", "20rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "20rpx"], ["boxSizing", "border-box"]]))], ["back-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "25rpx"], ["left", "30rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["backgroundColor", "#f4f8ff"], ["borderRadius", "25rpx"], ["width", "80rpx"], ["height", "80rpx"]]))], ["back-icon", padStyleMapOf(utsMapOf([["fontSize", "55rpx"], ["color", "#0084ff"]]))], ["header", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["paddingTop", "40rpx"], ["paddingRight", 0], ["paddingBottom", "40rpx"], ["paddingLeft", 0], ["textAlign", "center"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["marginTop", "50rpx"]]))], ["header-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"], ["marginBottom", "20rpx"]]))], ["scooter-image", padStyleMapOf(utsMapOf([["width", "100%"], ["maxHeight", "300rpx"], ["objectFit", "contain"], ["marginBottom", "auto"], ["borderRadius", "20rpx"], ["marginTop", "auto"], ["marginRight", "auto"], ["marginLeft", "auto"]]))], ["info-card", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"]]))], ["info-item", padStyleMapOf(utsMapOf([["marginBottom", "20rpx"], ["display", "flex"], ["justifyContent", "space-between"]]))], ["info-label", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#333333"]]))], ["info-value", padStyleMapOf(utsMapOf([["fontSize", "34rpx"], ["fontWeight", "bold"], ["color", "#555555"]]))], ["address-section", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["borderRadius", "20rpx"], ["display", "flex"], ["flexDirection", "row"], ["alignItems", "center"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"]]))], ["section-label", padStyleMapOf(utsMapOf([["fontSize", "30rpx"], ["color", "#333333"], ["marginRight", "20rpx"], ["fontWeight", "bold"]]))], ["address-input", padStyleMapOf(utsMapOf([["flex", 1], ["fontSize", "30rpx"], ["borderWidth", "medium"], ["borderStyle", "none"], ["borderColor", "#000000"], ["outline", "none"], ["color", "#333333"], ["backgroundImage", "none"], ["backgroundColor", "rgba(0,0,0,0)"]]))], ["address-error", padStyleMapOf(utsMapOf([["marginTop", "10rpx"], ["marginRight", "20rpx"], ["marginBottom", 0], ["marginLeft", "20rpx"], ["paddingTop", 0], ["paddingRight", "30rpx"], ["paddingBottom", 0], ["paddingLeft", "30rpx"]]))], ["error-text", padStyleMapOf(utsMapOf([["color", "#ff4d4f"], ["fontSize", "26rpx"]]))], ["agreement-section", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["paddingTop", "20rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "30rpx"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["marginTop", "20rpx"], ["marginRight", 0], ["marginBottom", "36rpx"], ["marginLeft", 0]]))], ["agreement-text", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#666666"], ["marginLeft", "20rpx"]]))], ["agreement-link", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#007aff"], ["textDecoration", "underline"], ["marginLeft", "20rpx"]]))], ["agreement-popup", padStyleMapOf(utsMapOf([["height", "100%"], ["display", "flex"], ["flexDirection", "column"]]))], ["agreement-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"], ["marginBottom", "40rpx"]]))], ["agreement-content", padStyleMapOf(utsMapOf([["flex", 1], ["paddingTop", "24rpx"], ["paddingRight", "32rpx"], ["paddingBottom", "24rpx"], ["paddingLeft", "32rpx"], ["backgroundColor", "#ffffff"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"]]))], ["agreement-text-content", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#666666"], ["lineHeight", 1.6]]))], ["bottom-button", padStyleMapOf(utsMapOf([["marginTop", "40rpx"], ["marginRight", 0], ["marginBottom", "40rpx"], ["marginLeft", 0], ["paddingTop", 0], ["paddingRight", "30rpx"], ["paddingBottom", 0], ["paddingLeft", "30rpx"]]))], ["rent-button", padStyleMapOf(utsMapOf([["backgroundImage", "linear-gradient(to right, #007aff, #00c3ff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["color", "#ffffff"], ["fontSize", "34rpx"], ["height", "96rpx"], ["lineHeight", "96rpx"], ["borderRadius", "48rpx"], ["fontWeight", "bold"], ["boxShadow", "0 6px 14px rgba(0, 122, 255, 0.2)"], ["textAlign", "center"]]))], ["rent-button-disabled", padStyleMapOf(utsMapOf([["backgroundImage", "linear-gradient(to right, #cccccc, #dddddd)"], ["backgroundColor", "rgba(0,0,0,0)"], ["boxShadow", "none"], ["opacity", 0.7], ["!pointerEvents", "auto"]]))], ["section-title", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["marginBottom", "16rpx"]]))], ["section-text", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#444444"], ["lineHeight", 1.8]]))], ["rental-period-item", padStyleMapOf(utsMapOf([["flexDirection", "column"], ["paddingTop", "20rpx"], ["paddingRight", "20rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "20rpx"], ["backgroundImage", "none"], ["backgroundColor", "#f7faff"], ["borderWidth", "2rpx"], ["borderStyle", "dashed"], ["borderColor", "#007aff"], ["borderRadius", "16rpx"], ["marginBottom", "30rpx"], ["boxShadow", "0 2px 8px rgba(0, 122, 255, 0.08)"]]))], ["info-label-title", padStyleMapOf(utsMapOf([["fontSize", "30rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["marginBottom", "10rpx"]]))], ["rental-period-value", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#444444"], ["lineHeight", 1.8], ["textAlign", "center"], ["alignItems", "center"]]))]])]

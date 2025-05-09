@@ -1,0 +1,216 @@
+
+import { passwordApi } from '../../utils/api/password/index.uts';
+
+const __sfc__ = defineComponent({
+  data() {
+    return {
+      email: '',
+      codeInput: '',
+      codeSent: false,
+      emailError: false,
+      emailErrorMessage: '',
+      verified: false,
+	  focusedInput: '',
+	  resendCountdown: 0,       // 倒计时秒数（发送按钮用）
+	  codeExpireTimeout: null,  // 记录验证码有效期定时器
+	  codeExpired: false,        // 验证码是否已过期
+	  countdownTimer: null,
+      isLoading: false
+    };
+  },
+  methods: {
+    handleAction() {
+      if (this.verified) {
+        // 验证成功后跳转到设置新密码页
+        uni.navigateTo({ 
+          url: `/pages/new_pass/new_pass?email=${encodeURIComponent(this.email)}&code=${encodeURIComponent(this.codeInput)}` 
+        });
+        return;
+      }
+  
+      if (!this.codeSent) {
+        this.sendCode();
+      } else {
+        this.verifyCode();
+      }
+    },
+  
+    sendCode() {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+        this.emailError = true;
+        this.emailErrorMessage = 'Please enter a valid email.';
+        return;
+      }
+    
+      this.emailError = false;
+      this.isLoading = true;
+      
+      // 调用后端API发送验证码
+      passwordApi.forgotPassword(this.email)
+        .then(res => {
+          if (res.code === 1) {
+            this.codeSent = true;
+            this.codeExpired = false;
+            uni.showToast({ title: 'Code sent to email!', icon: 'success' });
+            
+            // 清除旧定时器
+            clearInterval(this.countdownTimer);
+            clearTimeout(this.codeExpireTimeout);
+            
+            // 启动验证码有效期（2分钟）
+            this.codeExpireTimeout = setTimeout(() => {
+              this.codeExpired = true;
+            }, 120000); // 两分钟有效期
+            
+            // 启动倒计时（1分钟）
+            this.resendCountdown = 60;
+            this.countdownTimer = setInterval(() => {
+              this.resendCountdown--;
+              if (this.resendCountdown <= 0) {
+                clearInterval(this.countdownTimer);
+              }
+            }, 1000);
+          } else {
+            this.emailError = true;
+            this.emailErrorMessage = res.msg || 'Failed to send verification code.';
+          }
+        })
+        .catch(err => {
+          this.emailError = true;
+          this.emailErrorMessage = 'Server error, please try again later.';
+          console.error('Failed to send verification code:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+  
+    verifyCode() {
+      if (this.codeExpired) {
+        uni.showToast({ title: 'Code has expired, please resend.', icon: 'none' });
+        return;
+      }
+      
+      if (!this.codeInput || this.codeInput.length !== 6) {
+        uni.showToast({ title: 'Please enter a valid 6-digit code', icon: 'none' });
+        return;
+      }
+      
+      this.isLoading = true;
+      
+      // 调用后端API验证验证码
+      passwordApi.verifyCode(this.email, this.codeInput)
+        .then(res => {
+          if (res.code === 1) {
+            this.verified = true;
+            uni.showToast({ title: 'Verified!', icon: 'success' });
+            
+            // 验证成功后，清除定时器
+            clearTimeout(this.codeExpireTimeout);
+            clearInterval(this.countdownTimer);
+          } else {
+            uni.showToast({ title: res.msg || 'Invalid code', icon: 'none' });
+          }
+        })
+        .catch(err => {
+          uni.showToast({ title: 'Server error, please try again later', icon: 'none' });
+          console.error('Verification code verification failed:', err);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    
+    goBack() {
+      uni.navigateTo({ url: '/pages/login/login' });
+    }
+  },
+  onUnload() {
+    clearTimeout(this.codeExpireTimeout);
+    clearInterval(this.countdownTimer);
+  }
+});
+
+export default __sfc__
+function GenPagesForgetForgetRender(this: InstanceType<typeof __sfc__>): any | null {
+const _ctx = this
+const _cache = this.$.renderCache
+  return createElementVNode("view", utsMapOf({ class: "forget-page" }), [
+    createElementVNode("view", utsMapOf({ class: "header-illustration" }), [
+      createElementVNode("image", utsMapOf({
+        class: "illustration-img",
+        src: "/static/login/login_illustration.png",
+        mode: "widthFix"
+      }))
+    ]),
+    createElementVNode("view", utsMapOf({ class: "glass-container" }), [
+      createElementVNode("view", utsMapOf({ class: "form-container" }), [
+        createElementVNode("text", utsMapOf({ class: "form-title" }), "Reset your password"),
+        createElementVNode("text", utsMapOf({ class: "form-subtitle" }), "Enter your email to receive a reset code"),
+        createElementVNode("view", utsMapOf({
+          class: normalizeClass(["input-wrapper", utsMapOf({ focused: _ctx.focusedInput === 'email' })])
+        }), [
+          createElementVNode("image", utsMapOf({
+            class: "input-icon",
+            src: "/static/icons/envelope-solid.svg",
+            mode: "aspectFit"
+          })),
+          createElementVNode("input", utsMapOf({
+            class: "uni-input",
+            modelValue: _ctx.email,
+            onInput: ($event: InputEvent) => {(_ctx.email) = $event.detail.value},
+            type: "text",
+            placeholder: "Enter your email",
+            onFocus: () => {_ctx.focusedInput = 'email'},
+            onBlur: () => {_ctx.focusedInput = ''}
+          }), null, 40 /* PROPS, NEED_HYDRATION */, ["modelValue", "onInput", "onFocus", "onBlur"])
+        ], 2 /* CLASS */),
+        isTrue(_ctx.codeSent)
+          ? createElementVNode("view", utsMapOf({
+              key: 0,
+              class: normalizeClass(["input-wrapper", utsMapOf({ focused: _ctx.focusedInput === 'code' })])
+            }), [
+              createElementVNode("image", utsMapOf({
+                class: "input-icon",
+                src: "/static/icons/key-solid.svg",
+                mode: "aspectFit"
+              })),
+              createElementVNode("input", utsMapOf({
+                class: "uni-input",
+                modelValue: _ctx.codeInput,
+                onInput: ($event: InputEvent) => {(_ctx.codeInput) = $event.detail.value},
+                type: "text",
+                placeholder: "Enter the code",
+                onFocus: () => {_ctx.focusedInput = 'code'},
+                onBlur: () => {_ctx.focusedInput = ''}
+              }), null, 40 /* PROPS, NEED_HYDRATION */, ["modelValue", "onInput", "onFocus", "onBlur"]),
+              createElementVNode("view", utsMapOf({
+                class: normalizeClass(["resend-button", utsMapOf({ disabled: _ctx.resendCountdown > 0 })]),
+                onClick: () => {_ctx.resendCountdown === 0 && _ctx.sendCode()}
+              }), toDisplayString(_ctx.resendCountdown > 0 ? `(${_ctx.resendCountdown}s)` : 'Resend'), 11 /* TEXT, CLASS, PROPS */, ["onClick"])
+            ], 2 /* CLASS */)
+          : createCommentVNode("v-if", true),
+        isTrue(_ctx.emailError)
+          ? createElementVNode("text", utsMapOf({
+              key: 1,
+              class: "error-text"
+            }), toDisplayString(_ctx.emailErrorMessage), 1 /* TEXT */)
+          : createCommentVNode("v-if", true),
+        createElementVNode("button", utsMapOf({
+          class: "login-btn",
+          onClick: _ctx.handleAction
+        }), toDisplayString(_ctx.verified ? "Set New Password" : (_ctx.codeSent ? "Verify Code" : "Send Code")), 9 /* TEXT, PROPS */, ["onClick"]),
+        createElementVNode("view", utsMapOf({
+          class: "tips-wrapper",
+          style: normalizeStyle(utsMapOf({"justify-content":"center","margin-top":"40rpx"}))
+        }), [
+          createElementVNode("text", utsMapOf({
+            class: "tip-link",
+            onClick: _ctx.goBack
+          }), "← Back to Login", 8 /* PROPS */, ["onClick"])
+        ], 4 /* STYLE */)
+      ])
+    ])
+  ])
+}
+const GenPagesForgetForgetStyles = [utsMapOf([["forget-page", padStyleMapOf(utsMapOf([["background", "linear-gradient(\r\n    to bottom,\r\n    rgba(0, 123, 255, 0.2) 0%,   \r\n    rgba(0, 123, 255, 0.1) 50%,  \r\n    rgba(255, 255, 255, 0) 100%  \r\n  )"], ["display", "flex"], ["flexDirection", "column"], ["height", "100%"]]))], ["header-illustration", padStyleMapOf(utsMapOf([["marginTop", "80rpx"], ["display", "flex"], ["justifyContent", "center"], ["alignItems", "center"]]))], ["illustration-img", padStyleMapOf(utsMapOf([["width", "60%"]]))], ["glass-container", padStyleMapOf(utsMapOf([["marginTop", "60rpx"], ["marginRight", "auto"], ["marginBottom", "auto"], ["marginLeft", "auto"], ["paddingTop", "40rpx"], ["paddingRight", "40rpx"], ["paddingBottom", "40rpx"], ["paddingLeft", "40rpx"], ["width", "90%"], ["backgroundImage", "none"], ["backgroundColor", "rgba(255,255,255,0.2)"], ["borderRadius", "60rpx"], ["boxShadow", "0px 10px 30px rgba(0, 0, 0, 0.1)"], ["backdropFilter", "blur(15px)"], ["textAlign", "center"]]))], ["form-container", padStyleMapOf(utsMapOf([["marginTop", "20rpx"], ["paddingTop", 0], ["paddingRight", "20rpx"], ["paddingBottom", 0], ["paddingLeft", "20rpx"], ["display", "flex"], ["flexDirection", "column"]]))], ["input-wrapper", utsMapOf([["", utsMapOf([["position", "relative"], ["marginBottom", "25rpx"], ["backgroundColor", "rgba(255,255,255,0.6)"], ["boxShadow", "0px 4px 10px rgba(0, 0, 0, 0.1)"], ["borderRadius", "70rpx"], ["display", "flex"], ["flexDirection", "row"], ["alignItems", "center"], ["paddingTop", 0], ["paddingRight", "50rpx"], ["paddingBottom", 0], ["paddingLeft", "50rpx"], ["transitionDuration", "0.3s"]])], [".focused", utsMapOf([["borderWidth", "2rpx"], ["borderStyle", "solid"], ["borderColor", "#007aff"], ["backgroundColor", "#eaf5ff"]])]])], ["input-icon", padStyleMapOf(utsMapOf([["width", "40rpx"], ["height", "40rpx"], ["marginRight", "25rpx"]]))], ["uni-input", padStyleMapOf(utsMapOf([["flex", 1], ["height", "90rpx"], ["fontSize", "28rpx"], ["borderWidth", "medium"], ["borderStyle", "none"], ["borderColor", "#000000"], ["backgroundColor", "rgba(0,0,0,0)"]]))], ["eye-icon", padStyleMapOf(utsMapOf([["width", "36rpx"], ["height", "36rpx"], ["cursor", "pointer"], ["transitionProperty", "transform"], ["transitionDuration", "0.3s"], ["transitionTimingFunction", "ease-in-out"], ["transform:hover", "scale(1.1)"]]))], ["error-text", padStyleMapOf(utsMapOf([["fontSize", "26rpx"], ["color", "#0073f1"], ["marginTop", "0rpx"], ["marginBottom", "30rpx"], ["marginLeft", "25rpx"]]))], ["login-btn", padStyleMapOf(utsMapOf([["marginTop", "40rpx"], ["height", "90rpx"], ["lineHeight", "90rpx"], ["fontSize", "30rpx"], ["backgroundImage", "linear-gradient(to right, #82b1ff, #007aff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["boxShadow", "0px 4px 10px rgba(0, 122, 255, 0.3)"], ["color", "#ffffff"], ["borderRadius", "70rpx"], ["transitionDuration", "0.3s"], ["transform:active", "scale(0.96)"]]))], ["tips-wrapper", padStyleMapOf(utsMapOf([["marginLeft", "50rpx"], ["marginRight", "50rpx"], ["display", "flex"], ["flexDirection", "row"], ["justifyContent", "space-between"]]))], ["tip-link", padStyleMapOf(utsMapOf([["fontSize", "26rpx"], ["color", "#666666"], ["transitionProperty", "color"], ["transitionDuration", "0.2s"], ["color:hover", "#005bb5"]]))], ["third-party-section", padStyleMapOf(utsMapOf([["marginTop", "auto"], ["marginRight", "auto"], ["marginBottom", "200rpx"], ["marginLeft", "auto"], ["textAlign", "center"]]))], ["third-party-text", padStyleMapOf(utsMapOf([["fontSize", "24rpx"], ["color", "#999999"], ["marginTop", "auto"], ["marginRight", "auto"], ["marginBottom", "auto"], ["marginLeft", "auto"]]))], ["third-party-icons", padStyleMapOf(utsMapOf([["marginTop", "20rpx"], ["display", "flex"], ["flexDirection", "row"], ["justifyContent", "center"], ["gap", "40rpx"]]))], ["third-party-icon", padStyleMapOf(utsMapOf([["width", "60rpx"], ["height", "60rpx"], ["paddingTop", "15rpx"], ["paddingRight", "15rpx"], ["paddingBottom", "15rpx"], ["paddingLeft", "15rpx"], ["backgroundColor", "rgba(255,255,255,0.6)"], ["transitionDuration", "0.3s"], ["transitionTimingFunction", "ease-in-out"], ["transform:hover", "scale(1.05)"]]))], ["form-title", padStyleMapOf(utsMapOf([["fontSize", "45rpx"], ["fontWeight", "bold"], ["color", "#333333"], ["marginBottom", "20rpx"], ["textAlign", "center"]]))], ["form-subtitle", padStyleMapOf(utsMapOf([["fontSize", "26rpx"], ["color", "#666666"], ["marginTop", "10rpx"], ["marginBottom", "40rpx"], ["textAlign", "center"]]))], ["resend-button", utsMapOf([["", utsMapOf([["fontSize", "26rpx"], ["color", "#007aff"], ["marginLeft", "20rpx"], ["flexShrink", 0], ["paddingTop", 0], ["paddingRight", "12rpx"], ["paddingBottom", 0], ["paddingLeft", "12rpx"], ["height", "60rpx"], ["lineHeight", "60rpx"], ["backgroundColor", "#eaf5ff"], ["borderRadius", "30rpx"], ["transitionProperty", "opacity"], ["transitionDuration", "0.3s"]])], [".disabled", utsMapOf([["color", "#aaaaaa"], ["backgroundColor", "#f2f2f2"], ["pointerEvents", "none"]])]])], ["@TRANSITION", utsMapOf([["input-wrapper", utsMapOf([["duration", "0.3s"]])], ["eye-icon", utsMapOf([["property", "transform"], ["duration", "0.3s"], ["timingFunction", "ease-in-out"]])], ["login-btn", utsMapOf([["duration", "0.3s"]])], ["tip-link", utsMapOf([["property", "color"], ["duration", "0.2s"]])], ["third-party-icon", utsMapOf([["duration", "0.3s"], ["timingFunction", "ease-in-out"]])], ["resend-button", utsMapOf([["property", "opacity"], ["duration", "0.3s"]])]])]])]

@@ -1,0 +1,1065 @@
+
+import { scooterApi } from '../../utils/api/scooter';
+import { userApi } from '../../utils/api/user';
+import { orderApi } from '../../utils/api/order';
+import { dateUtils } from '../../utils/dateUtils';
+import { notificationApi } from '../../utils/api/notification';
+
+const __sfc__ = defineComponent({
+	data() {
+		return {
+			showSidebar: false,
+			longitude: 116.39742,
+			latitude: 39.909,
+			windowWidth: 0,
+			windowHeight: 0,
+			markers: [] as Array<{
+				id: string;
+				latitude: number;
+				longitude: number;
+				width: number;
+				height: number;
+				iconPath: string;
+				callout: {
+					content: string;
+					display: 'ALWAYS' | 'BYCLICK';
+				};
+			}>,
+			direction: 0,
+			scale: 16,
+			height: 60,
+			anchors: [60, 0],
+			selected: null,
+			mapCenter: {
+				longitude: 116.39742,
+				latitude: 39.909
+			},
+			scooters: [] as Array<{
+				scooterId: number;
+				locationLat: number;
+				locationLng: number;
+				status: string;
+				batteryLevel: number;
+				price: number;
+			}>,
+			username: '',
+			panelState: 'timeSelector',
+			startDate: new Date(),
+			startTime: new Date().getHours().toString().padStart(2, '0') + ':' + new Date().getMinutes().toString().padStart(2, '0'),
+			endDate: new Date(),
+			endTime: new Date().getHours().toString().padStart(2, '0') + ':' + new Date().getMinutes().toString().padStart(2, '0'),
+			tempStartDate: ['', '', ''],
+			tempStartTime: ['', ''],
+			tempEndDate: ['', '', ''],
+			tempEndTime: ['', ''],
+			showStartPicker: false,
+			showEndPicker: false,
+			quickOptionSelected: '',
+			orderTipInfo: {
+				show: false,
+				message: '',
+				buttonText: '',
+				action: () => {}
+			},
+			hasUnreadNotifications: false,
+		};
+	},
+	mounted() {
+		this.getLocation();
+		this.startCompass();
+		this.updateMarkers();
+		this.getUsername();
+		this.initDateFormatting();
+		this.checkUnstartedOrder();
+		this.checkUnreadNotifications();
+		
+		// 使用uni.$on监听事件
+		uni.$on('refreshHomePage', () => {
+			this.checkUnstartedOrder();
+		});
+	},
+	onReady() {
+		this.setHeight();
+		this.setWidth();
+		this.getAnchors();
+	},
+	onShow() {
+		this.getUsername();
+		this.checkUnstartedOrder();
+		this.checkUnreadNotifications();
+	},
+	onUnload() {
+		// 移除事件监听
+		uni.$off('refreshHomePage');
+	},
+	computed: {
+		rentalDurationText() {
+			const startDateTime = new Date(this.startDate);
+			const [startHour, startMinute] = this.startTime.split(':').map(Number);
+			startDateTime.setHours(startHour, startMinute);
+			
+			const endDateTime = new Date(this.endDate);
+			const [endHour, endMinute] = this.endTime.split(':').map(Number);
+			endDateTime.setHours(endHour, endMinute);
+			
+			const diffMs = endDateTime.getTime() - startDateTime.getTime();
+			const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+			
+			if (diffMinutes < 60) {
+				return `${diffMinutes} Minutes`;
+			} else {
+				// 计算小时数，向上取整
+				const diffHours = Math.ceil(diffMinutes / 60);
+				if (diffHours < 24) {
+					return diffHours === 1 ? '1 Hour' : `${diffHours} Hours`;
+				} else {
+					const diffDays = Math.floor(diffHours / 24);
+					return diffDays === 1 ? '1 Day' : `${diffDays} Days`;
+				}
+			}
+		},
+		isTimeValid() {
+			const startDateTime = new Date(this.startDate);
+			const [startHour, startMinute] = this.startTime.split(':').map(Number);
+			startDateTime.setHours(startHour, startMinute);
+			
+			const endDateTime = new Date(this.endDate);
+			const [endHour, endMinute] = this.endTime.split(':').map(Number);
+			endDateTime.setHours(endHour, endMinute);
+			
+			return startDateTime.getTime() !== endDateTime.getTime();
+		}
+	},
+	methods: {
+		getLocation() {
+			uni.getLocation({
+				type: 'gcj02',
+				success: (res) => {
+					this.longitude = res.longitude;
+					this.latitude = res.latitude;
+					this.mapCenter.longitude = res.longitude;
+					this.mapCenter.latitude = res.latitude;
+				},
+				fail: (err) => {
+					uni.showToast({
+						title: 'Fail to locate.',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			});
+		},
+		setHeight() {
+			this.windowHeight = uni.getSystemInfoSync().windowHeight;
+		},
+		setWidth() {
+			this.windowWidth = uni.getSystemInfoSync().windowWidth;
+		},
+		startCompass() {
+			uni.onCompassChange((res) => {
+				this.direction = res.direction;
+			});
+		},
+		getAnchors() {
+			this.anchors = [
+				60,
+				Math.round(0.5 * this.windowHeight)
+			];
+		},
+		updateMarkers() {
+			// 如果没有滑板车数据，则设置为空数组
+			if (!this.scooters || this.scooters.length === 0) {
+				this.markers = [];
+				return;
+			}
+			
+			this.markers = this.scooters.map(scooter => ({
+				id: scooter.scooterId.toString(),
+				latitude: scooter.locationLat,
+				longitude: scooter.locationLng,
+				width: this.selected === scooter.scooterId ? 32 : 25,
+				height: this.selected === scooter.scooterId ? 32 : 25,
+				iconPath: '/static/order_details/maker.svg',
+				callout: {
+					content: `Scooter ${scooter.scooterId}`,
+					display: this.selected === scooter.scooterId ? 'ALWAYS' : 'BYCLICK'
+				}
+			}));
+		},
+		selectEscooter(id) {
+			if (this.selected === id) {
+				this.selected = null;
+				this.mapCenter.longitude = this.longitude;
+				this.mapCenter.latitude = this.latitude;
+			} else {
+				this.selected = id;
+				const selectedScooter = this.scooters.find(s => s.scooterId === id);
+				if (selectedScooter) {
+					this.mapCenter.longitude = selectedScooter.locationLng;
+					this.mapCenter.latitude = selectedScooter.locationLat;
+				}
+			}
+			this.updateMarkers();
+		},
+		toggleSidebar() {
+			this.showSidebar = !this.showSidebar;
+		},
+		navigateTo(page) {
+			this.showSidebar = false;
+			
+			const pageMapping = {
+				'confirm': '/pages/order/confirm',
+				'notification': '/pages/notification/notification',
+				'cards': '/pages/cards/cards',
+				'records': '/pages/settings/orders/orders',
+				'coupons': '/pages/settings/coupons/coupon',
+				'help': '/pages/help/help',
+				'settings': '/pages/settings/my_settings/my_settings',
+				'card': '/pages/settings/card/card'
+			};
+			if (pageMapping[page]) {
+				if (page === 'confirm') {
+					if (this.selected === null) {
+						uni.showToast({
+							title: 'Please choose a scooter',
+							icon: 'none'
+						});
+						return;
+					}
+
+					// 获取选中的滑板车信息
+					const selectedScooter = this.scooters.find(s => s.scooterId === this.selected);
+					if (!selectedScooter) {
+						uni.showToast({
+							title: 'Scooter information not found',
+							icon: 'none'
+						});
+						return;
+					}
+
+					// 检查用户是否登录
+					if (!userApi.isLoggedIn()) {
+						uni.showToast({
+							title: 'Please log in first',
+							icon: 'none',
+							duration: 2000
+						});
+						
+						// 延迟后跳转到登录页面
+						setTimeout(() => {
+							uni.navigateTo({
+								url: '/pages/login/login'
+							});
+						}, 1500);
+						return;
+					}
+					
+					// 用户已登录，可以安全获取用户ID
+					const userId = userApi.getUserId();
+					
+					uni.navigateTo({
+						url: `${pageMapping[page]}?scooterId=${this.selected}&batteryLevel=${selectedScooter.batteryLevel}&price=${selectedScooter.price}&startDate=${encodeURIComponent(this.formatFullDate(this.startDate))}&startTime=${encodeURIComponent(this.startTime)}&endDate=${encodeURIComponent(this.formatFullDate(this.endDate))}&endTime=${encodeURIComponent(this.endTime)}&latitude=${selectedScooter.locationLat}&longitude=${selectedScooter.locationLng}`
+					});
+				} else if (page === 'cards') {
+					// 检查用户是否登录
+					const isLoggedIn = userApi.isLoggedIn();
+					if (!isLoggedIn) {
+						uni.showToast({
+							title: 'Please log in',
+							icon: 'none',
+							duration: 2000
+						});
+						return;
+					}
+					uni.navigateTo({
+						url: pageMapping[page]
+					});
+				} else {
+					uni.navigateTo({
+						url: pageMapping[page]
+					});
+				}
+			}
+		},
+		getUsername() {
+			this.username = userApi.getUsername('Guest');
+		},
+		initDateFormatting() {
+			const now = new Date();
+			this.tempStartDate = [
+				now.getFullYear().toString(),
+				(now.getMonth() + 1).toString().padStart(2, '0'),
+				now.getDate().toString().padStart(2, '0')
+			];
+			this.tempStartTime = [
+				now.getHours().toString().padStart(2, '0'),
+				now.getMinutes().toString().padStart(2, '0')
+			];
+			this.tempEndDate = [...this.tempStartDate];
+			this.tempEndTime = [...this.tempStartTime];
+			this.startDate = now;
+			this.endDate = new Date(now);
+			this.startTime = `${this.tempStartTime[0]}:${this.tempStartTime[1]}`;
+			this.endTime = this.startTime;
+		},
+		formatDate(date) {
+			const month = date.getMonth() + 1;
+			const day = date.getDate();
+			return `${month}/${day}`;
+		},
+		getDayOfWeek(date) {
+			const today = new Date();
+			if (date.getDate() === today.getDate() && 
+				date.getMonth() === today.getMonth() && 
+				date.getFullYear() === today.getFullYear()) {
+				return 'Today';
+			}
+			const weekdays = ['Sun.', 'Mon.', 'Tues.', 'Wed.', 'Thur.', 'Fri.', 'Sat.'];
+				return weekdays[date.getDay()];
+		},
+		getMinHour(date) {
+			const today = new Date();
+			const selectedDate = new Date(Number(date[0]), Number(date[1]) - 1, Number(date[2]));
+			if (selectedDate.getDate() === today.getDate() && 
+				selectedDate.getMonth() === today.getMonth() && 
+				selectedDate.getFullYear() === today.getFullYear()) {
+				return today.getHours();
+			}
+			return 0;
+		},
+		getMinHourForEndTime(date) {
+			const selectedDate = new Date(Number(date[0]), Number(date[1]) - 1, Number(date[2]));
+			if (selectedDate.getDate() === this.startDate.getDate() && 
+				selectedDate.getMonth() === this.startDate.getMonth() && 
+				selectedDate.getFullYear() === this.startDate.getFullYear()) {
+				return Number(this.tempStartTime[0]);
+			}
+			return 0;
+		},
+		onConfirmStartTime() {
+			this.startDate = new Date(
+				Number(this.tempStartDate[0]),
+				Number(this.tempStartDate[1]) - 1,
+				Number(this.tempStartDate[2])
+			);
+			this.startTime = `${this.tempStartTime[0]}:${this.tempStartTime[1]}`;
+			
+			// 如果已经选择了快捷选项，则根据快捷选项计算结束时间
+			if (this.quickOptionSelected) {
+				const startDateTime = new Date(this.startDate);
+				const [startHour, startMinute] = this.startTime.split(':').map(Number);
+				startDateTime.setHours(startHour, startMinute);
+				
+				switch(this.quickOptionSelected) {
+					case '1h':
+						const oneHourLater = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+						this.endDate = oneHourLater;
+						this.endTime = `${oneHourLater.getHours().toString().padStart(2, '0')}:${oneHourLater.getMinutes().toString().padStart(2, '0')}`;
+						break;
+					case '4h':
+						const fourHoursLater = new Date(startDateTime.getTime() + 4 * 60 * 60 * 1000);
+						this.endDate = fourHoursLater;
+						this.endTime = `${fourHoursLater.getHours().toString().padStart(2, '0')}:${fourHoursLater.getMinutes().toString().padStart(2, '0')}`;
+						break;
+					case '1d':
+						const oneDayLater = new Date(startDateTime.getTime() + 24 * 60 * 60 * 1000);
+						this.endDate = oneDayLater;
+						this.endTime = this.startTime;
+						break;
+					case '1w':
+						const oneWeekLater = new Date(startDateTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+						this.endDate = oneWeekLater;
+						this.endTime = this.startTime;
+						break;
+				}
+			} else {
+				// 如果没有选择快捷选项，则同步结束时间
+				this.endDate = new Date(this.startDate);
+				this.endTime = this.startTime;
+			}
+			
+			// 更新临时日期和时间
+			this.tempEndTime = [
+				this.endTime.split(':')[0],
+				this.endTime.split(':')[1]
+			];
+			this.tempEndDate = [
+				this.endDate.getFullYear().toString(),
+				(this.endDate.getMonth() + 1).toString().padStart(2, '0'),
+				this.endDate.getDate().toString().padStart(2, '0')
+			];
+			
+			this.showStartPicker = false;
+		},
+		onConfirmEndTime() {
+			const newEndDate = new Date(
+				Number(this.tempEndDate[0]),
+				Number(this.tempEndDate[1]) - 1, 
+				Number(this.tempEndDate[2])
+			);
+			const isSameDay = (
+				newEndDate.getDate() === this.startDate.getDate() &&
+				newEndDate.getMonth() === this.startDate.getMonth() &&
+				newEndDate.getFullYear() === this.startDate.getFullYear()
+			);
+			if (isSameDay && Number(this.tempEndTime[0]) < Number(this.tempStartTime[0]) || 
+				(Number(this.tempEndTime[0]) === Number(this.tempStartTime[0]) && 
+				Number(this.tempEndTime[1]) < Number(this.tempStartTime[1]))) {
+				this.tempEndTime = [...this.tempStartTime];
+				uni.showToast({
+					title: 'The end time cannot be earlier than the start time',
+					icon: 'none'
+				});
+			}
+			this.endDate = newEndDate;
+			this.endTime = `${this.tempEndTime[0]}:${this.tempEndTime[1]}`;
+			this.tempEndDate = [
+				this.endDate.getFullYear().toString(),
+				(this.endDate.getMonth() + 1).toString().padStart(2, '0'),
+				this.endDate.getDate().toString().padStart(2, '0')
+			];
+			this.showEndPicker = false;
+		},
+		setQuickOption(option) {
+			if (this.quickOptionSelected === option) {
+				this.quickOptionSelected = '';
+				return;
+			}
+			this.quickOptionSelected = option;
+			const startDateTime = new Date(this.startDate);
+			const [startHour, startMinute] = this.startTime.split(':').map(Number);
+			startDateTime.setHours(startHour, startMinute);
+			switch(option) {
+				case '1h':
+					const oneHourLater = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+					this.endDate = oneHourLater;
+					this.endTime = `${oneHourLater.getHours().toString().padStart(2, '0')}:${oneHourLater.getMinutes().toString().padStart(2, '0')}`;
+					break;
+				case '4h':
+					const fourHoursLater = new Date(startDateTime.getTime() + 4 * 60 * 60 * 1000);
+					this.endDate = fourHoursLater;
+					this.endTime = `${fourHoursLater.getHours().toString().padStart(2, '0')}:${fourHoursLater.getMinutes().toString().padStart(2, '0')}`;
+					break;
+				case '1d':
+					const oneDayLater = new Date(startDateTime.getTime() + 24 * 60 * 60 * 1000);
+					this.endDate = oneDayLater;
+					this.endTime = this.startTime;
+					break;
+				case '1w':
+					const oneWeekLater = new Date(startDateTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+					this.endDate = oneWeekLater;
+					this.endTime = this.startTime;
+					break;
+			}
+			this.tempEndDate = [
+				this.endDate.getFullYear().toString(),
+				(this.endDate.getMonth() + 1).toString().padStart(2, '0'),
+				this.endDate.getDate().toString().padStart(2, '0')
+			];
+			this.tempEndTime = [
+				this.endTime.split(':')[0],
+				this.endTime.split(':')[1]
+			];
+		},
+		updateQuickOptionSelected() {
+			const startMs = this.startDate.getTime();
+			const endMs = this.endDate.getTime();
+			const diff = endMs - startMs;
+			const oneHourMs = 60 * 60 * 1000;
+			const fourHoursMs = 4 * oneHourMs;
+			const oneDayMs = 24 * oneHourMs;
+			const oneWeekMs = 7 * oneDayMs;
+			const errorMargin = 10 * 60 * 1000;
+			if (Math.abs(diff - oneHourMs) <= errorMargin) {
+				this.quickOptionSelected = '1h';
+			} else if (Math.abs(diff - fourHoursMs) <= errorMargin) {
+				this.quickOptionSelected = '4h';
+			} else if (Math.abs(diff - oneDayMs) <= errorMargin) {
+				this.quickOptionSelected = '1d';
+			} else if (Math.abs(diff - oneWeekMs) <= errorMargin) {
+				this.quickOptionSelected = '1w';
+			} else {
+				this.quickOptionSelected = '';
+			}
+		},
+		showScooterList() {
+			this.panelState = 'scooterList';
+			this.getAnchors();
+			
+			// 将日期和时间转换为ISO格式的日期时间字符串
+			const startDateTime = new Date(this.startDate);
+			const [startHour, startMinute] = this.startTime.split(':').map(Number);
+			startDateTime.setHours(startHour, startMinute);
+			
+			const endDateTime = new Date(this.endDate);
+			const [endHour, endMinute] = this.endTime.split(':').map(Number);
+			endDateTime.setHours(endHour, endMinute);
+			
+			// 使用日期工具类格式化日期时间
+			const startISOString = dateUtils.formatDateForBackend(startDateTime);
+			const endISOString = dateUtils.formatDateForBackend(endDateTime);
+			
+			console.log('Sending dates to backend:', startISOString, endISOString);
+			
+			// 获取可用的滑板车
+			uni.showLoading({
+				title: 'Loading available scooters...'
+			});
+			
+			scooterApi.getScooters().then(res => {
+				if (res.code === 1) {
+					this.scooters = res.data
+						.filter(scooter => scooter.status === 'free')
+						.map(scooter => ({
+							scooterId: scooter.scooter_id,
+							locationLat: scooter.location_lat,
+							locationLng: scooter.location_lng,
+							status: scooter.status,
+							batteryLevel: scooter.battery_level,
+							price: scooter.price
+						}));
+					this.updateMarkers();
+					
+					if (this.scooters.length === 0) {
+						uni.showToast({
+							title: 'No available scooters now',
+							icon: 'none',
+							duration: 2000
+						});
+					}
+				} else {
+					console.error('Failed to obtain scooter:', res.msg);
+					uni.showToast({
+						title: 'Failed to get available scooters',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			}).catch(err => {
+				console.error('Abnormal acquisition of skateboard:', err);
+				uni.showToast({
+					title: 'Network request exception',
+					icon: 'none',
+					duration: 2000
+				});
+			}).finally(() => {
+				uni.hideLoading();
+			});
+		},
+		backToTimeSelector() {
+			this.panelState = 'timeSelector';
+			this.getAnchors();
+		},
+		formatFullDate(date) {
+			const year = date.getFullYear();
+			const month = (date.getMonth() + 1).toString().padStart(2, '0');
+			const day = date.getDate().toString().padStart(2, '0');
+			return `${year}-${month}-${day}`;
+		},
+		checkUnstartedOrder() {
+			// 先检查用户是否已登录
+			if (!userApi.isLoggedIn()) {
+				console.log('The user has not logged in, skipping the check and not starting the order');
+				this.orderTipInfo.show = false;
+				return;
+			}
+			
+			// 用户已登录，获取用户ID并检查订单
+			const userId = userApi.getUserId();
+			orderApi.getUserOrders(userId).then(res => {
+				if (res.code === 1 && res.data) {
+					res.data.forEach((order, index) => {
+						const orderMap = order.toMap();
+					});
+					const pendingOrder = res.data.find(order => {
+						const orderMap = order.toMap();
+						const status = orderMap.get('status');
+						return status === 'pending';
+					});
+					const activeOrder = res.data.find(order => {
+						const orderMap = order.toMap();
+						const status = orderMap.get('status');
+						return status === 'active';
+					});
+					const paidOrder = res.data.find(order => {
+						const orderMap = order.toMap();
+						const status = orderMap.get('status');
+						return status === 'paid';
+					});
+					if (pendingOrder) {
+						const orderMap = pendingOrder.toMap();
+						const orderId = orderMap.get('order_id');
+						
+						this.orderTipInfo = {
+							show: true,
+							message: 'You have an unpaid order.',
+							buttonText: 'Go to pay',
+							action: () => {
+								// 先获取订单详情
+								orderApi.getOrderDetail(orderId).then(res => {
+									if (res.code === 1 && res.data) {
+										const orderDetail = res.data;
+										// 构造支付页面需要的orderInfo
+										const orderInfo = {
+											orderId: orderDetail.order_id,
+											scooterCode: `SC${orderDetail.scooter_id}`,
+											startDate: dateUtils.formatDate(new Date(orderDetail.start_time)),
+											startTime: dateUtils.formatTime(new Date(orderDetail.start_time)),
+											endDate: dateUtils.formatDate(new Date(orderDetail.end_time)),
+											endTime: dateUtils.formatTime(new Date(orderDetail.end_time)),
+											duration: orderDetail.duration,
+											cost: orderDetail.cost,
+											address: orderDetail.address
+										};
+										
+										uni.navigateTo({
+											url: `/pages/order/payment?orderInfo=${encodeURIComponent(JSON.stringify(orderInfo))}`
+										});
+									} else {
+										uni.showToast({
+											title: 'Failed to get order details',
+											icon: 'none'
+										});
+									}
+								}).catch(err => {
+									console.error('Failed to obtain order details:', err);
+									uni.showToast({
+										title: 'Network request exception',
+										icon: 'none'
+									});
+								});
+							}
+						};
+					} else if (activeOrder) {
+						const orderMap = activeOrder.toMap();
+						const orderId = orderMap.get('order_id');
+						this.orderTipInfo = {
+							show: true,
+							message: 'You have an active order.',
+							buttonText: 'Check details',
+							action: () => {
+								uni.navigateTo({
+									url: `/pages/order_in_progress/order_in_progress?orderId=${orderId}`
+								});
+							}
+						};
+					} else if (paidOrder) {
+						const orderMap = paidOrder.toMap();
+						const orderId = orderMap.get('order_id');
+						this.orderTipInfo = {
+							show: true,
+							message: 'You have already had an order.',
+							buttonText: 'Go to use',
+							action: () => {
+								uni.navigateTo({
+									url: `/pages/order_not_used/order_not_used?orderId=${orderId}`
+								});
+							}
+						};
+					} else {
+						this.orderTipInfo.show = false;
+					}
+				} else {
+					console.log('获取订单数据失败或数据为空');
+					this.orderTipInfo.show = false;
+				}
+			}).catch(err => {
+				console.error('Failed to obtain order:', err);
+				this.orderTipInfo.show = false;
+			});
+		},
+		async checkUnreadNotifications() {
+			const userId = userApi.getUserId();
+			if (!userId) {
+				this.hasUnreadNotifications = false;
+				return;
+			}
+			try {
+				const res = await notificationApi.countUserUnreadNotifications(userId);
+				if (res.code === 1) {
+					this.hasUnreadNotifications = res.data > 0;
+				} else {
+					this.hasUnreadNotifications = false;
+				}
+			} catch (err) {
+				console.error('Failed to retrieve the number of unread notifications:', err);
+				this.hasUnreadNotifications = false;
+			}
+		}
+	}
+});
+
+export default __sfc__
+function GenPagesHomeHomeRender(this: InstanceType<typeof __sfc__>): any | null {
+const _ctx = this
+const _cache = this.$.renderCache
+const _component_van_icon = resolveComponent("van-icon")
+const _component_van_button = resolveComponent("van-button")
+const _component_van_cell = resolveComponent("van-cell")
+const _component_van_cell_group = resolveComponent("van-cell-group")
+const _component_van_floating_panel = resolveComponent("van-floating-panel")
+const _component_van_date_picker = resolveComponent("van-date-picker")
+const _component_van_time_picker = resolveComponent("van-time-picker")
+const _component_van_picker_group = resolveComponent("van-picker-group")
+const _component_van_popup = resolveComponent("van-popup")
+const _component_map = resolveComponent("map")
+
+  return createElementVNode("view", null, [
+    createElementVNode("view", utsMapOf({
+      class: "menu-button",
+      onClick: _ctx.toggleSidebar
+    }), [
+      createVNode(_component_van_icon, utsMapOf({
+        name: "bars",
+        size: "24px",
+        color: "#333"
+      }))
+    ], 8 /* PROPS */, ["onClick"]),
+    createElementVNode("view", utsMapOf({
+      class: "notification-button",
+      onClick: () => {_ctx.navigateTo('notification')}
+    }), [
+      createVNode(_component_van_icon, utsMapOf({
+        name: "bell",
+        size: "24px",
+        color: "#333"
+      })),
+      isTrue(_ctx.hasUnreadNotifications)
+        ? createElementVNode("view", utsMapOf({
+            key: 0,
+            class: "notification-dot"
+          }))
+        : createCommentVNode("v-if", true)
+    ], 8 /* PROPS */, ["onClick"]),
+    isTrue(_ctx.orderTipInfo.show)
+      ? createElementVNode("view", utsMapOf({
+          key: 0,
+          class: "order-tip"
+        }), [
+          createElementVNode("view", utsMapOf({ class: "tip-content" }), [
+            createElementVNode("text", null, toDisplayString(_ctx.orderTipInfo.message), 1 /* TEXT */),
+            createVNode(_component_van_button, utsMapOf({
+              type: "primary",
+              size: "small",
+              class: "use-button",
+              onClick: _ctx.orderTipInfo.action
+            }), utsMapOf({
+              default: withSlotCtx((): any[] => [toDisplayString(_ctx.orderTipInfo.buttonText)]),
+              _: 1 /* STABLE */
+            }), 8 /* PROPS */, ["onClick"])
+          ])
+        ])
+      : createCommentVNode("v-if", true),
+    createElementVNode("view", utsMapOf({
+      class: normalizeClass(["sidebar", utsMapOf({ 'sidebar-open': _ctx.showSidebar })])
+    }), [
+      createElementVNode("view", utsMapOf({ class: "user-info" }), [
+        createElementVNode("view", utsMapOf({ class: "greeting" }), [
+          createElementVNode("text", null, "Welcome,"),
+          createElementVNode("text", null, toDisplayString(_ctx.username || 'Guest') + "!", 1 /* TEXT */)
+        ])
+      ]),
+      createElementVNode("view", utsMapOf({ class: "payment-section" }), [
+        createElementVNode("view", utsMapOf({ class: "payment-hint" }), [
+          createElementVNode("text", null, "Add Payment To Start"),
+          createVNode(_component_van_icon, utsMapOf({
+            name: "card",
+            size: "20px"
+          }))
+        ]),
+        createVNode(_component_van_button, utsMapOf({
+          type: "primary",
+          block: "",
+          round: "",
+          class: "payment-button",
+          onClick: () => {_ctx.navigateTo('card')}
+        }), utsMapOf({
+          default: withSlotCtx((): any[] => ["Add Cards"]),
+          _: 1 /* STABLE */
+        }), 8 /* PROPS */, ["onClick"])
+      ]),
+      createElementVNode("view", utsMapOf({ class: "sidebar-menu" }), [
+        createElementVNode("view", utsMapOf({
+          class: "menu-item",
+          onClick: () => {_ctx.navigateTo('cards')}
+        }), [
+          createVNode(_component_van_icon, utsMapOf({
+            name: "balance-o",
+            size: "22px"
+          })),
+          createElementVNode("text", null, "Cards")
+        ], 8 /* PROPS */, ["onClick"]),
+        createElementVNode("view", utsMapOf({
+          class: "menu-item",
+          onClick: () => {_ctx.navigateTo('records')}
+        }), [
+          createVNode(_component_van_icon, utsMapOf({
+            name: "clock-o",
+            size: "22px"
+          })),
+          createElementVNode("text", null, "Records")
+        ], 8 /* PROPS */, ["onClick"]),
+        createElementVNode("view", utsMapOf({
+          class: "menu-item",
+          onClick: () => {_ctx.navigateTo('coupons')}
+        }), [
+          createVNode(_component_van_icon, utsMapOf({
+            name: "coupon-o",
+            size: "22px"
+          })),
+          createElementVNode("text", null, "Coupons")
+        ], 8 /* PROPS */, ["onClick"]),
+        createElementVNode("view", utsMapOf({
+          class: "menu-item",
+          onClick: () => {_ctx.navigateTo('help')}
+        }), [
+          createVNode(_component_van_icon, utsMapOf({
+            name: "question-o",
+            size: "22px"
+          })),
+          createElementVNode("text", null, "Help")
+        ], 8 /* PROPS */, ["onClick"]),
+        createElementVNode("view", utsMapOf({
+          class: "menu-item",
+          onClick: () => {_ctx.navigateTo('settings')}
+        }), [
+          createVNode(_component_van_icon, utsMapOf({
+            name: "setting-o",
+            size: "22px"
+          })),
+          createElementVNode("text", null, "Settings")
+        ], 8 /* PROPS */, ["onClick"])
+      ])
+    ], 2 /* CLASS */),
+    isTrue(_ctx.showSidebar)
+      ? createElementVNode("view", utsMapOf({
+          key: 1,
+          class: "sidebar-overlay",
+          onClick: _ctx.toggleSidebar
+        }), null, 8 /* PROPS */, ["onClick"])
+      : createCommentVNode("v-if", true),
+    withDirectives(createVNode(_component_van_floating_panel, utsMapOf({
+      height: _ctx.height,
+      "onUpdate:height": $event => {(_ctx.height) = $event},
+      anchors: _ctx.anchors
+    }), utsMapOf({
+      default: withSlotCtx((): any[] => [
+        _ctx.panelState === 'timeSelector'
+          ? createElementVNode("view", utsMapOf({
+              key: 0,
+              class: "time-selector-panel"
+            }), [
+              createElementVNode("view", utsMapOf({ class: "instruction" }), [
+                createElementVNode("text", null, "Rent E-scooters")
+              ]),
+              createElementVNode("view", utsMapOf({ class: "time-section" }), [
+                createElementVNode("view", utsMapOf({ class: "date-time-picker" }), [
+                  createElementVNode("view", utsMapOf({
+                    class: "date-item",
+                    onClick: () => {_ctx.showStartPicker = true}
+                  }), [
+                    createElementVNode("text", utsMapOf({ class: "date-text" }), toDisplayString(_ctx.formatDate(_ctx.startDate)), 1 /* TEXT */),
+                    createElementVNode("text", utsMapOf({ class: "time-text" }), toDisplayString(_ctx.getDayOfWeek(_ctx.startDate)) + " " + toDisplayString(_ctx.startTime), 1 /* TEXT */)
+                  ], 8 /* PROPS */, ["onClick"]),
+                  createElementVNode("view", utsMapOf({ class: "days-display" }), [
+                    createElementVNode("text", utsMapOf({ class: "days-text" }), toDisplayString(_ctx.rentalDurationText), 1 /* TEXT */)
+                  ]),
+                  createElementVNode("view", utsMapOf({
+                    class: "date-item",
+                    onClick: () => {_ctx.showEndPicker = true}
+                  }), [
+                    createElementVNode("text", utsMapOf({ class: "date-text" }), toDisplayString(_ctx.formatDate(_ctx.endDate)), 1 /* TEXT */),
+                    createElementVNode("text", utsMapOf({ class: "time-text" }), toDisplayString(_ctx.getDayOfWeek(_ctx.endDate)) + " " + toDisplayString(_ctx.endTime), 1 /* TEXT */)
+                  ], 8 /* PROPS */, ["onClick"])
+                ]),
+                createElementVNode("view", utsMapOf({ class: "quick-options" }), [
+                  createElementVNode("view", utsMapOf({ class: "quick-option-title" }), [
+                    createElementVNode("text", null, "Quick Choices:")
+                  ]),
+                  createElementVNode("view", utsMapOf({ class: "quick-option-buttons" }), [
+                    createElementVNode("view", utsMapOf({
+                      class: normalizeClass(["quick-option", utsMapOf({'active-option': _ctx.quickOptionSelected === '1h'})]),
+                      onClick: () => {_ctx.setQuickOption('1h')}
+                    }), [
+                      createElementVNode("text", null, "1 Hour")
+                    ], 10 /* CLASS, PROPS */, ["onClick"]),
+                    createElementVNode("view", utsMapOf({
+                      class: normalizeClass(["quick-option", utsMapOf({'active-option': _ctx.quickOptionSelected === '4h'})]),
+                      onClick: () => {_ctx.setQuickOption('4h')}
+                    }), [
+                      createElementVNode("text", null, "4 Hours")
+                    ], 10 /* CLASS, PROPS */, ["onClick"])
+                  ]),
+                  createElementVNode("view", utsMapOf({ class: "quick-option-buttons" }), [
+                    createElementVNode("view", utsMapOf({
+                      class: normalizeClass(["quick-option", utsMapOf({'active-option': _ctx.quickOptionSelected === '1d'})]),
+                      onClick: () => {_ctx.setQuickOption('1d')}
+                    }), [
+                      createElementVNode("text", null, "1 Day")
+                    ], 10 /* CLASS, PROPS */, ["onClick"]),
+                    createElementVNode("view", utsMapOf({
+                      class: normalizeClass(["quick-option", utsMapOf({'active-option': _ctx.quickOptionSelected === '1w'})]),
+                      onClick: () => {_ctx.setQuickOption('1w')}
+                    }), [
+                      createElementVNode("text", null, "7 Days")
+                    ], 10 /* CLASS, PROPS */, ["onClick"])
+                  ])
+                ]),
+                createElementVNode("view", utsMapOf({ class: "time-limit-tip" }), [
+                  createElementVNode("text", null, "Note: You can only reserve within the next 7 days")
+                ])
+              ]),
+              createElementVNode("view", utsMapOf({ class: "next-button-area" }), [
+                createVNode(_component_van_button, utsMapOf({
+                  round: "",
+                  type: "primary",
+                  disabled: !_ctx.isTimeValid,
+                  onClick: _ctx.showScooterList
+                }), utsMapOf({
+                  default: withSlotCtx((): any[] => [" See E-scooter list "]),
+                  _: 1 /* STABLE */
+                }), 8 /* PROPS */, ["disabled", "onClick"])
+              ])
+            ])
+          : createCommentVNode("v-if", true),
+        _ctx.panelState === 'scooterList'
+          ? createElementVNode("view", utsMapOf({
+              key: 1,
+              class: "scooter-list-panel"
+            }), [
+              createElementVNode("view", utsMapOf({ class: "instruction" }), [
+                createElementVNode("text", null, "Rent E-scooters")
+              ]),
+              createVNode(_component_van_cell_group, utsMapOf({ class: "list-container" }), utsMapOf({
+                default: withSlotCtx((): any[] => [
+                  createElementVNode(Fragment, null, RenderHelpers.renderList(_ctx.scooters, (scooter, __key, __index, _cached): any => {
+                    return createVNode(_component_van_cell, utsMapOf({
+                      key: scooter.scooterId,
+                      class: normalizeClass(utsMapOf({'selected': _ctx.selected === scooter.scooterId})),
+                      onClick: () => {_ctx.selectEscooter(scooter.scooterId)}
+                    }), utsMapOf({
+                      default: withSlotCtx((): any[] => [
+                        createElementVNode("view", utsMapOf({ class: "scooter-info" }), [
+                          createElementVNode("image", utsMapOf({
+                            class: "scooter-image",
+                            src: "/static/bikelogo/escooter_car2.png",
+                            mode: "aspectFit"
+                          })),
+                          createElementVNode("text", utsMapOf({ class: "scooter-id" }), "SC" + toDisplayString(scooter.scooterId), 1 /* TEXT */),
+                          createElementVNode("text", utsMapOf({ class: "battery" }), toDisplayString(scooter.batteryLevel) + "%", 1 /* TEXT */),
+                          createElementVNode("text", utsMapOf({ class: "price" }), "￡" + toDisplayString(scooter.price) + "/hour", 1 /* TEXT */)
+                        ])
+                      ]),
+                      _: 2 /* DYNAMIC */
+                    }), 1032 /* PROPS, DYNAMIC_SLOTS */, ["class", "onClick"])
+                  }), 128 /* KEYED_FRAGMENT */)
+                ]),
+                _: 1 /* STABLE */
+              })),
+              createElementVNode("view", utsMapOf({ class: "next-button-area" }), [
+                createElementVNode("view", utsMapOf({ class: "button-group" }), [
+                  createVNode(_component_van_button, utsMapOf({
+                    round: "",
+                    type: "default",
+                    onClick: _ctx.backToTimeSelector,
+                    class: "back-button"
+                  }), utsMapOf({
+                    default: withSlotCtx((): any[] => [
+                      createVNode(_component_van_icon, utsMapOf({ name: "arrow-left" }))
+                    ]),
+                    _: 1 /* STABLE */
+                  }), 8 /* PROPS */, ["onClick"]),
+                  createVNode(_component_van_button, utsMapOf({
+                    round: "",
+                    type: "success",
+                    disabled: _ctx.selected === null,
+                    onClick: () => {_ctx.navigateTo('confirm')},
+                    class: "confirm-button"
+                  }), utsMapOf({
+                    default: withSlotCtx((): any[] => [toDisplayString(_ctx.selected === null ? 'Choose An E-scooter' : 'Next')]),
+                    _: 1 /* STABLE */
+                  }), 8 /* PROPS */, ["disabled", "onClick"])
+                ])
+              ])
+            ])
+          : createCommentVNode("v-if", true)
+      ]),
+      _: 1 /* STABLE */
+    }), 8 /* PROPS */, ["height", "onUpdate:height", "anchors"]), [
+      [vShow, !_ctx.orderTipInfo.show]
+    ]),
+    createVNode(_component_van_popup, utsMapOf({
+      show: _ctx.showStartPicker,
+      "onUpdate:show": $event => {(_ctx.showStartPicker) = $event},
+      position: "bottom",
+      round: ""
+    }), utsMapOf({
+      default: withSlotCtx((): any[] => [
+        createVNode(_component_van_picker_group, utsMapOf({
+          title: "Start Time",
+          tabs: ['Date', 'Time'],
+          onConfirm: _ctx.onConfirmStartTime,
+          onCancel: () => {_ctx.showStartPicker = false}
+        }), utsMapOf({
+          default: withSlotCtx((): any[] => [
+            createVNode(_component_van_date_picker, utsMapOf({
+              modelValue: _ctx.tempStartDate,
+              "onUpdate:modelValue": $event => {(_ctx.tempStartDate) = $event},
+              "min-date": new Date(),
+              "max-date": new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+            }), null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "min-date", "max-date"]),
+            createVNode(_component_van_time_picker, utsMapOf({
+              modelValue: _ctx.tempStartTime,
+              "onUpdate:modelValue": $event => {(_ctx.tempStartTime) = $event},
+              "min-hour": _ctx.getMinHour(_ctx.tempStartDate)
+            }), null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "min-hour"])
+          ]),
+          _: 1 /* STABLE */
+        }), 8 /* PROPS */, ["onConfirm", "onCancel"])
+      ]),
+      _: 1 /* STABLE */
+    }), 8 /* PROPS */, ["show", "onUpdate:show"]),
+    createVNode(_component_van_popup, utsMapOf({
+      show: _ctx.showEndPicker,
+      "onUpdate:show": $event => {(_ctx.showEndPicker) = $event},
+      position: "bottom",
+      round: ""
+    }), utsMapOf({
+      default: withSlotCtx((): any[] => [
+        createVNode(_component_van_picker_group, utsMapOf({
+          title: "End Time",
+          tabs: ['Date', 'Time'],
+          onConfirm: _ctx.onConfirmEndTime,
+          onCancel: () => {_ctx.showEndPicker = false}
+        }), utsMapOf({
+          default: withSlotCtx((): any[] => [
+            createVNode(_component_van_date_picker, utsMapOf({
+              modelValue: _ctx.tempEndDate,
+              "onUpdate:modelValue": $event => {(_ctx.tempEndDate) = $event},
+              "min-date": _ctx.startDate
+            }), null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "min-date"]),
+            createVNode(_component_van_time_picker, utsMapOf({
+              modelValue: _ctx.tempEndTime,
+              "onUpdate:modelValue": $event => {(_ctx.tempEndTime) = $event},
+              "min-hour": _ctx.getMinHourForEndTime(_ctx.tempEndDate)
+            }), null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "min-hour"])
+          ]),
+          _: 1 /* STABLE */
+        }), 8 /* PROPS */, ["onConfirm", "onCancel"])
+      ]),
+      _: 1 /* STABLE */
+    }), 8 /* PROPS */, ["show", "onUpdate:show"]),
+    createElementVNode("cover-view", utsMapOf({ class: "map-overlay" })),
+    createVNode(_component_map, utsMapOf({
+      id: "myMap",
+      longitude: _ctx.mapCenter.longitude,
+      latitude: _ctx.mapCenter.latitude,
+      style: normalizeStyle(utsMapOf({ width: _ctx.windowWidth + 'px', height: _ctx.windowHeight + 'px' })),
+      "show-location": true,
+      markers: _ctx.markers,
+      rotate: _ctx.direction,
+      scale: _ctx.scale
+    }), null, 8 /* PROPS */, ["longitude", "latitude", "style", "markers", "rotate", "scale"])
+  ])
+}
+const GenPagesHomeHomeStyles = [utsMapOf([["map-overlay", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", 0], ["left", 0], ["width", "100%"], ["height", "100%"], ["background", "linear-gradient(\r\n\t    to bottom,\r\n\t    rgba(0, 123, 255, 0.2) 0%,   \r\n\t    rgba(0, 123, 255, 0.1) 50%,  \r\n\t    rgba(255, 255, 255, 0) 100%  \r\n\t  )"], ["pointerEvents", "none"], ["zIndex", 2]]))], ["instruction", padStyleMapOf(utsMapOf([["textAlign", "center"], ["zIndex", 1], ["paddingTop", 5], ["paddingRight", 5], ["paddingBottom", 5], ["paddingLeft", 5], ["position", "fixed"], ["top", 15], ["width", "100%"], ["backgroundColor", "#ffffff"], ["fontSize", 26]]))], ["list-container", padStyleMapOf(utsMapOf([["marginTop", 35], ["marginBottom", 65]]))], ["next-button-area", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["position", "fixed"], ["width", "100%"], ["paddingTop", 5], ["paddingRight", 5], ["paddingBottom", 5], ["paddingLeft", 5], ["bottom", 0]]))], ["van-button", utsMapOf([[".next-button-area ", utsMapOf([["fontSize", 20], ["height", 55], ["lineHeight", "48px"], ["backgroundImage", "linear-gradient(to right, #82b1ff, #007aff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["borderRadius", 25], ["color", "#FFFFFF"], ["fontWeight", "bold"], ["boxShadow", "0 4px 10px rgba(0, 122, 255, 0.2)"], ["marginBottom", 20]])], [".button-group ", utsMapOf([["flex", 1]])]])], ["van-button--disabled", utsMapOf([[".next-button-area ", utsMapOf([["!backgroundColor", "#007aff"], ["opacity", 0.5]])]])], ["van-button--success", utsMapOf([[".next-button-area ", utsMapOf([["!backgroundColor", "#007aff"], ["!borderColor", "#007aff"]])]])], ["scooter-info", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["justifyContent", "space-between"], ["alignItems", "center"], ["gap", "15px"], ["height", 60]]))], ["scooter-image", padStyleMapOf(utsMapOf([["width", 40], ["height", 40], ["marginRight", 10]]))], ["scooter-id", padStyleMapOf(utsMapOf([["fontSize", 22], ["fontWeight", "bold"], ["flex", 1], ["height", "100%"], ["display", "flex"], ["alignItems", "center"], ["color", "#666666"]]))], ["battery", padStyleMapOf(utsMapOf([["color", "#666666"], ["fontSize", 20], ["flex", 1], ["textAlign", "center"], ["height", "100%"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"]]))], ["price", padStyleMapOf(utsMapOf([["fontSize", 20], ["color", "#666666"], ["flex", 1], ["textAlign", "right"], ["height", "100%"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "flex-end"]]))], ["selected", padStyleMapOf(utsMapOf([["!borderWidth", 2], ["!borderStyle", "solid"], ["!borderColor", "#007aff"], ["borderRadius", 10], ["boxShadow", "0 3px 8px rgba(0, 122, 255, 0.2)"]]))], ["van-cell", padStyleMapOf(utsMapOf([["borderWidth", 1], ["borderStyle", "solid"], ["borderColor", "#eeeeee"], ["borderRadius", 8], ["width", "95%"], ["marginTop", 5], ["marginRight", "auto"], ["marginBottom", 5], ["marginLeft", "auto"]]))], ["time-section", padStyleMapOf(utsMapOf([["marginTop", 40], ["marginBottom", 60], ["paddingTop", 15], ["paddingRight", 15], ["paddingBottom", 15], ["paddingLeft", 15]]))], ["date-time-picker", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["justifyContent", "space-between"], ["alignItems", "center"], ["marginTop", "20rpx"], ["paddingTop", 0], ["paddingRight", 15], ["paddingBottom", 0], ["paddingLeft", 15], ["width", "100%"], ["gap", "20rpx"]]))], ["date-item", padStyleMapOf(utsMapOf([["backgroundColor", "#f4f8ff"], ["paddingTop", "20rpx"], ["paddingRight", "20rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "20rpx"], ["borderRadius", "20rpx"], ["flex", 1], ["minWidth", 0], ["textAlign", "center"], ["boxShadow", "0 4px 10px rgba(0, 122, 255, 0.08)"], ["backgroundImage", "none"], ["borderWidth", "2rpx"], ["borderStyle", "solid"], ["borderColor", "#cce6ff"]]))], ["date-text", padStyleMapOf(utsMapOf([["fontSize", "30rpx"], ["color", "#007aff"], ["textAlign", "center"], ["marginBottom", 5], ["whiteSpace", "nowrap"], ["overflow", "hidden"], ["textOverflow", "ellipsis"], ["fontWeight", "bold"]]))], ["time-text", padStyleMapOf(utsMapOf([["fontSize", "26rpx"], ["color", "#555555"], ["textAlign", "center"], ["whiteSpace", "nowrap"], ["overflow", "hidden"], ["textOverflow", "ellipsis"], ["marginTop", "10rpx"]]))], ["days-display", padStyleMapOf(utsMapOf([["paddingTop", 0], ["paddingRight", 10], ["paddingBottom", 0], ["paddingLeft", 10], ["minWidth", 80], ["textAlign", "center"], ["width", "140rpx"], ["height", "100rpx"], ["borderRadius", "20rpx"], ["fontWeight", "bold"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["boxShadow", "0 4px 12px rgba(0, 122, 255, 0.25)"]]))], ["days-text", padStyleMapOf(utsMapOf([["fontSize", 14], ["color", "#333333"], ["whiteSpace", "nowrap"]]))], ["quick-options", padStyleMapOf(utsMapOf([["marginTop", 30]]))], ["quick-option-title", padStyleMapOf(utsMapOf([["fontSize", 22], ["color", "#333333"], ["marginBottom", 10], ["fontWeight", "bold"]]))], ["quick-option-buttons", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["justifyContent", "space-between"]]))], ["quick-option", padStyleMapOf(utsMapOf([["backgroundColor", "rgba(255,255,255,0.5)"], ["paddingTop", 12], ["paddingRight", 0], ["paddingBottom", 12], ["paddingLeft", 0], ["flex", 1], ["marginTop", 0], ["marginRight", 5], ["marginBottom", 0], ["marginLeft", 5], ["boxShadow", "0 2px 5px rgba(0,0,0,0.05)"], ["display", "flex"], ["justifyContent", "center"], ["alignItems", "center"], ["fontSize", 18], ["borderWidth", 1], ["borderStyle", "solid"], ["borderColor", "rgba(0,0,0,0)"], ["backgroundImage", "none"], ["borderRadius", 10], ["transitionDuration", "0.3s"]]))], ["active-option", padStyleMapOf(utsMapOf([["backgroundColor", "rgba(0,0,0,0)"], ["borderWidth", "medium"], ["borderStyle", "none"], ["borderColor", "#000000"], ["color", "#FFFFFF"], ["fontWeight", "bold"], ["backgroundImage", "linear-gradient(to right, #82b1ff, #007aff)"], ["boxShadow", "0 3px 8px rgba(0, 122, 255, 0.3)"]]))], ["menu-button", padStyleMapOf(utsMapOf([["position", "fixed"], ["top", 30], ["left", 30], ["zIndex", 100], ["backgroundColor", "rgba(255,255,255,0.8)"], ["width", 50], ["height", 50], ["display", "flex"], ["justifyContent", "center"], ["alignItems", "center"], ["boxShadow", "0 2px 4px rgba(0, 0, 0, 0.2)"]]))], ["van-icon", utsMapOf([[".menu-button ", utsMapOf([["fontSize", 28]])], [".notification-button ", utsMapOf([["fontSize", 28]])]])], ["sidebar", padStyleMapOf(utsMapOf([["position", "fixed"], ["paddingTop", 20], ["left", "-90%"], ["width", "80%"], ["height", "100%"], ["backgroundColor", "#FFFFFF"], ["zIndex", 1000], ["transitionProperty", "left"], ["transitionDuration", "0.3s"], ["transitionTimingFunction", "ease"], ["display", "flex"], ["flexDirection", "column"]]))], ["sidebar-open", padStyleMapOf(utsMapOf([["left", 0]]))], ["sidebar-overlay", padStyleMapOf(utsMapOf([["position", "fixed"], ["top", 0], ["left", 0], ["width", "100%"], ["height", "100%"], ["backgroundColor", "rgba(0,0,0,0.5)"], ["zIndex", 999]]))], ["sidebar-header", padStyleMapOf(utsMapOf([["paddingTop", 15], ["paddingRight", 20], ["paddingBottom", 15], ["paddingLeft", 20], ["borderBottomWidth", 1], ["borderBottomStyle", "solid"], ["borderBottomColor", "#f5f5f5"]]))], ["sidebar-title", padStyleMapOf(utsMapOf([["fontSize", 24], ["fontWeight", "bold"]]))], ["user-info", padStyleMapOf(utsMapOf([["paddingTop", 15], ["paddingRight", 20], ["paddingBottom", 15], ["paddingLeft", 20], ["borderBottomWidth", 1], ["borderBottomStyle", "solid"], ["borderBottomColor", "#f5f5f5"]]))], ["greeting", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["fontSize", 26], ["fontWeight", "bold"], ["color", "#333333"], ["lineHeight", 1.5], ["marginBottom", 15]]))], ["payment-section", padStyleMapOf(utsMapOf([["paddingTop", 15], ["paddingRight", 20], ["paddingBottom", 15], ["paddingLeft", 20], ["backgroundColor", "#f0f9ff"], ["borderBottomWidth", 1], ["borderBottomStyle", "solid"], ["borderBottomColor", "#f5f5f5"], ["height", 150], ["display", "flex"], ["justifyContent", "center"]]))], ["payment-hint", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["justifyContent", "center"], ["gap", "20px"], ["alignItems", "center"], ["marginBottom", 15], ["fontSize", 22]]))], ["payment-button", padStyleMapOf(utsMapOf([["width", "100%"], ["fontSize", 20]]))], ["sidebar-menu", padStyleMapOf(utsMapOf([["flex", 1], ["paddingTop", 10], ["paddingRight", 0], ["paddingBottom", 10], ["paddingLeft", 0], ["overflowY", "auto"]]))], ["menu-item", padStyleMapOf(utsMapOf([["paddingTop", 20], ["paddingRight", 20], ["paddingBottom", 20], ["paddingLeft", 20], ["display", "flex"], ["flexDirection", "row"], ["alignItems", "center"], ["gap", "15px"], ["cursor", "pointer"], ["transitionProperty", "backgroundColor"], ["transitionDuration", "0.2s"], ["fontSize", 22], ["backgroundColor:hover", "#f5f5f5"], ["backgroundColor:active", "#e5e5e5"]]))], ["version-info", padStyleMapOf(utsMapOf([["fontSize", 18], ["color", "#999999"]]))], ["notification-button", padStyleMapOf(utsMapOf([["position", "fixed"], ["top", 30], ["right", 30], ["zIndex", 100], ["backgroundColor", "rgba(255,255,255,0.8)"], ["width", 50], ["height", 50], ["display", "flex"], ["justifyContent", "center"], ["alignItems", "center"], ["boxShadow", "0 2px 4px rgba(0, 0, 0, 0.2)"]]))], ["notification-dot", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", 4], ["right", 4], ["width", 15], ["height", 15], ["backgroundColor", "#ff4d4f"], ["borderWidth", 2], ["borderStyle", "solid"], ["borderColor", "#ffffff"], ["boxShadow", "0 1px 2px rgba(0, 0, 0, 0.2)"]]))], ["button-group", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["gap", "10px"], ["paddingTop", 0], ["paddingRight", 10], ["paddingBottom", 0], ["paddingLeft", 10]]))], ["back-button", utsMapOf([[".button-group ", utsMapOf([["flex", 0.2], ["!minWidth", 50]])]])], ["confirm-button", utsMapOf([[".button-group ", utsMapOf([["flex", 0.8]])]])], ["order-tip", padStyleMapOf(utsMapOf([["position", "fixed"], ["bottom", 100], ["left", "50%"], ["transform", "translateX(-50%)"], ["zIndex", 100], ["backgroundColor", "rgba(255,255,255,0.95)"], ["borderRadius", 8], ["boxShadow", "0 2px 8px rgba(0, 0, 0, 0.15)"], ["paddingTop", 10], ["paddingRight", 15], ["paddingBottom", 10], ["paddingLeft", 15], ["width", "90%"], ["maxWidth", 400], ["height", 100], ["display", "flex"], ["justifyContent", "center"]]))], ["tip-content", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "row"], ["justifyContent", "center"], ["alignItems", "center"], ["gap", "15px"]]))], ["use-button", padStyleMapOf(utsMapOf([["marginLeft", 15]]))], ["time-limit-tip", padStyleMapOf(utsMapOf([["marginTop", 20], ["alignItems", "center"], ["textAlign", "center"], ["fontSize", 14], ["color", "#666666"]]))], ["@TRANSITION", utsMapOf([["sidebar", utsMapOf([["property", "left"], ["duration", "0.3s"], ["timingFunction", "ease"]])], ["menu-item", utsMapOf([["property", "backgroundColor"], ["duration", "0.2s"]])], ["quick-option", utsMapOf([["duration", "0.3s"]])]])]])]

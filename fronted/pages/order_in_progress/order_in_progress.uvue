@@ -69,11 +69,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from "vue";
+import { onLoad } from "@dcloudio/uni-app";
 import { orderApi } from "@/utils/api/order";
-
-const router = useRouter();
 
 const order = ref({
   orderId: '',
@@ -108,24 +106,26 @@ function formatDuration(startStr) {
   return `${hours}h ${minutes}m`;
 }
 
-const fetchOrderDetail = async () => {
-  const rawId = router.currentRoute.value.query.orderId;
+// ✅ 使用 onLoad 获取路由参数
+onLoad((options) => {
+  const rawId = options?.orderId;
   const orderId = Number(rawId);
   if (!orderId || isNaN(orderId)) {
     uni.showToast({ title: 'Invalid order ID', icon: 'none' });
     return;
   }
+  fetchOrderDetail(orderId);
+});
 
+const fetchOrderDetail = async (orderId) => {
   try {
     const res = await orderApi.getOrderInfo(orderId);
     if (res.code === 1 && res.data) {
       const data = res.data;
 
-      // Ensure backend fields are valid
       const lat = data.scooter_info?.latitude;
       const lng = data.scooter_info?.longitude;
 
-      // Show a toast if location is missing
       if (!lat || !lng) {
         uni.showToast({ title: 'Invalid scooter location', icon: 'none' });
         return;
@@ -149,7 +149,6 @@ const fetchOrderDetail = async () => {
         cost: totalCost
       };
 
-      // Set location for map marker
       location.value = { lat, lng };
       loadScooterLocation();
     } else {
@@ -172,7 +171,6 @@ const loadScooterLocation = () => {
     width: 32,
     height: 32,
     callout: {
-      // Display scooter location or fallback name
       content: order.value.scooterLocation || `Scooter SC${order.value.scooterId}`,
       display: 'ALWAYS',
       fontSize: 15,
@@ -206,7 +204,6 @@ const goToReturn = async () => {
     const res = await orderApi.completeOrder(order.value.orderId);
     if (res.code === 1) {
       uni.showToast({ title: 'Order completed. Proceed to return.', icon: 'success' });
-
       uni.navigateTo({
         url: `/pages/order_details/order_details_home?orderId=${order.value.orderId}`
       });
@@ -222,11 +219,8 @@ const goToReturn = async () => {
 const goHome = () => {
   uni.reLaunch({ url: '/pages/home/home' });
 };
-
-onMounted(() => {
-  fetchOrderDetail();
-});
 </script>
+
 
 
 

@@ -31,7 +31,6 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
 
 const slides = ref([
   {
@@ -52,29 +51,24 @@ const slides = ref([
 ]);
 
 const currentIndex = ref(0);
-const router = useRouter();
 
-// Listen to swiper changes and update the index
+// swiper 滑动事件
 const onSwipeChange = (event) => {
   currentIndex.value = event.detail.current;
 };
 
-// Handle "Next" or "Start Now" button
+// 点击按钮跳转或下一页
 const handleButtonClick = () => {
   if (currentIndex.value < slides.value.length - 1) {
     currentIndex.value++;
   } else {
-    router.push('/pages/register/register'); // Navigate to registration page
+    uni.navigateTo({
+      url: '/pages/register/register'
+    });
   }
 };
-
-// Handle "Previous" button (optional)
-// const prevSlide = () => {
-//   if (currentIndex.value > 0) {
-//     currentIndex.value--;
-//   }
-// };
 </script>
+
 
 <style scoped>
 /* Overall Container */

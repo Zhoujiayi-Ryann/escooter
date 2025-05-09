@@ -1,0 +1,74 @@
+// 滑板车相关API
+import { request } from '../request';
+import { ApiResponse, Scooter } from '../types';
+
+/**
+ * 滑板车API模块
+ */
+export const scooterApi = {
+    /**
+     * 获取所有可用的滑板车
+     * @returns 可用滑板车列表
+     */
+    getScooters(): Promise<ApiResponse<Scooter[]>> {
+        return request<Scooter[]>({
+            url: '/scooters',
+            method: 'GET',
+            needToken: false // 不需要登录权限
+        });
+    },
+    
+    /**
+     * 根据起止时间获取可用滑板车
+     * @param startTime 开始时间（ISO格式字符串）
+     * @param endTime 结束时间（ISO格式字符串）
+     * @returns 可用滑板车列表
+     */
+    getAvailableScooters(startTime: string, endTime: string): Promise<ApiResponse<Scooter[]>> {
+        return request<Scooter[]>({
+            url: '/scooters/available',
+            method: 'POST',
+            data: {
+                start_time: startTime,
+                end_time: endTime
+            },
+            needToken: false // 不需要登录权限
+        });
+    },
+
+    /**
+     * 获取指定滑板车的详细信息
+     * @param scooterId 滑板车ID
+     * @returns 滑板车详细信息
+     */
+    getScooterById(scooterId: number): Promise<ApiResponse<Scooter>> {
+        return request<Scooter>({
+            url: `/scooters/${scooterId}`,
+            method: 'GET',
+            needToken: false // 不需要登录权限
+        });
+    }
+}
+
+/**
+ * 使用示例：
+ * 
+ * import { scooterApi } from '../utils/api/scooter';
+ * 
+ * // 获取所有可用滑板车
+ * scooterApi.getScooters().then(res => {
+ *     if (res.code === 1) {
+ *         console.log('Available scooters:', res.data);
+ *     }
+ * });
+ * 
+ * // 获取指定时间段的可用滑板车
+ * const startTime = new Date('2023-01-01T10:00:00').toISOString();
+ * const endTime = new Date('2023-01-01T18:00:00').toISOString();
+ * 
+ * scooterApi.getAvailableScooters(startTime, endTime).then(res => {
+ *     if (res.code === 1) {
+ *         console.log('Available scooters for time period:', res.data);
+ *     }
+ * });
+ */ 

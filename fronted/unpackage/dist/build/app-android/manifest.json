@@ -1,0 +1,48 @@
+{
+  "id": "__UNI__E4E24E1",
+  "name": "demo1-0308",
+  "description": "",
+  "version": {
+    "name": "1.0.0",
+    "code": "100"
+  },
+  "uni-app-x": {
+    "compilerVersion": "4.45"
+  },
+  "app": {
+    "distribute": {
+      "icons": {
+        "android": {
+          "hdpi": "",
+          "xhdpi": "",
+          "xxhdpi": "",
+          "xxxhdpi": ""
+        }
+      },
+      "permissions": [
+        "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>",
+        "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>"
+      ],
+      "modules": {
+        "uni-event": {},
+        "uni-exit": {},
+        "uni-network": {},
+        "uni-prompt": {},
+        "uni-getLocation": {},
+        "uni-storage": {},
+        "uni-media": {},
+        "uni-getSystemInfo": {},
+        "uni-map-tencent": {}
+      }
+    },
+    "maps": {
+      "provider": "qq",
+      "android": {
+        "key": "4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ"
+      },
+      "ios": {
+        "key": "4HZBZ-FLRCL-COFPO-EKA57-6CILQ-OEFTJ"
+      }
+    }
+  }
+}

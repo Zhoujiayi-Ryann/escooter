@@ -1,0 +1,234 @@
+import { couponApi } from '@/utils/api/coupon';
+import { userApi } from '@/utils/api/user';
+const __sfc__ = defineComponent({
+    data() {
+        return {
+            activeTab: 0,
+            coupons: [],
+            disabledCoupons: [],
+            loading: false
+        };
+    },
+    onLoad() {
+        this.fetchCoupons();
+    },
+    methods: {
+        navigateBack() {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                // If there is a previous page, navigate back
+                uni.navigateBack({
+                    delta: 1
+                });
+            }
+            else {
+                // If no previous page, redirect to home
+                uni.navigateTo({
+                    url: '/pages/home/home'
+                });
+            }
+        },
+        formatDate(timestamp): string {
+            const date = new Date(timestamp * 1000);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        },
+        async fetchCoupons(): Promise<void> {
+            this.loading = true;
+            // Get user ID from userApi, default to 0 if not logged in
+            const userId = userApi.getUserId(0);
+            // Check if user_id field is present
+            if (userId === 0) {
+                // Try to get user_id from user info
+                const userInfo = userApi.getUserInfo();
+                if (userInfo && userInfo.user_id) {
+                    console.log('Using user_id from user info:', userInfo.user_id);
+                    this.fetchCouponsWithUserId(userInfo.user_id);
+                }
+                else {
+                    // User not logged in, show a message or redirect
+                    uni.showToast({
+                        title: 'Please log in first',
+                        icon: 'none'
+                    });
+                    this.loading = false;
+                }
+                return;
+            }
+            // Continue to fetch coupons using retrieved userId
+            this.fetchCouponsWithUserId(userId);
+        },
+        async fetchCouponsWithUserId(userId): Promise<void> {
+            try {
+                console.log('Fetching coupons for userId:', userId);
+                const response = await couponApi.getAvailableCoupons(userId);
+                console.log('Coupon API response:', response);
+                if (response.code === 1 && response.data) {
+                    const now = new Date();
+                    // Handle "coupons" property from response
+                    const coupons = Array.isArray(response.data) ? response.data : (response.data.coupons || []);
+                    this.coupons = coupons.filter(coupon => new Date(coupon.valid_to) > now &&
+                        coupon.is_active === true &&
+                        coupon.is_used === false &&
+                        coupon.status === "able").map(coupon => this.formatCouponData(coupon));
+                    this.disabledCoupons = coupons.filter(coupon => new Date(coupon.valid_to) <= now ||
+                        coupon.is_active !== true ||
+                        coupon.is_used === true ||
+                        coupon.status !== "able").map(coupon => this.formatCouponData(coupon));
+                    console.log('Available coupons:', this.coupons);
+                    console.log('Unavailable coupons:', this.disabledCoupons);
+                }
+                else {
+                    uni.showToast({
+                        title: 'Failed to retrieve coupons',
+                        icon: 'none'
+                    });
+                }
+            }
+            catch (error: any) {
+                console.error('Failed to retrieve coupons:', error);
+                uni.showToast({
+                    title: 'Failed to retrieve coupons. Please try again.',
+                    icon: 'none'
+                });
+            }
+            finally {
+                this.loading = false;
+            }
+        },
+        formatCouponData(coupon): UTSJSONObject {
+            return {
+                id: coupon.coupon_id,
+                coupon_name: coupon.coupon_name,
+                name: coupon.coupon_name,
+                denominations: coupon.coupon_amount || 0,
+                condition: coupon.min_spend > 0 ? `MinSpent £${coupon.min_spend}` : 'No MinSpent',
+                originCondition: coupon.min_spend || 0,
+                startAt: coupon.valid_from ? new Date(coupon.valid_from).getTime() / 1000 : Date.now() / 1000,
+                endAt: coupon.valid_to ? new Date(coupon.valid_to).getTime() / 1000 : (Date.now() / 1000 + 86400 * 30),
+                valueDesc: `£${coupon.coupon_amount || 0}`,
+                description: coupon.description || 'Rent Coupon'
+            };
+        }
+    }
+});
+export default __sfc__;
+function GenPagesSettingsCouponsCouponRender(this: InstanceType<typeof __sfc__>): any | null {
+    const _ctx = this;
+    const _cache = this.$.renderCache;
+    const _component_van_icon = resolveComponent("van-icon");
+    const _component_van_tab = resolveComponent("van-tab");
+    const _component_van_tabs = resolveComponent("van-tabs");
+    return createElementVNode("view", utsMapOf({ class: "coupon-page" }), [
+        createElementVNode("view", utsMapOf({ class: "header" }), [
+            createElementVNode("view", utsMapOf({
+                class: "back-btn",
+                onClick: _ctx.navigateBack
+            }), [
+                createVNode(_component_van_icon, utsMapOf({
+                    name: "arrow-left",
+                    class: "back-icon"
+                }))
+            ], 8 /* PROPS */, ["onClick"]),
+            createElementVNode("text", utsMapOf({ class: "header-title" }), "My Coupons")
+        ]),
+        createVNode(_component_van_tabs, utsMapOf({
+            active: _ctx.activeTab,
+            "onUpdate:active": $event => { (_ctx.activeTab) = $event; },
+            animated: "",
+            swipeable: "",
+            sticky: ""
+        }), utsMapOf({
+            default: withSlotCtx((): any[] => [
+                createVNode(_component_van_tab, utsMapOf({ title: "Available" }), utsMapOf({
+                    default: withSlotCtx((): any[] => [
+                        _ctx.coupons.length > 0
+                            ? createElementVNode("view", utsMapOf({
+                                key: 0,
+                                class: "coupon-list"
+                            }), [
+                                createElementVNode(Fragment, null, RenderHelpers.renderList(_ctx.coupons, (coupon, index, __index, _cached): any => {
+                                    return createElementVNode("view", utsMapOf({
+                                        class: "coupon-item",
+                                        key: coupon.id
+                                    }), [
+                                        createElementVNode("view", utsMapOf({ class: "coupon-card" }), [
+                                            createElementVNode("view", utsMapOf({ class: "coupon-left" }), [
+                                                createElementVNode("view", utsMapOf({ class: "coupon-amount" }), [
+                                                    createElementVNode("text", utsMapOf({ class: "currency" }), "£"),
+                                                    createElementVNode("text", utsMapOf({ class: "value" }), toDisplayString(coupon.denominations), 1 /* TEXT */)
+                                                ]),
+                                                createElementVNode("text", utsMapOf({ class: "coupon-condition" }), toDisplayString(coupon.condition), 1 /* TEXT */)
+                                            ]),
+                                            createElementVNode("view", utsMapOf({ class: "coupon-right" }), [
+                                                createElementVNode("text", utsMapOf({ class: "coupon-name" }), toDisplayString(coupon.coupon_name), 1 /* TEXT */),
+                                                createElementVNode("text", utsMapOf({ class: "coupon-desc" }), toDisplayString(coupon.description), 1 /* TEXT */),
+                                                createElementVNode("text", utsMapOf({ class: "coupon-date" }), "Valid until: " + toDisplayString(_ctx.formatDate(coupon.endAt)), 1 /* TEXT */)
+                                            ])
+                                        ])
+                                    ]);
+                                }), 128 /* KEYED_FRAGMENT */)
+                            ])
+                            : createElementVNode("view", utsMapOf({
+                                key: 1,
+                                class: "empty-state"
+                            }), [
+                                createElementVNode("image", utsMapOf({
+                                    src: "/static/icons/empty-coupon.png",
+                                    class: "empty-icon",
+                                    mode: "aspectFit"
+                                })),
+                                createElementVNode("text", utsMapOf({ class: "empty-text" }), "No Available Coupons")
+                            ])
+                    ]),
+                    _: 1 /* STABLE */
+                })),
+                createVNode(_component_van_tab, utsMapOf({ title: "Expired" }), utsMapOf({
+                    default: withSlotCtx((): any[] => [
+                        _ctx.disabledCoupons.length > 0
+                            ? createElementVNode("view", utsMapOf({
+                                key: 0,
+                                class: "coupon-list disabled"
+                            }), [
+                                createElementVNode(Fragment, null, RenderHelpers.renderList(_ctx.disabledCoupons, (coupon, index, __index, _cached): any => {
+                                    return createElementVNode("view", utsMapOf({
+                                        class: "coupon-item disabled",
+                                        key: coupon.id
+                                    }), [
+                                        createElementVNode("view", utsMapOf({ class: "coupon-card" }), [
+                                            createElementVNode("view", utsMapOf({ class: "coupon-left" }), [
+                                                createElementVNode("view", utsMapOf({ class: "coupon-amount" }), [
+                                                    createElementVNode("text", utsMapOf({ class: "currency" }), "£"),
+                                                    createElementVNode("text", utsMapOf({ class: "value" }), toDisplayString(coupon.denominations), 1 /* TEXT */)
+                                                ]),
+                                                createElementVNode("text", utsMapOf({ class: "coupon-condition" }), toDisplayString(coupon.condition), 1 /* TEXT */)
+                                            ]),
+                                            createElementVNode("view", utsMapOf({ class: "coupon-right" }), [
+                                                createElementVNode("text", utsMapOf({ class: "coupon-name" }), toDisplayString(coupon.coupon_name), 1 /* TEXT */),
+                                                createElementVNode("text", utsMapOf({ class: "coupon-desc" }), toDisplayString(coupon.description), 1 /* TEXT */),
+                                                createElementVNode("text", utsMapOf({ class: "coupon-date" }), "Expired: " + toDisplayString(_ctx.formatDate(coupon.endAt)), 1 /* TEXT */)
+                                            ]),
+                                            createElementVNode("view", utsMapOf({ class: "expired-mark" }), "Expired")
+                                        ])
+                                    ]);
+                                }), 128 /* KEYED_FRAGMENT */)
+                            ])
+                            : createElementVNode("view", utsMapOf({
+                                key: 1,
+                                class: "empty-state"
+                            }), [
+                                createElementVNode("image", utsMapOf({
+                                    src: "/static/icons/empty-coupon.png",
+                                    class: "empty-icon",
+                                    mode: "aspectFit"
+                                })),
+                                createElementVNode("text", utsMapOf({ class: "empty-text" }), "No Expired Coupons")
+                            ])
+                    ]),
+                    _: 1 /* STABLE */
+                }))
+            ]),
+            _: 1 /* STABLE */
+        }), 8 /* PROPS */, ["active", "onUpdate:active"])
+    ]);
+}
+const GenPagesSettingsCouponsCouponStyles = [utsMapOf([["coupon-page", padStyleMapOf(utsMapOf([["backgroundImage", "linear-gradient(to bottom, #f0faff, #ffffff)"], ["backgroundColor", "rgba(0,0,0,0)"], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["boxSizing", "border-box"], ["display", "flex"], ["flexDirection", "column"], ["gap", "25rpx"]]))], ["header", padStyleMapOf(utsMapOf([["backgroundColor", "#ffffff"], ["paddingTop", "40rpx"], ["paddingRight", 0], ["paddingBottom", "40rpx"], ["paddingLeft", 0], ["textAlign", "center"], ["borderRadius", "20rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["position", "relative"], ["marginBottom", "30rpx"]]))], ["back-btn", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "25rpx"], ["left", "30rpx"], ["display", "flex"], ["alignItems", "center"], ["justifyContent", "center"], ["cursor", "pointer"], ["zIndex", 10], ["backgroundColor", "#f4f8ff"], ["borderRadius", "25rpx"], ["width", "80rpx"], ["height", "80rpx"]]))], ["back-icon", padStyleMapOf(utsMapOf([["fontSize", "55rpx"], ["color", "#0084ff"]]))], ["header-title", padStyleMapOf(utsMapOf([["fontSize", "40rpx"], ["fontWeight", "bold"], ["color", "#007aff"], ["textAlign", "center"]]))], ["coupon-list", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["gap", "20rpx"], ["paddingTop", "20rpx"], ["paddingRight", "20rpx"], ["paddingBottom", "20rpx"], ["paddingLeft", "20rpx"]]))], ["coupon-item", padStyleMapOf(utsMapOf([["backgroundImage", "none"], ["backgroundColor", "#ffffff"], ["borderRadius", "18rpx"], ["boxShadow", "0 4px 12px rgba(0, 0, 0, 0.05)"], ["overflow", "hidden"]]))], ["coupon-card", utsMapOf([["", utsMapOf([["display", "flex"], ["position", "relative"], ["flexDirection", "row"], ["paddingTop", "30rpx"], ["paddingRight", "30rpx"], ["paddingBottom", "30rpx"], ["paddingLeft", "30rpx"], ["backgroundImage", "none"], ["backgroundColor", "#ffffff"]])], [".disabled ", utsMapOf([["filter", "grayscale(1)"], ["opacity", 0.7]])]])], ["coupon-left", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["justifyContent", "center"], ["alignItems", "center"], ["paddingRight", "30rpx"], ["borderRightWidth", 1], ["borderRightStyle", "dashed"], ["borderRightColor", "#e8e8e8"], ["minWidth", "180rpx"]]))], ["coupon-amount", padStyleMapOf(utsMapOf([["display", "flex"]]))], ["currency", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["color", "#ff6666"]]))], ["value", padStyleMapOf(utsMapOf([["fontSize", "60rpx"], ["fontWeight", "bold"], ["color", "#ff6666"]]))], ["coupon-condition", padStyleMapOf(utsMapOf([["fontSize", "24rpx"], ["color", "#888888"], ["marginTop", "8rpx"]]))], ["coupon-right", padStyleMapOf(utsMapOf([["flex", 1], ["paddingLeft", "30rpx"], ["display", "flex"], ["flexDirection", "column"], ["justifyContent", "space-between"]]))], ["coupon-name", padStyleMapOf(utsMapOf([["fontSize", "32rpx"], ["fontWeight", "bold"], ["color", "#333333"], ["marginBottom", "10rpx"]]))], ["coupon-desc", padStyleMapOf(utsMapOf([["fontSize", "28rpx"], ["color", "#666666"], ["marginBottom", "10rpx"]]))], ["coupon-date", padStyleMapOf(utsMapOf([["fontSize", "24rpx"], ["color", "#999999"]]))], ["expired-mark", padStyleMapOf(utsMapOf([["position", "absolute"], ["top", "50%"], ["right", "30rpx"], ["transform", "translateY(-50%) rotate(-30deg)"], ["color", "#ff0000"], ["fontSize", "40rpx"], ["fontWeight", "bold"], ["borderWidth", "3rpx"], ["borderStyle", "solid"], ["borderColor", "#ff0000"], ["paddingTop", "5rpx"], ["paddingRight", "15rpx"], ["paddingBottom", "5rpx"], ["paddingLeft", "15rpx"], ["borderRadius", "8rpx"]]))], ["empty-state", padStyleMapOf(utsMapOf([["display", "flex"], ["flexDirection", "column"], ["alignItems", "center"], ["justifyContent", "center"], ["paddingTop", "100rpx"], ["paddingRight", 0], ["paddingBottom", "100rpx"], ["paddingLeft", 0]]))], ["empty-icon", padStyleMapOf(utsMapOf([["width", "200rpx"], ["height", "200rpx"], ["marginBottom", "30rpx"]]))], ["empty-text", padStyleMapOf(utsMapOf([["fontSize", "30rpx"], ["color", "#999999"]]))]])];

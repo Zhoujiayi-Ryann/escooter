@@ -1,0 +1,238 @@
+// API通用类型定义
+
+// 定义接口返回类型
+export interface ApiResponse<T> {
+    code: number;
+    msg: string;
+    data: T;
+}
+
+// 定义登录响应数据类型
+export interface LoginResponseData {
+    user_id: number;
+    username: string;
+    token: string;
+}
+
+// 定义注册响应数据类型
+export interface RegisterResponseData {
+    user_id: number;
+    username: string;
+    email: string;
+}
+
+// 定义滑板车数据类型
+export interface Scooter {
+    scooter_id: number;
+    location_lat: number;
+    location_lng: number;
+    battery_level: number;
+    price: number;
+    status: string;
+}
+
+// 定义订单创建请求类型
+export interface CreateOrderRequest {
+    user_id: number;
+    scooter_id: number;
+    pickup_address: string;
+    start_time: string; // ISO 格式的日期时间字符串
+    end_time: string;   // ISO 格式的日期时间字符串
+}
+
+// 定义订单响应类型
+export interface OrderResponse {
+    order_id: number;
+    user_id: number;
+    scooter_id: number;
+    start_time: string;
+    end_time: string;
+    new_end_time: string | null;
+    extended_duration: number;
+    extended_cost: number;
+    cost: number;
+    discount_amount: number;
+    pickup_address: string;
+    status: string;
+    created_at: string;
+}
+
+// 定义订单详情的滑板车信息类型
+export interface ScooterInfo {
+    latitude: number;
+    longitude: number;
+    battery_level: number;
+    price: number;
+}
+
+// 定义订单详情响应类型
+export interface OrderDetailResponse {
+    order_id: number;
+    user_id: number;
+    scooter_id: number;
+    start_time: string;
+    end_time: string;
+    new_end_time: string | null;
+    duration: number;
+    extended_duration: number;
+    extended_cost: number;
+    cost: number;
+    discount_amount: number;
+    pickup_address: string;
+    status: string;
+    created_at: string;
+    previous_status: string | null;
+    is_deleted: boolean;
+    scooter_info: ScooterInfo;
+}
+
+// 定义支付订单响应类型
+export interface PayOrderResponse {
+    order_id: number;
+    user_id: number;
+    status: string;
+    cost: number;
+    discount_amount: number;
+    coupon_id?: number;  // 使用的优惠券ID
+    coupon_amount?: number;  // 优惠券优惠金额
+}
+
+// 定义添加银行卡请求类型
+export interface AddCreditCardRequest {
+    user_id: number;
+    card_number: string;
+    security_code: string;
+    expiry_date: string; // 格式为: YYYY-MM-DD
+    country?: string;    // 可选，默认为"中国"
+}
+
+// 定义添加银行卡响应类型
+export interface AddCreditCardResponse {
+    card_id: number;
+}
+
+// 定义银行卡详情响应类型
+export interface CreditCardResponse {
+    card_id: number;
+    card_number: string; // 掩码处理后的卡号
+    expiry_date: string; // 格式为: YYYY-MM-DD
+    country: string;
+}
+
+// 定义反馈类型枚举
+export enum FeedbackType {
+    USING_PROBLEM = "USING_PROBLEM",
+    EXPERIENCE_FEEDBACK = "EXPERIENCE_FEEDBACK"
+}
+
+// 定义提交反馈请求类型
+export interface FeedbackRequest {
+    user_id: number;
+    feedback_type: FeedbackType;
+    description: string;
+    happening_time?: string; // ISO 格式的日期时间字符串，可选
+    bill_number?: string;    // 可选
+    image_urls?: string[];   // 图片URL数组，可选
+}
+
+// 定义反馈响应类型
+export interface FeedbackResponse {
+    feedback_id: number;
+    order_id?: number;
+    image_urls: string[];
+}
+
+// 定义优惠券请求类型
+export interface CouponRequest {
+    couponId: number;
+    orderId: number;
+}
+
+// 定义优惠券信息类型
+export interface Coupon {
+    id: number;
+    name: string;
+    description: string;
+    type: number;
+    value: number;
+    threshold: number;
+    startTime: string;
+    endTime: string;
+    status: number;
+}
+
+// 定义可用优惠券响应类型
+export interface AvailableCouponsResponse {
+    coupons: Coupon[];
+}
+
+/**
+ * 延长订单请求
+ */
+export interface ExtendOrderRequest {
+    order_id: number;           // 订单ID
+    new_end_time: string;       // 新的结束时间
+    reason?: string;            // 延长原因（可选）
+}
+
+/**
+ * 订单状态变更响应
+ */
+export interface ChangeOrderStatusResponse {
+    order_id: number;           // 订单ID
+    status: string;             // 新状态
+    previous_status: string;    // 原状态
+    message: string;            // 状态变更消息
+}
+
+/**
+ * 可用时间段响应
+ */
+export interface AvailableTimeSlotsResponse {
+    current_end_time: string;     // 当前结束时间
+    next_start_time: string;      // 下一个订单的开始时间
+    max_extended_hours: number;   // 最大可延长时间（小时）
+}
+
+/**
+ * 通知类型枚举
+ */
+export enum NotificationType {
+    COUPON = "COUPON",           // 优惠券通知
+    COMMENT_REPLY = "COMMENT_REPLY" // 评论回复通知
+}
+
+/**
+ * 通知响应类型
+ */
+export interface NotificationResponse {
+    id: number;                  // 通知ID
+    user_id: number;             // 用户ID
+    type: NotificationType;      // 通知类型
+    title: string;               // 通知标题
+    content: string;             // 通知内容
+    is_read: boolean;            // 是否已读
+    related_id: number;          // 关联业务ID
+    created_at: string;          // 创建时间
+}
+
+/**
+ * 优惠券通知响应类型
+ */
+export interface CouponNotificationResponse extends NotificationResponse {
+    coupon_id: number;           // 优惠券ID
+    coupon_name: string;         // 优惠券名称
+    coupon_amount: number;       // 优惠券金额
+    min_spend: number;           // 最低消费额
+    valid_from: string;          // 有效期开始
+    valid_to: string;            // 有效期结束
+}
+
+/**
+ * 评论回复通知响应类型
+ */
+export interface CommentReplyNotificationResponse extends NotificationResponse {
+    comment_id: number;          // 评论ID
+    reply_content: string;       // 回复内容
+    feedback_id: number;         // 反馈ID
+} 
