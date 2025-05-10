@@ -51,8 +51,9 @@ public class ScooterServiceImpl implements ScooterService {
     @Override
     public List<Scooter> findAllAvailable() {
         logger.info("Get all the available scooters");
+        // 移除分页限制，返回所有可用滑板车
         // 使用 PageHelper 进行分页，默认每页10条数据
-        PageHelper.startPage(1, 10);
+        // PageHelper.startPage(1, 10);
         return scooterMapper.findAllAvailable();
     }
     
@@ -86,7 +87,7 @@ public class ScooterServiceImpl implements ScooterService {
         }
         
         // 使用 PageHelper 进行分页，默认每页20条数据
-        PageHelper.startPage(1, 20);
+        // PageHelper.startPage(1, 20);
         List<Scooter> availableScooters = scooterMapper.findAvailableInTimePeriod(startTime, endTime);
         
         logger.info("Found {} available scooters in the specified time period", availableScooters.size());
