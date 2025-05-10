@@ -30,6 +30,9 @@ public class UserAvatarController {
     
     @Value("${app.server.url:http://localhost:8080}")
     private String serverUrl;
+
+    @Value("${app.virtual-path.avatar}")
+    private String avatarVirtualPath;
     
     @PostMapping("/avatar/upload/{userId}")
     public Result<String> uploadAvatar(
@@ -60,8 +63,8 @@ public class UserAvatarController {
             Files.copy(file.getInputStream(), filePath);
             logger.info("Saved avatar file: {}", filePath);
             
-            // 返回相对路径
-            String relativePath = "/api/avatar/" + newFilename;
+            // 返回虚拟路径
+            String relativePath = avatarVirtualPath + "/" + newFilename;
             String fullUrl = serverUrl + relativePath;
             
             // 更新数据库中的头像路径（存储相对路径）
@@ -74,6 +77,38 @@ public class UserAvatarController {
         } catch (IOException e) {
             logger.error("Avatar upload failed", e);
             return Result.error("Avatar upload failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户头像
+     * @param userId 用户ID
+     * @return 头像URL
+     */
+    @GetMapping("/avatar/{userId}")
+    public Result<String> getAvatar(@PathVariable Long userId) {
+        logger.info("Getting avatar for user: {}", userId);
+        
+        try {
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                return Result.error("User not found");
+            }
+            
+            String avatarPath = user.getAvatarPath();
+            if (avatarPath == null || avatarPath.trim().isEmpty()) {
+                return Result.success(serverUrl + "/static/settings/userp.jpg", "Default avatar");
+            }
+            
+            // 如果头像路径是相对路径，添加服务器URL
+            if (!avatarPath.startsWith("http")) {
+                avatarPath = serverUrl + avatarPath;
+            }
+            
+            return Result.success(avatarPath, "Avatar retrieved successfully");
+        } catch (Exception e) {
+            logger.error("Failed to get avatar for user: {}", userId, e);
+            return Result.error("Failed to get avatar: " + e.getMessage());
         }
     }
 } 

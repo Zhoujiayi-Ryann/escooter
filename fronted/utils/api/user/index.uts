@@ -121,6 +121,18 @@ export const userApi = {
     },
 
     /**
+     * 获取用户头像
+     * @param userId 用户ID
+     * @returns 头像URL
+     */
+    getAvatar(userId: number): Promise<ApiResponse<string>> {
+        return request<string>({
+            url: `/users/avatar/${userId}`,
+            method: 'GET'
+        });
+    },
+
+    /**
      * 保存用户信息到本地存储
      * @param userInfo 完整的用户信息
      */

@@ -27,6 +27,12 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${app.avatar.upload.dir}")
     private String avatarUploadDir;
 
+    @Value("${app.virtual-path.avatar}")
+    private String avatarVirtualPath;
+
+    @Value("${app.virtual-path.feedback}")
+    private String feedbackVirtualPath;
+
     /**
      * 配置CORS映射
      */
@@ -76,11 +82,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 配置反馈图片访问路径
-        registry.addResourceHandler("/api/feedback/images/**")
+        registry.addResourceHandler(feedbackVirtualPath + "/**")
                 .addResourceLocations("file:" + uploadDir + "/images/");
                 
         // 配置头像访问路径
-        registry.addResourceHandler("/api/avatar/**")
+        registry.addResourceHandler(avatarVirtualPath + "/**")
                 .addResourceLocations("file:" + avatarUploadDir + "/");
                 
         // 配置静态资源访问路径
