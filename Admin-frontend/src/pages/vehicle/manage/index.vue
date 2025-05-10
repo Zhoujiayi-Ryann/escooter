@@ -283,29 +283,46 @@ const loadTMapSDK = () => {
 // 在组件挂载时加载缓存
 loadCacheFromStorage();
 
-// 添加利兹市的站点数据
+// 添加利兹市的站点数据（国外）
 const LEEDS_STATIONS = [
-  { id: 1, name: 'Leeds City Centre', lat: 53.7997, lng: -1.5492 },
-  { id: 2, name: 'University of Leeds', lat: 53.8067, lng: -1.5550 },
-  { id: 3, name: 'Leeds Train Station', lat: 53.7947, lng: -1.5478 },
-  { id: 4, name: 'Headingley', lat: 53.8175, lng: -1.5786 },
-  { id: 5, name: 'Roundhay Park', lat: 53.8382, lng: -1.4990 },
-  { id: 6, name: 'Kirkstall Abbey', lat: 53.8204, lng: -1.6066 },
-  { id: 7, name: 'White Rose Shopping Centre', lat: 53.7583, lng: -1.5775 },
-  { id: 8, name: 'Temple Newsam', lat: 53.7794, lng: -1.4647 },
-  { id: 9, name: 'Elland Road Stadium', lat: 53.7778, lng: -1.5724 },
-  { id: 10, name: 'Leeds Dock', lat: 53.7913, lng: -1.5339 },
+  { id: 1, name: 'Leeds City Centre', lat: 53.7997, lng: -1.5492, country: 'UK' },
+  { id: 2, name: 'University of Leeds', lat: 53.8067, lng: -1.5550, country: 'UK' },
+  { id: 3, name: 'Leeds Train Station', lat: 53.7947, lng: -1.5478, country: 'UK' },
+  { id: 4, name: 'Headingley', lat: 53.8175, lng: -1.5786, country: 'UK' },
+  { id: 5, name: 'Roundhay Park', lat: 53.8382, lng: -1.4990, country: 'UK' },
+  { id: 6, name: 'Kirkstall Abbey', lat: 53.8204, lng: -1.6066, country: 'UK' },
+  { id: 7, name: 'White Rose Shopping Centre', lat: 53.7583, lng: -1.5775, country: 'UK' },
+  { id: 8, name: 'Temple Newsam', lat: 53.7794, lng: -1.4647, country: 'UK' },
+  { id: 9, name: 'Elland Road Stadium', lat: 53.7778, lng: -1.5724, country: 'UK' },
+  { id: 10, name: 'Leeds Dock', lat: 53.7913, lng: -1.5339, country: 'UK' },
 ];
 
+// 添加成都市的站点数据（国内）
+const CHENGDU_STATIONS = [
+  { id: 11, name: 'Tianfu Square', lat: 30.6578, lng: 104.0668, country: 'CN' },
+  { id: 12, name: 'Chunxi Road', lat: 30.6537, lng: 104.0865, country: 'CN' },
+  { id: 13, name: 'Wide and Narrow Alley', lat: 30.6693, lng: 104.0533, country: 'CN' },
+  { id: 14, name: 'Jinli Ancient Street', lat: 30.6427, lng: 104.0428, country: 'CN' },
+  { id: 15, name: 'Sichuan University', lat: 30.6307, lng: 104.0848, country: 'CN' },
+  { id: 16, name: 'UESTC', lat: 30.7577, lng: 103.9268, country: 'CN' },
+  { id: 17, name: 'Chengdu East Railway Station', lat: 30.6199, lng: 104.1487, country: 'CN' },
+  { id: 18, name: 'Chengdu South Railway Station', lat: 30.5142, lng: 104.0738, country: 'CN' },
+  { id: 19, name: 'Chengdu Panda Base', lat: 30.7348, lng: 104.1444, country: 'CN' },
+  { id: 20, name: 'Global Center', lat: 30.5702, lng: 104.0668, country: 'CN' },
+];
+
+// 合并所有站点数据
+const ALL_STATIONS = [...LEEDS_STATIONS, ...CHENGDU_STATIONS];
+
 // 站点选项
-const STATION_OPTIONS = LEEDS_STATIONS.map(station => ({
-  label: station.name,
+const STATION_OPTIONS = ALL_STATIONS.map(station => ({
+  label: `${station.name} (${station.country})`,
   value: station.id
 }));
 
 // 根据站点ID获取站点信息
 const getStationById = (stationId) => {
-  return LEEDS_STATIONS.find(station => station.id === stationId);
+  return ALL_STATIONS.find(station => station.id === stationId);
 };
 
 // 根据站点ID获取位置字符串
@@ -319,7 +336,7 @@ const getLocationStringFromStationId = (stationId) => {
 
 // 从位置字符串中提取站点ID
 const getStationIdFromLocationString = (locationString) => {
-  for (const station of LEEDS_STATIONS) {
+  for (const station of ALL_STATIONS) {
     if (locationString.includes(`(${station.lat}, ${station.lng})`)) {
       return station.id;
     }
