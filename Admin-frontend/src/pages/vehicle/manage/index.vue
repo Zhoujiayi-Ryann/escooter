@@ -163,15 +163,6 @@ const VEHICLE_STATUS_OPTIONS = [
   { label: 'Charging', value: VEHICLE_STATUS.charging },
 ];
 
-// 城市选项（示例数据）
-const CITY_OPTIONS = [
-  { label: 'Beijing', value: 'Beijing' },
-  { label: 'Shanghai', value: 'Shanghai' },
-  { label: 'Guangzhou', value: 'Guangzhou' },
-  { label: 'Shenzhen', value: 'Shenzhen' },
-  { label: 'Hangzhou', value: 'Hangzhou' },
-];
-
 // 地址缓存
 const addressCache = new Map<string, string>();
 // 从 localStorage 加载缓存
@@ -361,7 +352,6 @@ export default Vue.extend({
 
       VEHICLE_STATUS,
       VEHICLE_STATUS_OPTIONS,
-      CITY_OPTIONS,
       STATION_OPTIONS, // 添加站点选项
 
       // 筛选表单数据
