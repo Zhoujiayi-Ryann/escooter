@@ -42,7 +42,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns(
                     "http://localhost:*",
                     "http://127.0.0.1:*",
-                    "https://*.sealoshzh.site"
+                    "https://*.sealoshzh.site",
+                    "http://139.155.11.34"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
@@ -62,7 +63,8 @@ public class WebConfig implements WebMvcConfigurer {
         config.setAllowedOriginPatterns(Arrays.asList(
             "http://localhost:*",
             "http://127.0.0.1:*",
-            "https://*.sealoshzh.site"
+            "https://*.sealoshzh.site",
+            "http://139.155.11.34"
         ));
         
         config.setAllowCredentials(true);
