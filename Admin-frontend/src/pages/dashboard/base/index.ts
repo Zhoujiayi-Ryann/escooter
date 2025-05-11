@@ -227,7 +227,7 @@ export function getLineChartDataSet({
         params.forEach((param: any) => {
           const series = param.seriesName;
           const value = param.value;
-          html += `${series}: £${value}<br/>`;
+          // html += `${series}: £${value}<br/>`;
         });
         html += '<br/>Time Period Distribution:<br/>';
         html += `1 Hour: £${hourlyRates['1hr'][params[0].dataIndex]}<br/>`;
@@ -274,7 +274,7 @@ export function getLineChartDataSet({
       type: 'value',
       axisLabel: {
         color: placeholderColor,
-        formatter: '${value}'
+        formatter: '£{value}'
       },
       splitLine: {
         lineStyle: {
@@ -336,7 +336,7 @@ export async function updateLineChartData(chart: any, selectedDate: string) {
     
     // 调用API获取当前周的收入数据
     const currentWeekData = await getRevenueStatistics(startOfWeek, endOfWeek);
-    console.log(currentWeekData);
+    
     // 调用API获取上周的收入数据
     const lastWeekData = await getRevenueStatistics(lastWeekStart, lastWeekEnd);
     
@@ -388,25 +388,13 @@ export async function updateLineChartData(chart: any, selectedDate: string) {
       ]
     });
     
-    // 更新tooltip中的时段数据
-    chart.getOption().tooltip.formatter = function(params: any) {
-      const day = params[0].name;
-      let html = `${day}<br/>`;
-      params.forEach((param: any) => {
-        const series = param.seriesName;
-        const value = param.value;
-        html += `${series}: £${value}<br/>`;
-      });
-      
-      const index = params[0].dataIndex;
-      html += '<br/>Time Period Distribution:<br/>';
-      html += `1 Hour: £${hourlyRates['1hr'][index]}<br/>`;
-      html += `4 Hours: £${hourlyRates['4hr'][index]}<br/>`;
-      html += `1 Day: £${hourlyRates['1day'][index]}`;
-      return html;
+    // 返回数据供组件使用
+    return { 
+      currentWeek: currentWeekValues, 
+      lastWeek: lastWeekValues, 
+      hourlyRates,
+      totalRevenue: currentWeekData.totalRevenue 
     };
-    
-    return { currentWeekValues, lastWeekValues, hourlyRates };
   } catch (error) {
     console.error('Failed to update chart data:', error);
     return null;

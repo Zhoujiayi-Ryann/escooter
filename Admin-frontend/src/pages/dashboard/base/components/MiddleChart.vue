@@ -12,6 +12,10 @@
               :first-day-of-week="0"
               @change="onWeekChange"
             />
+            <div class="weekly-income-summary">
+              <span class="income-label">This week's income:  </span>
+              <span class="income-value">£{{ totalWeeklyIncome }}</span>
+            </div>
           </t-space>
         </template>
         <div
@@ -57,7 +61,8 @@ export default {
           '4hr': [],
           '1day': []
         }
-      }
+      },
+      totalWeeklyIncome: 0
     };
   },
   computed: {
@@ -84,6 +89,9 @@ export default {
 
     window.addEventListener('resize', this.updateContainer, false);
     this.renderCharts();
+    
+    // 初始化时获取当前周的收入数据
+    this.fetchInitialWeeklyIncome();
   },
 
   methods: {
@@ -100,6 +108,23 @@ export default {
       const endMonth = date2.getMonth() + 1 > 9 ? date2.getMonth() + 1 : `0${date2.getMonth() + 1}`;
 
       return `${date.getFullYear()}-${startMonth} to ${date2.getFullYear()}-${endMonth}`;
+    },
+    /** 初始化时获取当前周的收入数据 */
+    async fetchInitialWeeklyIncome() {
+      // 修正日期计算，确保正确获取周的开始和结束
+      const weekStart = dayjs(this.selectedWeek).startOf('week').subtract(1, 'day').format('YYYY-MM-DD');
+      const weekEnd = dayjs(this.selectedWeek).endOf('week').subtract(1, 'day').format('YYYY-MM-DD');
+      
+      try {
+        const revenueData = await getRevenueStatistics(weekStart, weekEnd);
+        console.log('初始化时获取的收入数据:', revenueData);
+        if (revenueData && revenueData.totalRevenue !== undefined) {
+          this.totalWeeklyIncome = revenueData.totalRevenue;
+          console.log('初始周收入:', this.totalWeeklyIncome);
+        }
+      } catch (error) {
+        console.error('获取初始收入数据失败:', error);
+      }
     },
     /** 更新图表数据 */
     async updateChartData() {
@@ -121,11 +146,11 @@ export default {
           tooltip: {
             formatter: (params) => {
               const day = params[0].name;
-              let html = `${day}<br/>`;
+              let html = `${day}`;
               params.forEach((param) => {
                 const series = param.seriesName;
                 const value = param.value;
-                html += `${series}: £${value}<br/>`;
+                // html += `${series}: £${value}<br/>`;
               });
               
               const index = params[0].dataIndex;
@@ -148,9 +173,23 @@ export default {
       if (value) {
         this.selectedWeek = value;
         // 获取所选周的开始(周日)和结束(周六)日期
-        const weekStart = dayjs(value).startOf('week').format('YYYY-MM-DD');
-        const weekEnd = dayjs(value).endOf('week').format('YYYY-MM-DD');
+        // 修正日期计算，确保正确获取周的开始和结束
+        const weekStart = dayjs(value).startOf('week').subtract(1, 'day').format('YYYY-MM-DD');
+        const weekEnd = dayjs(value).endOf('week').subtract(1, 'day').format('YYYY-MM-DD');
         console.log(`所选周的范围: ${weekStart} 至 ${weekEnd}`);
+        
+        // 直接调用API获取周收入数据
+        try {
+          const revenueData = await getRevenueStatistics(weekStart, weekEnd);
+          console.log('周变更 - API返回的收入数据:', revenueData);
+          if (revenueData && revenueData.totalRevenue !== undefined) {
+            this.totalWeeklyIncome = revenueData.totalRevenue;
+            console.log('更新后的周收入:', this.totalWeeklyIncome);
+          }
+        } catch (error) {
+          console.error('获取收入数据失败:', error);
+        }
+        
         await this.updateChartData();
       }
     },
@@ -222,5 +261,23 @@ export default {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+}
+
+.weekly-income-summary {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+  
+  .income-label {
+    font-size: 14px;
+    color: #999;
+  }
+  
+  .income-value {
+    font-size: 16px;
+    font-weight: 500;
+    color: #0052d9;
+    margin-left: 4px;
+  }
 }
 </style>
