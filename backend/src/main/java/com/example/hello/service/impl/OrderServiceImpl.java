@@ -33,6 +33,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -125,7 +126,11 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setExtendedDuration(0.0f);
         order.setAddress(request.getPickup_address());
-        order.setCreatedAt(LocalDateTime.now());
+        
+        // 修改创建时间设置，确保使用中国时区
+        order.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+        log.info("Setting order creation time to: {} [Asia/Shanghai timezone]", order.getCreatedAt());
+        
         order.setIsDeleted(false);
 
         // 保存订单
@@ -1233,7 +1238,8 @@ public class OrderServiceImpl implements OrderService {
             order.setExtendedDuration(0.0f);
             order.setDiscount(null); // 不使用优惠，设置为null
             order.setAddress(request.getPickup_address());
-            order.setCreatedAt(LocalDateTime.now());
+            order.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+            log.info("Setting order creation time to: {} [Asia/Shanghai timezone]", order.getCreatedAt());
             order.setIsDeleted(false); // 明确设置isDeleted为false
 
             // 7. 保存订单

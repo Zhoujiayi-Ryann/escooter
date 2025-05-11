@@ -35,6 +35,7 @@ com/example/hello/service/impl/ScooterServiceImpl.class
 com/example/hello/dto/request/AdminTempUserOrderRequest.class
 com/example/hello/mapper/UserMapper.class
 com/example/hello/dto/response/FeedbackDetailResponse$UserInfo.class
+com/example/hello/config/TimeZoneConfig.class
 com/example/hello/entity/VerificationCode$VerificationCodeBuilder.class
 com/example/hello/controller/UserController.class
 com/example/hello/dto/request/ScooterAvailabilityRequest.class

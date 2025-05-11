@@ -6,11 +6,13 @@
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/CreditCard.java
 /home/devbox/project/backend/src/main/java/com/example/hello/interceptor/JwtInterceptor.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/UserServiceImpl.java
+/home/devbox/project/backend/src/main/java/com/example/hello/config/TimeZoneConfig.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/VerificationCode.java
 /home/devbox/project/backend/src/main/java/com/example/hello/utils/JwtUtil.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/impl/FeedbackServiceImpl.java
 /home/devbox/project/backend/src/main/java/com/example/hello/entity/Order.java
 /home/devbox/project/backend/src/main/java/com/example/hello/service/EmailService.java
+/home/devbox/project/backend/src/main/java/com/example/hello/config/CorsConfig.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/response/PayOrderResponse.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/ChangePasswordRequest.java
 /home/devbox/project/backend/src/main/java/com/example/hello/dto/request/FeedbackRequest.java
