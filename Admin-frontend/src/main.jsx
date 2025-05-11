@@ -6,8 +6,8 @@ import VueClipboard from 'vue-clipboard2';
 import axiosInstance from '@/utils/request';
 import App from './App.vue';
 import router from './router';
-import zhConfig from 'tdesign-vue/es/locale/zh_CN';
-// import enConfig from 'tdesign-vue/es/locale/en_US'; // 英文多语言配置
+// import zhConfig from 'tdesign-vue/es/locale/zh_CN';
+import enConfig from 'tdesign-vue/es/locale/en_US'; // 英文多语言配置
 import { initThemeFromLocalStorage } from '@/utils/initThemeFromStorage';
 import 'tdesign-vue/es/style/index.css';
 import '@/style/index.less';
@@ -49,7 +49,7 @@ new Vue({
   store,
   render: (h) => (
     <div>
-      <t-config-provider globalConfig={zhConfig}>
+      <t-config-provider globalConfig={enConfig}>
         <App />
       </t-config-provider>
     </div>
