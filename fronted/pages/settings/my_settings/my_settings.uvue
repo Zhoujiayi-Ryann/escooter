@@ -117,9 +117,24 @@ export default {
           this.user.id = String(user.user_id || user.userId || 0);
     
           const avatarPath = user.avatar_path || user.avatarPath;
-          this.user.avatar = avatarPath && avatarPath.trim() !== ''
-            ? avatarPath
-            : '/static/avatar/userp.jpg';
+          
+          // 处理头像路径
+          if (avatarPath && avatarPath.trim() !== '') {
+            // 检查是否是相对路径（以/开头）
+            if (avatarPath.startsWith('/api/')) {
+              // 将相对路径转换为完整URL
+              this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + avatarPath;
+            } else if (avatarPath.startsWith('http')) {
+              // 已经是完整URL，直接使用
+              this.user.avatar = avatarPath;
+            } else {
+              // 其他情况，添加基础URL
+              this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site/api/' + avatarPath;
+            }
+          } else {
+            // 没有头像，使用默认头像
+            this.user.avatar = '/static/avatar/userp.jpg';
+          }
     
           this.mileage.hours = parseFloat(user.totalUsageHours || 0).toFixed(1);
           this.mileage.spent = parseFloat(user.totalSpent || 0);
@@ -137,7 +152,20 @@ export default {
         if (cached) {
           this.user.name = cached.username;
           this.user.id = String(cached.user_id || cached.userId || 0);
-          this.user.avatar = cached.avatar_path || '/static/avatar/userp.jpg';
+          
+          // 同样处理缓存中的头像路径
+          const cachedAvatarPath = cached.avatar_path;
+          if (cachedAvatarPath && cachedAvatarPath.trim() !== '') {
+            if (cachedAvatarPath.startsWith('/api/')) {
+              this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + cachedAvatarPath;
+            } else if (cachedAvatarPath.startsWith('http')) {
+              this.user.avatar = cachedAvatarPath;
+            } else {
+              this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site/api/' + cachedAvatarPath;
+            }
+          } else {
+            this.user.avatar = '/static/avatar/userp.jpg';
+          }
         }
       }
     },
