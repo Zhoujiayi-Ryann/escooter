@@ -76,14 +76,21 @@ public class OrderServiceImpl implements OrderService {
     public Optional<OrderResponse> createOrder(CreateOrderRequest request) {
         log.info("Starting create order: userId={}, scooterId={}", request.getUser_id(), request.getScooter_id());
 
-        // 1. 检查滑板车是否存在
+        // 1. 验证用户是否存在
+        User user = userMapper.findById(request.getUser_id().longValue());
+        if (user == null) {
+            log.error("User does not exist: userId={}", request.getUser_id());
+            throw new RuntimeException("User does not exist");
+        }
+
+        // 2. 检查滑板车是否存在
         Scooter scooter = scooterMapper.findById(request.getScooter_id());
         if (scooter == null) {
             log.error("Scooter does not exist: scooterId={}", request.getScooter_id());
             throw new RuntimeException("Scooter does not exist");
         }
 
-        // 2. 验证开始时间和结束时间
+        // 3. 验证开始时间和结束时间
         if (request.getEnd_time().isBefore(request.getStart_time())) {
             log.error("End time cannot be earlier than start time: startTime={}, endTime={}", request.getStart_time(),
                     request.getEnd_time());
@@ -96,7 +103,7 @@ public class OrderServiceImpl implements OrderService {
         if (request.getStart_time().isBefore(earliestAllowed)) {
             throw new IllegalArgumentException("Start time must be at least 2 minutes from now");
         }
-        // 3. 检查时间段是否与其他订单重叠
+        // 4. 检查时间段是否与其他订单重叠
         List<Order> overlappingOrders = orderMapper.findOverlappingOrders(
                 request.getScooter_id(),
                 request.getStart_time(),
@@ -107,7 +114,7 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Scooter is already booked during this time period");
         }
 
-        // 4. 计算使用时长（小时）
+        // 5. 计算使用时长（小时）
         Duration duration = Duration.between(request.getStart_time(), request.getEnd_time());
         float durationHours = (float) Math.ceil(duration.toMinutes() / 60.0);
         log.info("Rental duration: {} hours", durationHours);

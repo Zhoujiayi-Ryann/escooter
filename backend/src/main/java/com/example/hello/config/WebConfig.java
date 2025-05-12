@@ -43,7 +43,8 @@ public class WebConfig implements WebMvcConfigurer {
                     "http://localhost:*",
                     "http://127.0.0.1:*",
                     "https://*.sealoshzh.site",
-                    "http://139.155.11.34"
+                    "http://139.155.11.34",
+                    "https://139.155.11.34"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
