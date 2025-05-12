@@ -199,7 +199,7 @@ export default {
 .coupon-page {
 	background: linear-gradient(to bottom, #f0faff, #ffffff);
 	min-height: 100vh;
-	padding: 30rpx;
+	padding: 20px;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -214,6 +214,7 @@ export default {
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 	position: relative;
 	margin-bottom: 30rpx;
+	margin-top: 15px;
 }
 
 .back-btn {

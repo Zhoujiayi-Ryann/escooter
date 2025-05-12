@@ -444,7 +444,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20rpx;
-  padding: 20rpx;
+  padding: 20px;
   box-sizing: border-box;
 }
 .back-btn{
@@ -472,7 +472,8 @@ export default {
   text-align: center;
   border-radius: 20rpx;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin-top: 50rpx;
+  margin-bottom: 30rpx;
+  margin-top: 15px;
 }
 
 .header-title {
@@ -480,7 +481,6 @@ export default {
   font-weight: bold;
   color: #007aff;
   text-align: center;
-  margin-bottom: 20rpx;
 }
 
 .scooter-image {
