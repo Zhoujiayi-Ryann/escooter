@@ -347,6 +347,7 @@ export default {
   color: #fff;
   border-radius: 70rpx;
   transition: all 0.3s;
+  text-align: center;
 }
 
 .login-btn:active {

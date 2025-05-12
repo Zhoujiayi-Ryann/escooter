@@ -473,7 +473,7 @@ export default {
   border-radius: 20rpx;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   margin-bottom: 30rpx;
-  margin-top: 15px;
+  margin-top: 30px;
 }
 
 .header-title {
@@ -526,7 +526,9 @@ export default {
   align-items: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-
+.address-text{
+	font-size: 13px;
+}
 .section-label {
   font-size: 30rpx;
   color: #333;
@@ -606,8 +608,9 @@ export default {
 }
 
 .bottom-button {
-  margin: 40rpx 0;
+  margin: 25rpx 0;
   padding: 0 30rpx;
+  margin-bottom: 10rpx;
 }
 
 .rent-button {
@@ -637,7 +640,7 @@ export default {
 }
 
 .agreement-section {
-  margin-bottom: 36rpx;
+  margin-bottom: 12rpx;
 }
 
 .section-title {

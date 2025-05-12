@@ -1,4 +1,4 @@
-// ../../../../../AAA RANCHONGYU/利兹课程/大三下/软件工程项目/0510-本地/fronted/node_modules/vant/es/locale/lang/en-US.mjs
+// ../../../../../AAA RANCHONGYU/利兹课程/大三下/软件工程项目/escooter_2/escooter/fronted/node_modules/vant/es/locale/lang/en-US.mjs
 var stdin_default = {
   name: "Name",
   tel: "Phone",

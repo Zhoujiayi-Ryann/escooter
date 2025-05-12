@@ -44,7 +44,7 @@
 		    <van-grid-item icon="orders-o" text="All Orders" @click="navigateTo('orders')" />
 		    <van-grid-item icon="card" text="My Card" @click="navigateTo('card')" />
 		    <van-grid-item icon="service-o" text="Help" @click="navigateTo('help')" />
-		    <van-grid-item icon="bell" text="Notifications" @click="navigateTo('notify')" />
+		    <van-grid-item icon="bell" text="Notification" @click="navigateTo('notify')" />
 		  </van-grid>
 
 
@@ -316,8 +316,8 @@ export default {
 .van-grid-item__icon {
   font-size: 44rpx !important;
 }
-.van-grid-item__text {
-  font-size: 26rpx;
+.van-grid-item__content .van-grid-item__text {
+  font-size: 12px !important;
 }
 
 /* 下半部分 */
@@ -326,7 +326,9 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 45rpx;
+  font-size: 12px !important;
 }
+
 .mileage-card {
   border-radius: 20rpx;
   padding: 30rpx 0;
