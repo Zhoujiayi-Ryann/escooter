@@ -836,7 +836,14 @@ export default Vue.extend({
           if (deleteResult) {
             // 从本地数据中删除
             this.data.splice(this.deleteIdx, 1);
-            this.pagination.total = this.data.length;
+            // 同时从allData中删除
+            const allDataIdx = this.allData.findIndex(item => item.id === deletedId);
+            if (allDataIdx > -1) {
+              this.allData.splice(allDataIdx, 1);
+            }
+            
+            // 更新分页信息
+            this.pagination.total = this.allData.length;
 
             // 从选中行中删除
             const selectedIdx = this.selectedRowKeys.indexOf(deletedId);
@@ -845,6 +852,8 @@ export default Vue.extend({
             }
 
             this.$message.success('Delete successful');
+            // 不需要完全刷新，只需更新当前页数据
+            this.updatePageData();
           } else {
             this.$message.error('Delete failed');
           }
