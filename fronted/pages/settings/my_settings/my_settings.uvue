@@ -118,7 +118,7 @@ export default {
     
           const avatarPath = user.avatar_path || user.avatarPath;
           
-          // 处理头像路径
+          // 处理头像路径 - 增强版
           if (avatarPath && avatarPath.trim() !== '') {
             // 去除可能包含的localhost部分
             let cleanPath = avatarPath;
