@@ -133,13 +133,45 @@ export default {
           this.form.name = res.data.username || '';
           this.form.email = res.data.email || '';
           this.form.phone = res.data.phoneNumber || '';
-          this.form.avatar = res.data.avatar_path || '';
-          const avatarPath = res.data.avatarPath;
-          this.user.avatar = avatarPath && avatarPath.trim() !== ''
-            ? avatarPath
-            : '/static/avatar/userp.jpg';
+          
+          // 获取头像路径
+          const avatarPath = res.data.avatar_path || res.data.avatarPath;
+          
+          // 处理头像路径 - 与my_settings.uvue保持一致
+          if (avatarPath && avatarPath.trim() !== '') {
+            // 去除可能包含的localhost部分
+            let cleanPath = avatarPath;
+            
+            // 移除可能的localhost前缀
+            if (cleanPath.includes('localhost:8080')) {
+              cleanPath = cleanPath.split('localhost:8080')[1];
+            }
+            
+            // 检查各种路径可能性
+            if (cleanPath.startsWith('/api/')) {
+              this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + cleanPath;
+            } else if (cleanPath.startsWith('http') && !cleanPath.includes('localhost')) {
+              // 已经是完整URL且不是localhost，直接使用
+              this.user.avatar = cleanPath;
+            } else {
+              // 其他情况，添加基础URL
+              // 确保没有多余的斜杠
+              if (cleanPath.startsWith('/')) {
+                this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + cleanPath;
+              } else {
+                this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site/' + cleanPath;
+              }
+            }
+            
+            this.form.avatar = this.user.avatar;
+            console.log('处理后的头像URL:', this.user.avatar);
+          } else {
+            // 没有头像，使用默认头像
+            this.user.avatar = this.defaultAvatar;
+            this.form.avatar = this.defaultAvatar;
+          }
+          
           console.log('👤 Current user avatar path:', this.user.avatar);
-
           console.log('✅ User data loaded successfully:', this.user);
         } else {
           console.error("❌ Failed to load, backend returned error:", res);
@@ -162,7 +194,18 @@ export default {
         const uploadRes = await uploadApi.uploadAvatar(filePath, userId);
 
         if (uploadRes.code === 1) {
-          const newAvatarUrl = uploadRes.data; // URL returned by API after upload
+          let newAvatarUrl = uploadRes.data; // URL returned by API after upload
+          
+          // 处理新头像URL
+          if (newAvatarUrl.includes('localhost:8080')) {
+            newAvatarUrl = newAvatarUrl.split('localhost:8080')[1];
+          }
+          
+          if (newAvatarUrl.startsWith('/api/')) {
+            newAvatarUrl = 'https://khnrsggvzudb.sealoshzh.site' + newAvatarUrl;
+          } else if (!newAvatarUrl.startsWith('http')) {
+            newAvatarUrl = 'https://khnrsggvzudb.sealoshzh.site' + (newAvatarUrl.startsWith('/') ? '' : '/') + newAvatarUrl;
+          }
 
           // Update avatar locally
           this.user.avatar_path = newAvatarUrl;
@@ -170,7 +213,10 @@ export default {
           this.form.avatar = newAvatarUrl;
 
           // Update local cache
-          userApi.updateLocalUserInfo({ avatar_path: newAvatarUrl });
+          userApi.updateLocalUserInfo({ 
+            avatar_path: newAvatarUrl,
+            avatarPath: newAvatarUrl
+          });
 
           uni.showToast({ title: 'Avatar updated', icon: 'success' });
         } else {
@@ -306,6 +352,7 @@ async toggleEdit(field) {
   text-align: center;
   border-radius: 20rpx;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 30px;
 }
 
 .header-title {

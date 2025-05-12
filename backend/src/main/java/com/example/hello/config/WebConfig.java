@@ -36,21 +36,22 @@ public class WebConfig implements WebMvcConfigurer {
     /**
      * 配置CORS映射
      */
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOriginPatterns(
-                    "http://localhost:*",
-                    "http://127.0.0.1:*",
-                    "https://*.sealoshzh.site",
-                    "http://139.155.11.34"
-                )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-                .allowedHeaders("*")
-                .exposedHeaders("token")
-                .allowCredentials(true)
-                .maxAge(3600);
-    }
+    // @Override
+    // public void addCorsMappings(CorsRegistry registry) {
+    //     registry.addMapping("/**")
+    //             .allowedOriginPatterns(
+    //                 "http://localhost:*",
+    //                 "http://127.0.0.1:*",
+    //                 "https://*.sealoshzh.site",
+    //                 "http://139.155.11.34",
+    //                 "https://139.155.11.34"
+    //             )
+    //             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+    //             .allowedHeaders("*")
+    //             .exposedHeaders("token")
+    //             .allowCredentials(true)
+    //             .maxAge(3600);
+    // }
 
     /**
      * 创建CORS过滤器
@@ -64,9 +65,10 @@ public class WebConfig implements WebMvcConfigurer {
             "http://localhost:*",
             "http://127.0.0.1:*",
             "https://*.sealoshzh.site",
-            "http://139.155.11.34"
+            "http://139.155.11.34",
+            "https://139.155.11.34"
         ));
-        
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowCredentials(true);
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");

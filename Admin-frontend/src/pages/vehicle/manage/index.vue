@@ -46,7 +46,7 @@
 
             <!-- 价格列自定义 -->
             <template #price="{ row }">
-              £{{ row.price }} / min
+              £{{ row.price }} / hour
             </template>
 
             <!-- 操作列自定义 -->
@@ -390,7 +390,7 @@ export default Vue.extend({
         { title: 'Battery', colKey: 'battery', width: 150, cell: { col: 'battery' } },
         { title: 'Status', colKey: 'status', width: 120, cell: { col: 'status' } },
         { title: 'Last Rental Time', colKey: 'lastRentTime', width: 180 },
-        { title: 'Price(£/min)', colKey: 'price', width: 120 },
+        { title: 'Price(£/hour)', colKey: 'price', width: 120 },
         { title: 'Actions', colKey: 'op', width: 160 },
         { title: '', colKey: 'delete', width: 60 },
       ],

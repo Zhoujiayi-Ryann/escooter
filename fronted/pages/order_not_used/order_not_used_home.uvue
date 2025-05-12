@@ -38,10 +38,10 @@
         <view class="info-box">
           <view class="info-item"><text class="label">Order ID:</text><text class="value">{{ order.orderId }}</text></view>
           <view class="info-item"><text class="label">Scooter ID:</text><text class="value">SC{{ order.scooterId }}</text></view>
-			<view class="info-item">
+			<!-- <view class="info-item">
 			  <text class="label">Scooter Location:</text>
 			  <view class="value address">{{ order.scooterLocation }}</view>
-			</view>
+			</view> -->
           <view class="info-item"><text class="label">Battery:</text><text class="value">{{ order.battery }}%</text></view>
           <view class="info-item"><text class="label">Start Time:</text><text class="value">{{ order.bookTime }}</text></view>
           <view class="info-item">
@@ -82,7 +82,7 @@ const markers = ref([]);
 const anchors = [
   120,
   Math.round(0.4 * window.innerHeight),
-  Math.round(0.65 * window.innerHeight)
+  Math.round(0.7 * window.innerHeight)
 ];
 const panelHeight = ref(anchors[0]);
 
@@ -142,7 +142,7 @@ const fetchOrderDetail = async () => {
         bookTime: formatToCST(data.start_time),
         orderTime: formatToCST(data.created_at),
         duration: `${totalDurationHours} hour${totalDurationHours > 1 ? 's' : ''}`,
-        price: totalCost
+        price: data.cost
       };
 
       location.value = {
@@ -241,40 +241,41 @@ onMounted(() => {
 
 .back-btn{
   position: absolute;
-  top: 50rpx;
-  left: 60rpx;
+  top: 65px;
+  left:30px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
   background-color: #f4f8ff;
-  border-radius: 25rpx;
-  width: 80rpx;
-  height: 80rpx;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
 }
 
+
 .back-icon{
-  font-size: 55rpx;  
+  font-size: 65rpx;  
   color: #0084ff;
 }
 .person-btn {
- position: absolute;
-  top: 50rpx;
-  right: 60rpx;
+  position: absolute;
+  top: 65px;
+  right:30px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
   background-color: #f4f8ff;
-  border-radius: 25rpx;
-  width: 80rpx;
-  height: 80rpx;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
 }
 
 .person-icon{
-  font-size: 55rpx;  
+  font-size: 65rpx;  
   color: #0084ff;
 }
 

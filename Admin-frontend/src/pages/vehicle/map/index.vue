@@ -24,7 +24,7 @@
             <t-progress :percentage="selectedScooter.battery" :color="getBatteryColor(selectedScooter.battery)" :label="false" trackColor="#e8f4ff" />
             <span style="margin-left: 4px">{{ selectedScooter.battery }}%</span>
           </t-descriptions-item>
-          <t-descriptions-item label="Price">£{{ selectedScooter.price }} / min</t-descriptions-item>
+          <t-descriptions-item label="Price">£{{ selectedScooter.price }} / hour</t-descriptions-item>
           <t-descriptions-item label="Location">{{ selectedScooter.location }}</t-descriptions-item>
           <t-descriptions-item label="Last Rental Time">{{ selectedScooter.lastRentTime || '-' }}</t-descriptions-item>
         </t-descriptions>

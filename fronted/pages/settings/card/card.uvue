@@ -15,26 +15,44 @@
     <!-- 卡号 -->
     <view class="input-card" @click="focus('card')">
       <van-icon name="credit-pay" size="20" />
-      <input v-model="cardNumber" placeholder="Credit Card Number" readonly />
+      <input 
+        v-model="cardNumber" 
+        placeholder="Credit Card Number" 
+        readonly 
+        inputmode="none" 
+      />
     </view>
-
+    
     <!-- 有效期 + CVV + 国家 -->
     <view class="input-row">
-
+    
       <!-- Expiry -->
       <view class="input-half" @click="focus('expiry')">
-        <input v-model="expiry" placeholder="MM/YY" readonly />
+        <input 
+          v-model="expiry" 
+          placeholder="MM/YY" 
+          readonly 
+          inputmode="none" 
+        />
       </view>
-
+    
       <!-- CVV + Country -->
       <view class="input-half">
-        <input v-model="cvv" placeholder="CVV" readonly maxlength="3" @click="focus('cvv')" />
+        <input 
+          v-model="cvv" 
+          placeholder="CVV" 
+          readonly 
+          maxlength="3" 
+          inputmode="none" 
+          @click="focus('cvv')" 
+        />
         <view class="country" @click="showCountryPicker = true">
           <text>{{ selectedCountry.flag }} {{ selectedCountry.code }}</text>
         </view>
       </view>
-
+    
     </view>
+
 
     <!-- 保存 -->
     <van-button class="save-btn" type="primary" block @click="onSave" :loading="isSaving">
@@ -264,8 +282,8 @@ const onClose = () => {
 
 .close-btn {
   position: absolute;
-  top: 50rpx;
-  left: 50rpx;
+  top: 65px;
+  left: 30px;
   display: flex;
   align-items: center;
   justify-content: center;

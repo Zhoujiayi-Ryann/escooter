@@ -44,7 +44,7 @@
 		    <van-grid-item icon="orders-o" text="All Orders" @click="navigateTo('orders')" />
 		    <van-grid-item icon="card" text="My Card" @click="navigateTo('card')" />
 		    <van-grid-item icon="service-o" text="Help" @click="navigateTo('help')" />
-		    <van-grid-item icon="bell" text="Notifications" @click="navigateTo('notify')" />
+		    <van-grid-item icon="bell" text="Notification" @click="navigateTo('notify')" />
 		  </van-grid>
 
 
@@ -117,14 +117,48 @@ export default {
           this.user.id = String(user.user_id || user.userId || 0);
     
           const avatarPath = user.avatar_path || user.avatarPath;
-          this.user.avatar = avatarPath && avatarPath.trim() !== ''
-            ? avatarPath
-            : '/static/avatar/userp.jpg';
+          
+          // 处理头像路径 - 增强版
+          if (avatarPath && avatarPath.trim() !== '') {
+            // 去除可能包含的localhost部分
+            let cleanPath = avatarPath;
+            
+            // 移除可能的localhost前缀
+            if (cleanPath.includes('localhost:8080')) {
+              cleanPath = cleanPath.split('localhost:8080')[1];
+            }
+            
+            // 检查各种路径可能性
+            if (cleanPath.startsWith('/api/')) {
+              this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + cleanPath;
+            } else if (cleanPath.startsWith('http') && !cleanPath.includes('localhost')) {
+              // 已经是完整URL且不是localhost，直接使用
+              this.user.avatar = cleanPath;
+            } else {
+              // 其他情况，添加基础URL
+              // 确保没有多余的斜杠
+              if (cleanPath.startsWith('/')) {
+                this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + cleanPath;
+              } else {
+                this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site/' + cleanPath;
+              }
+            }
+            
+            console.log('处理后的头像URL:', this.user.avatar);
+          } else {
+            // 没有头像，使用默认头像
+            this.user.avatar = '/static/avatar/userp.jpg';
+          }
     
-          this.mileage.hours = parseFloat(user.totalUsageHours || 0).toFixed(1);
-          this.mileage.spent = parseFloat(user.totalSpent || 0);
-    
-          // 同步缓存
+          // 同步缓存 - 同时更新缓存中的头像URL
+          // 重要：确保我们存储的是正确格式的URL
+          if (user.avatar_path) {
+            user.avatar_path = this.user.avatar;
+          }
+          if (user.avatarPath) {
+            user.avatarPath = this.user.avatar;
+          }
+          
           userApi.updateLocalUserInfo(user);
           console.log('✅ Loaded user info from server:', this.user.avatar);
         } else {
@@ -137,7 +171,30 @@ export default {
         if (cached) {
           this.user.name = cached.username;
           this.user.id = String(cached.user_id || cached.userId || 0);
-          this.user.avatar = cached.avatar_path || '/static/avatar/userp.jpg';
+          
+          // 处理缓存中的头像路径 - 使用相同的逻辑
+          const cachedAvatarPath = cached.avatar_path;
+          if (cachedAvatarPath && cachedAvatarPath.trim() !== '') {
+            let cleanPath = cachedAvatarPath;
+            
+            if (cleanPath.includes('localhost:8080')) {
+              cleanPath = cleanPath.split('localhost:8080')[1];
+            }
+            
+            if (cleanPath.startsWith('/api/')) {
+              this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + cleanPath;
+            } else if (cleanPath.startsWith('http') && !cleanPath.includes('localhost')) {
+              this.user.avatar = cleanPath;
+            } else {
+              if (cleanPath.startsWith('/')) {
+                this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site' + cleanPath;
+              } else {
+                this.user.avatar = 'https://khnrsggvzudb.sealoshzh.site/' + cleanPath;
+              }
+            }
+          } else {
+            this.user.avatar = '/static/avatar/userp.jpg';
+          }
         }
       }
     },
@@ -259,8 +316,8 @@ export default {
 .van-grid-item__icon {
   font-size: 44rpx !important;
 }
-.van-grid-item__text {
-  font-size: 26rpx;
+.van-grid-item__content .van-grid-item__text {
+  font-size: 12px !important;
 }
 
 /* 下半部分 */
@@ -269,7 +326,9 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 45rpx;
+  font-size: 12px !important;
 }
+
 .mileage-card {
   border-radius: 20rpx;
   padding: 30rpx 0;

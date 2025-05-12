@@ -122,7 +122,9 @@ public interface OrderMapper {
          * @param timeoutMinutes 超时时间（分钟）
          * @return 超时的订单列表
          */
-        @Select("SELECT * FROM Orders WHERE status = 'pending' AND create_at <= DATE_SUB(NOW(), INTERVAL #{timeoutMinutes} MINUTE)")
+        @Select("SELECT * FROM Orders " +
+        "WHERE status = 'pending' " +
+        "AND create_at <= DATE_SUB(CONVERT_TZ(NOW(), 'UTC', 'Asia/Shanghai'), INTERVAL #{timeoutMinutes} MINUTE)")
         @Results({
                         @Result(property = "orderId", column = "order_id"),
                         @Result(property = "userId", column = "user_id"),

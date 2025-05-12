@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 public class NotificationServiceImpl implements NotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationServiceImpl.class);
+    private static final ZoneId CHINA_ZONE = ZoneId.of("Asia/Shanghai");
 
     @Autowired
     private NotificationMapper notificationMapper;
@@ -36,6 +38,11 @@ public class NotificationServiceImpl implements NotificationService {
             // 设置默认值
             if (notification.getIsRead() == null) {
                 notification.setIsRead(false);
+            }
+            
+            // 设置创建时间为中国时区
+            if (notification.getCreatedAt() == null) {
+                notification.setCreatedAt(LocalDateTime.now(CHINA_ZONE));
             }
             
             int result = notificationMapper.createNotification(notification);
@@ -55,10 +62,14 @@ public class NotificationServiceImpl implements NotificationService {
                 return 0;
             }
             
-            // 设置默认值
+            // 设置默认值和创建时间
+            LocalDateTime now = LocalDateTime.now(CHINA_ZONE);
             notifications.forEach(notification -> {
                 if (notification.getIsRead() == null) {
                     notification.setIsRead(false);
+                }
+                if (notification.getCreatedAt() == null) {
+                    notification.setCreatedAt(now);
                 }
             });
             
@@ -80,6 +91,7 @@ public class NotificationServiceImpl implements NotificationService {
                     .content("You received a new coupon: " + couponName)
                     .isRead(false)
                     .relatedId(couponId.longValue())
+                    .createdAt(LocalDateTime.now(CHINA_ZONE))
                     .build();
             
             return createNotification(notification);
@@ -98,6 +110,7 @@ public class NotificationServiceImpl implements NotificationService {
                 return 0;
             }
             
+            LocalDateTime now = LocalDateTime.now(CHINA_ZONE);
             List<Notification> notifications = userIds.stream()
                     .map(userId -> Notification.builder()
                             .userId(userId)
@@ -106,6 +119,7 @@ public class NotificationServiceImpl implements NotificationService {
                             .content("You received a new coupon: " + couponName)
                             .isRead(false)
                             .relatedId(couponId.longValue())
+                            .createdAt(now)
                             .build())
                     .collect(Collectors.toList());
             
@@ -128,7 +142,7 @@ public class NotificationServiceImpl implements NotificationService {
                     .content("Your feedback has a new reply: " + (replyContent.length() > 50 ? replyContent.substring(0, 47) + "..." : replyContent))
                     .isRead(false)
                     .relatedId(feedbackId)
-                    .createdAt(LocalDateTime.now())
+                    .createdAt(LocalDateTime.now(CHINA_ZONE))
                     .build();
             
             return createNotification(notification);

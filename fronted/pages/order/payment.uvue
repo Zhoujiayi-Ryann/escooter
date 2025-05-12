@@ -740,7 +740,7 @@
   border-radius: 20rpx;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   margin-bottom: 30rpx;
-  margin-top: 15px;
+  margin-top: 30px;
 }
 
 .header-title {
