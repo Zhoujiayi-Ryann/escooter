@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-export const BASE_URL = 'http://172.20.10.2:8080/api';
+export const BASE_URL = 'https://khnrsggvzudb.sealoshzh.site/api';
 
 // 反馈状态映射
 export const FEEDBACK_STATUS = {

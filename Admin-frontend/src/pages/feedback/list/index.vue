@@ -236,7 +236,7 @@ export default {
       FEEDBACK_STATUS,
       FEEDBACK_TYPE,
       prefix,
-      apiBaseUrl: process.env.NODE_ENV === 'development' ? 'http://localhost:8080' : host[process.env.NODE_ENV].API,
+      apiBaseUrl: 'https://khnrsggvzudb.sealoshzh.site',
       formData: {
         type: undefined,
         status: undefined,
@@ -471,7 +471,9 @@ export default {
             if (url.startsWith('http://') || url.startsWith('https://')) {
               return url;
             }
-            return `${this.apiBaseUrl}${url}`;
+            // 使用BASE_URL替代this.apiBaseUrl
+            const baseUrl = this.apiBaseUrl;
+            return `${baseUrl}${url}`;
           }) : [];
 
           this.selectedFeedback = {
