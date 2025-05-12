@@ -291,7 +291,7 @@ public class OrderServiceImpl implements OrderService {
             // 计算基础价格
             BigDecimal basePrice;
             if (order.getNewEndTime() != null) {
-                // 如果是延长订单，只使用extended_cost作为支付金额
+                // 如果是延长订单，只使用extended_cost，不更新cost
                 basePrice = order.getExtendedCost();
                 log.info("Using extended cost for payment: orderId={}, extendedCost={}", orderId, basePrice);
             } else {
@@ -300,6 +300,12 @@ public class OrderServiceImpl implements OrderService {
                         .setScale(2, RoundingMode.HALF_UP);
                 log.info("Calculated order base price: orderId={}, hourlyPrice={}, duration={}, basePrice={}",
                         orderId, hourlyPrice, durationHours, basePrice);
+            }
+
+            // 更新订单的基础价格（对于延长订单，不更新cost字段）
+            if (order.getNewEndTime() == null) {
+                orderMapper.updateOrderCostAndDiscount(orderId, basePrice, order.getDiscount());
+                order.setCost(basePrice);
             }
 
             // 5. 处理优惠券（如果有）
