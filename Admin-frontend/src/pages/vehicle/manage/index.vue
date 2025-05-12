@@ -1034,7 +1034,7 @@ export default Vue.extend({
           
           // 获取当前管理员ID
           const currentUser = this.$store.state.user?.userInfo || {};
-          const adminId = currentUser.userId || 5; // 默认为5如果没有获取到
+          const adminId = currentUser.userId || 1; // 默认为1如果没有获取到
           
           // 格式化开始和结束时间
           const startTime = scooterService.formatDateTimeForAPI(this.payForm.timeRange[0]);
