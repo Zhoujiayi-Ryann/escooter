@@ -16,7 +16,9 @@ export interface ApiResponse<T> {
 export interface DurationRevenue {
     lessThanOneHour: number;
     oneToFourHours: number;
-    moreThanFourHours: number;
+    fourHoursToOneDay: number;
+    oneDayToOneWeek: number;
+    moreThanOneWeek: number;
 }
 
 export interface RevenueStatistics {

@@ -39,8 +39,18 @@ public class RevenueStatisticsResponse {
         private BigDecimal oneToFourHours;
 
         /**
-         * 时长大于4小时的订单收入
+         * 时长4小时到1天的订单收入
          */
-        private BigDecimal moreThanFourHours;
+        private BigDecimal fourHoursToOneDay;
+
+        /**
+         * 时长1天到1周的订单收入
+         */
+        private BigDecimal oneDayToOneWeek;
+
+        /**
+         * 时长大于1周的订单收入
+         */
+        private BigDecimal moreThanOneWeek;
     }
 }

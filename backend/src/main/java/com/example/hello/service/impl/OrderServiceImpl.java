@@ -1152,11 +1152,15 @@ public class OrderServiceImpl implements OrderService {
             if (existingDuration != null) {
                 durationRevenue.setLessThanOneHour(existingDuration.getLessThanOneHour());
                 durationRevenue.setOneToFourHours(existingDuration.getOneToFourHours());
-                durationRevenue.setMoreThanFourHours(existingDuration.getMoreThanFourHours());
+                durationRevenue.setFourHoursToOneDay(existingDuration.getFourHoursToOneDay());
+                durationRevenue.setOneDayToOneWeek(existingDuration.getOneDayToOneWeek());
+                durationRevenue.setMoreThanOneWeek(existingDuration.getMoreThanOneWeek());
             } else {
                 durationRevenue.setLessThanOneHour(BigDecimal.ZERO);
                 durationRevenue.setOneToFourHours(BigDecimal.ZERO);
-                durationRevenue.setMoreThanFourHours(BigDecimal.ZERO);
+                durationRevenue.setFourHoursToOneDay(BigDecimal.ZERO);
+                durationRevenue.setOneDayToOneWeek(BigDecimal.ZERO);
+                durationRevenue.setMoreThanOneWeek(BigDecimal.ZERO);
             }
 
             durationRevenueMap.put(dateStr, durationRevenue);

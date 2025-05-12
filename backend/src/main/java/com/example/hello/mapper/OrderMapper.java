@@ -350,12 +350,11 @@ public interface OrderMapper {
                         @Param("endDate") String endDate);
 
         @Select("SELECT DATE(create_at) as date, " +
-                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) < 1 THEN cost ELSE 0 END) as less_than_one_hour, "
-                        +
-                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) >= 1 AND (duration + COALESCE(extended_duration, 0)) <= 4 THEN cost ELSE 0 END) as one_to_four_hours, "
-                        +
-                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) > 4 THEN cost ELSE 0 END) as more_than_four_hours "
-                        +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) < 1 THEN cost ELSE 0 END) as less_than_one_hour, " +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) >= 1 AND (duration + COALESCE(extended_duration, 0)) <= 4 THEN cost ELSE 0 END) as one_to_four_hours, " +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) > 4 AND (duration + COALESCE(extended_duration, 0)) <= 24 THEN cost ELSE 0 END) as four_hours_to_one_day, " +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) > 24 AND (duration + COALESCE(extended_duration, 0)) <= 168 THEN cost ELSE 0 END) as one_day_to_one_week, " +
+                        "SUM(CASE WHEN (duration + COALESCE(extended_duration, 0)) > 168 THEN cost ELSE 0 END) as more_than_one_week " +
                         "FROM Orders " +
                         "WHERE status != 'PENDING' AND DATE(create_at) BETWEEN #{startDate} AND #{endDate} " +
                         "GROUP BY DATE(create_at)")
@@ -363,7 +362,9 @@ public interface OrderMapper {
                         @Result(property = "date", column = "date"),
                         @Result(property = "lessThanOneHour", column = "less_than_one_hour"),
                         @Result(property = "oneToFourHours", column = "one_to_four_hours"),
-                        @Result(property = "moreThanFourHours", column = "more_than_four_hours")
+                        @Result(property = "fourHoursToOneDay", column = "four_hours_to_one_day"),
+                        @Result(property = "oneDayToOneWeek", column = "one_day_to_one_week"),
+                        @Result(property = "moreThanOneWeek", column = "more_than_one_week")
         })
         List<DurationRevenue> getDurationRevenueByDateRange(@Param("startDate") String startDate,
                         @Param("endDate") String endDate);
@@ -382,6 +383,8 @@ public interface OrderMapper {
                 private String date;
                 private BigDecimal lessThanOneHour;
                 private BigDecimal oneToFourHours;
-                private BigDecimal moreThanFourHours;
+                private BigDecimal fourHoursToOneDay;
+                private BigDecimal oneDayToOneWeek;
+                private BigDecimal moreThanOneWeek;
         }
 }
