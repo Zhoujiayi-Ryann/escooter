@@ -26,7 +26,6 @@ public class RevenueStatisticsResponse {
      */
     private Map<String, DurationRevenue> dailyDurationRevenue;
 
-    @Data
     public static class DurationRevenue {
         /**
          * 时长小于1小时的订单收入
@@ -52,5 +51,45 @@ public class RevenueStatisticsResponse {
          * 时长大于1周的订单收入
          */
         private BigDecimal moreThanOneWeek;
+
+        public BigDecimal getLessThanOneHour() {
+            return lessThanOneHour;
+        }
+
+        public void setLessThanOneHour(BigDecimal lessThanOneHour) {
+            this.lessThanOneHour = lessThanOneHour;
+        }
+
+        public BigDecimal getOneToFourHours() {
+            return oneToFourHours;
+        }
+
+        public void setOneToFourHours(BigDecimal oneToFourHours) {
+            this.oneToFourHours = oneToFourHours;
+        }
+
+        public BigDecimal getFourHoursToOneDay() {
+            return fourHoursToOneDay;
+        }
+
+        public void setFourHoursToOneDay(BigDecimal fourHoursToOneDay) {
+            this.fourHoursToOneDay = fourHoursToOneDay;
+        }
+
+        public BigDecimal getOneDayToOneWeek() {
+            return oneDayToOneWeek;
+        }
+
+        public void setOneDayToOneWeek(BigDecimal oneDayToOneWeek) {
+            this.oneDayToOneWeek = oneDayToOneWeek;
+        }
+
+        public BigDecimal getMoreThanOneWeek() {
+            return moreThanOneWeek;
+        }
+
+        public void setMoreThanOneWeek(BigDecimal moreThanOneWeek) {
+            this.moreThanOneWeek = moreThanOneWeek;
+        }
     }
 }

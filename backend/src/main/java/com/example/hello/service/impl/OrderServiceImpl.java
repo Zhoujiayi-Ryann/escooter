@@ -1150,12 +1150,14 @@ public class OrderServiceImpl implements OrderService {
             OrderMapper.DurationRevenue existingDuration = existingDurationRevenues.get(dateStr);
 
             if (existingDuration != null) {
-                durationRevenue.setLessThanOneHour(existingDuration.getLessThanOneHour());
-                durationRevenue.setOneToFourHours(existingDuration.getOneToFourHours());
-                durationRevenue.setFourHoursToOneDay(existingDuration.getFourHoursToOneDay());
-                durationRevenue.setOneDayToOneWeek(existingDuration.getOneDayToOneWeek());
-                durationRevenue.setMoreThanOneWeek(existingDuration.getMoreThanOneWeek());
+                // 设置所有时长范围的收入数据
+                durationRevenue.setLessThanOneHour(existingDuration.getLessThanOneHour() != null ? existingDuration.getLessThanOneHour() : BigDecimal.ZERO);
+                durationRevenue.setOneToFourHours(existingDuration.getOneToFourHours() != null ? existingDuration.getOneToFourHours() : BigDecimal.ZERO);
+                durationRevenue.setFourHoursToOneDay(existingDuration.getFourHoursToOneDay() != null ? existingDuration.getFourHoursToOneDay() : BigDecimal.ZERO);
+                durationRevenue.setOneDayToOneWeek(existingDuration.getOneDayToOneWeek() != null ? existingDuration.getOneDayToOneWeek() : BigDecimal.ZERO);
+                durationRevenue.setMoreThanOneWeek(existingDuration.getMoreThanOneWeek() != null ? existingDuration.getMoreThanOneWeek() : BigDecimal.ZERO);
             } else {
+                // 如果没有数据，设置所有时长为0
                 durationRevenue.setLessThanOneHour(BigDecimal.ZERO);
                 durationRevenue.setOneToFourHours(BigDecimal.ZERO);
                 durationRevenue.setFourHoursToOneDay(BigDecimal.ZERO);
