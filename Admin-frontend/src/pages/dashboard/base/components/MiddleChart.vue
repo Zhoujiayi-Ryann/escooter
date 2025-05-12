@@ -59,7 +59,8 @@ export default {
         hourlyRates: {
           '1hr': [],
           '4hr': [],
-          '1day': []
+          '1day': [],
+          '1week': []
         }
       },
       totalWeeklyIncome: 0
@@ -157,7 +158,8 @@ export default {
               html += '<br/>Time Period Distribution:<br/>';
               html += `1 Hour: £${this.chartData.hourlyRates['1hr'][index]}<br/>`;
               html += `4 Hours: £${this.chartData.hourlyRates['4hr'][index]}<br/>`;
-              html += `1 Day: £${this.chartData.hourlyRates['1day'][index]}`;
+              html += `1 Day: £${this.chartData.hourlyRates['1day'][index]}<br/>`;
+              html += `1 Week: £${this.chartData.hourlyRates['1week'][index]}`;
               return html;
             }
           },

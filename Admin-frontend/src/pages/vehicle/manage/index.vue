@@ -325,6 +325,41 @@ const getStationById = (stationId) => {
   return ALL_STATIONS.find(station => station.id === stationId);
 };
 
+// 计算两点之间的距离（使用Haversine公式）
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371; // 地球半径，单位km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c * 1000; // 转换为米
+  return distance;
+};
+
+// 根据经纬度找到最近的站点
+const findNearestStation = (lat, lng) => {
+  let nearestStation = null;
+  let minDistance = Infinity;
+  
+  for (const station of ALL_STATIONS) {
+    const distance = calculateDistance(lat, lng, station.lat, station.lng);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestStation = station;
+    }
+  }
+  
+  // 如果最近的站点在800米范围内，则返回该站点
+  if (nearestStation && minDistance <= 800) {
+    return nearestStation;
+  }
+  
+  return null;
+};
+
 // 根据站点ID获取位置字符串
 const getLocationStringFromStationId = (stationId) => {
   const station = getStationById(stationId);
@@ -334,11 +369,25 @@ const getLocationStringFromStationId = (stationId) => {
   return '';
 };
 
-// 从位置字符串中提取站点ID
+// 从位置字符串中提取经纬度
+const getLatLngFromLocationString = (locationString) => {
+  const match = locationString.match(/\(([^,]+),\s*([^)]+)\)/);
+  if (match && match.length === 3) {
+    return {
+      lat: parseFloat(match[1]),
+      lng: parseFloat(match[2])
+    };
+  }
+  return null;
+};
+
+// 从位置字符串中找到最近的站点ID
 const getStationIdFromLocationString = (locationString) => {
-  for (const station of ALL_STATIONS) {
-    if (locationString.includes(`(${station.lat}, ${station.lng})`)) {
-      return station.id;
+  const latLng = getLatLngFromLocationString(locationString);
+  if (latLng) {
+    const nearestStation = findNearestStation(latLng.lat, latLng.lng);
+    if (nearestStation) {
+      return nearestStation.id;
     }
   }
   return null;
@@ -536,20 +585,18 @@ export default Vue.extend({
           const locationMatch = scooter.location.match(/\(([^,]+),\s*([^)]+)\)/);
           let city = '未知城市';
           let stationId = null;
-          let stationName = '未知站点';
+          let stationName = 'Unknown site';
           
           if (locationMatch && locationMatch.length === 3) {
             const lat = parseFloat(locationMatch[1]);
             const lng = parseFloat(locationMatch[2]);
             city = await getCityFromLocation(lat, lng);
             
-            // 查找最近的站点
-            stationId = getStationIdFromLocationString(scooter.location);
-            if (stationId) {
-              const station = getStationById(stationId);
-              if (station) {
-                stationName = station.name;
-              }
+            // 查找800米范围内最近的站点
+            const nearestStation = findNearestStation(lat, lng);
+            if (nearestStation) {
+              stationId = nearestStation.id;
+              stationName = nearestStation.name;
             }
           }
 
@@ -683,13 +730,21 @@ export default Vue.extend({
       try {
         const scooterDetail = await scooterService.getScooterById(row.id);
         if (scooterDetail) {
+          // 提取经纬度
+          const lat = scooterDetail.location_lat;
+          const lng = scooterDetail.location_lng;
+          
+          // 查找800米范围内最近的站点
+          const nearestStation = findNearestStation(lat, lng);
+          const stationId = nearestStation ? nearestStation.id : null;
+          
           // 将API返回的数据映射到表单
           this.vehicleForm = {
             id: scooterDetail.scooter_id,
             scooterCode: `SC-${1000 + scooterDetail.scooter_id}`,
             city: row.city, // 使用表格中的城市数据
             location: row.location,
-            stationId: row.stationId || getStationIdFromLocationString(row.location), // 优先使用行数据中的站点ID
+            stationId: stationId, // 使用最近站点ID
             battery: scooterDetail.battery_level,
             status: SCOOTER_STATUS[scooterDetail.status],
             lastRentTime: scooterDetail.last_used_date
@@ -701,14 +756,14 @@ export default Vue.extend({
           // 如果获取详情失败，使用表格中的数据
           this.vehicleForm = { 
             ...row,
-            stationId: row.stationId || getStationIdFromLocationString(row.location) // 优先使用行数据中的站点ID
+            stationId: row.stationId
           };
         }
       } catch (error) {
         console.error('Failed to get vehicle details:', error);
         this.vehicleForm = { 
           ...row,
-          stationId: row.stationId || getStationIdFromLocationString(row.location) // 优先使用行数据中的站点ID
+          stationId: row.stationId
         };
       }
 
@@ -1016,7 +1071,7 @@ export default Vue.extend({
       // 获取站点信息
       const stationId = row.stationId || getStationIdFromLocationString(row.location);
       const station = getStationById(stationId);
-      const stationName = station ? station.name : '未知站点';
+      const stationName = station ? station.name : 'Unknown site';
       
       this.payForm = {
         scooterCode: row.scooterCode,

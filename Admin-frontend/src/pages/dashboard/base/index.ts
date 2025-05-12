@@ -214,7 +214,8 @@ export function getLineChartDataSet({
   const hourlyRates = {
     '1hr': outArray.map(v => 0),
     '4hr': outArray.map(v => 0),
-    '1day': outArray.map(v => 0)
+    '1day': outArray.map(v => 0),
+    '1week': outArray.map(v => 0)
   };
 
   const dataSet = {
@@ -232,7 +233,8 @@ export function getLineChartDataSet({
         html += '<br/>Time Period Distribution:<br/>';
         html += `1 Hour: £${hourlyRates['1hr'][params[0].dataIndex]}<br/>`;
         html += `4 Hours: £${hourlyRates['4hr'][params[0].dataIndex]}<br/>`;
-        html += `1 Day: £${hourlyRates['1day'][params[0].dataIndex]}`;
+        html += `1 Day: £${hourlyRates['1day'][params[0].dataIndex]}<br/>`;
+        html += `1 Week: £${hourlyRates['1week'][params[0].dataIndex]}`;
         return html;
       }
     },
@@ -346,7 +348,8 @@ export async function updateLineChartData(chart: any, selectedDate: string) {
     const hourlyRates = {
       '1hr': [],
       '4hr': [],
-      '1day': []
+      '1day': [],
+      '1week': []
     };
     
     // 遍历日期范围内的每一天
@@ -366,12 +369,14 @@ export async function updateLineChartData(chart: any, selectedDate: string) {
       const durationData = currentWeekData.dailyDurationRevenue[currentDate] || {
         lessThanOneHour: 0,
         oneToFourHours: 0,
-        moreThanFourHours: 0
+        fourHoursToOneDay: 0,
+        oneDayToOneWeek: 0
       };
       
       hourlyRates['1hr'].push(durationData.lessThanOneHour);
       hourlyRates['4hr'].push(durationData.oneToFourHours);
-      hourlyRates['1day'].push(durationData.moreThanFourHours);
+      hourlyRates['1day'].push(durationData.fourHoursToOneDay);
+      hourlyRates['1week'].push(durationData.oneDayToOneWeek);
     }
     
     // 更新图表数据

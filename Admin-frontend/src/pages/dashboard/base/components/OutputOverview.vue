@@ -120,12 +120,14 @@ export default {
         
         // 调用API获取当前周的数据
         const currentWeekData = await getRevenueStatistics(startOfWeek, endOfWeek);
+        console.log('c',currentWeekData);
         
         // 准备数据数组
         const timeArray = [];
         const oneHourData = [];
         const fourHoursData = [];
         const oneDayData = [];
+        const oneWeekData = [];
         
         // 遍历日期范围内的每一天
         for (let i = 0; i < 7; i++) {
@@ -137,17 +139,19 @@ export default {
           const durationData = currentWeekData.dailyDurationRevenue[currentDate] || {
             lessThanOneHour: 0,
             oneToFourHours: 0,
-            moreThanFourHours: 0
+            fourHoursToOneDay: 0,
+            oneDayToOneWeek: 0
           };
           
           oneHourData.push(durationData.lessThanOneHour);
           fourHoursData.push(durationData.oneToFourHours);
-          oneDayData.push(durationData.moreThanFourHours);
+          oneDayData.push(durationData.fourHoursToOneDay);
+          oneWeekData.push(durationData.oneDayToOneWeek);
         }
         
         // 更新图表数据
         this.stokeChart.setOption({
-          color: ['#8e8de1', '#c3d7f2', '#5b89d8'],
+          color: ['#8e8de1', '#c3d7f2', '#5b89d8', '#a3c9a8'],
           tooltip: {
             trigger: 'axis',
             axisPointer: {
@@ -155,7 +159,7 @@ export default {
             }
           },
           legend: {
-            data: ['1 Hour', '4 Hours', '1 Day'],
+            data: ['1 Hour', '4 Hours', '1 Day', '1 Week'],
             left: 'center',
             bottom: '0',
             orient: 'horizontal',
@@ -204,8 +208,8 @@ export default {
                 focus: 'series'
               },
               data: oneHourData,
-              barWidth: '25%',
-              barGap: '20%',
+              barWidth: '20%',
+              barGap: '10%',
               itemStyle: {
                 borderRadius: [3, 3, 3, 3]
               }
@@ -230,6 +234,19 @@ export default {
                 focus: 'series'
               },
               data: oneDayData,
+              barWidth: '20%',
+              barGap: '10%',
+              itemStyle: {
+                borderRadius: [3, 3, 3, 3]
+              }
+            },
+            {
+              name: '1 Week',
+              type: 'bar',
+              emphasis: {
+                focus: 'series'
+              },
+              data: oneWeekData,
               barWidth: '20%',
               barGap: '10%',
               itemStyle: {
